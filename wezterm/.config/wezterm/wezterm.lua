@@ -18,5 +18,6 @@ config.window_background_opacity = 0.5
 config.status_update_interval = 1000
 
 -- 各モジュールの読み込み
+require("theme").apply_to_config(config)
 
 return config
