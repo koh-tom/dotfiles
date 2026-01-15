@@ -48,7 +48,7 @@ config.quick_select_patterns = {
 require("appearance").apply_to_config(config)
 require("tab").apply_to_config(config)
 require("statusbar").apply_to_config(config)
-
--- Phase 2で keymaps や workspace をここに追加します
+require("keymaps").apply_to_config(config)
+require("workspace").apply_to_config(config)
 
 return config
