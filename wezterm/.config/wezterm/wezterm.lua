@@ -51,4 +51,8 @@ require("statusbar").apply_to_config(config)
 require("keymaps").apply_to_config(config)
 require("workspace").apply_to_config(config)
 
+-- 拡張モジュールの読み込み
+require("modules.opacity").apply_to_config(config)
+require("modules.claude_session").apply_to_config(config)
+
 return config
