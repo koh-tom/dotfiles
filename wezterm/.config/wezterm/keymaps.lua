@@ -68,7 +68,6 @@ local leader = { key = "q", mods = "CTRL", timeout_milliseconds = 2000 }
 local keys = {
   { key = "Enter", mods = "ALT", action = act.ToggleFullScreen },
   { key = "n", mods = "SUPER", action = act.SpawnWindow },
-  { key = "l", mods = "CTRL|SHIFT", action = act.ShowDebugOverlay },
   { key = ".", mods = "LEADER", action = act.ShowDebugOverlay },
   { key = "r", mods = "SUPER", action = act.ReloadConfiguration },
   { key = "R", mods = "CTRL|SHIFT", action = act.ReloadConfiguration },
@@ -122,7 +121,7 @@ local keys = {
   { key = "r", mods = "LEADER", action = act.SplitHorizontal({ domain = "CurrentPaneDomain" }) },
   { key = "d", mods = "LEADER", action = act.SplitVertical({ domain = "CurrentPaneDomain" }) },
   { key = "x", mods = "LEADER", action = act({ CloseCurrentPane = { confirm = true } }) },
-  { key = "z", mods = "LEADER", action = act.TogglePaneZoomState },
+  { key = "f", mods = "LEADER", action = act.TogglePaneZoomState },
   
   -- ペイン最小化 / 復元 (CTRL+SHIFT+C)
   {
