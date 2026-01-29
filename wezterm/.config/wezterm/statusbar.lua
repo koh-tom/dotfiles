@@ -16,6 +16,10 @@ local ICONS = {
   time = wezterm.nerdfonts.md_clock_outline,
   bat_charging = wezterm.nerdfonts.md_battery_charging,
   bat_discharging = wezterm.nerdfonts.md_battery,
+  cpu = wezterm.nerdfonts.md_cpu_64_bit,
+  mem = wezterm.nerdfonts.md_memory,
+  dir = wezterm.nerdfonts.md_folder_open,
+  server = wezterm.nerdfonts.md_server,
 }
 
 -- キャッシュ用変数
@@ -27,31 +31,55 @@ local last_git_branch = ""
 -- ヘルパー関数
 -- =============================================================================
 
--- Git ブランチ名を取得
+-- カレントディレクトリを短縮して取得
+local function get_short_cwd(pane)
+  local cwd_url = pane:get_current_working_dir()
+  if not cwd_url then return "" end
+  local path = cwd_url.file_path
+  local home = wezterm.home_dir
+  if path:sub(1, #home) == home then path = "~" .. path:sub(#home + 1) end
+  return path
+end
+
+-- Git ブランチ名を取得 (キャッシュ対応)
 local function get_git_branch(pane)
   local cwd_url = pane:get_current_working_dir()
   local cwd = cwd_url and cwd_url.file_path or ""
-  
   if cwd == last_cwd then return last_git_branch end
   last_cwd = cwd
 
   local success, stdout, _ = wezterm.run_child_process({ "git", "-C", cwd, "branch", "--show-current" })
-  if success then
-    last_git_branch = stdout:gsub("\n", "")
-  else
-    last_git_branch = ""
-  end
+  last_git_branch = success and stdout:gsub("\n", "") or ""
   return last_git_branch
 end
 
--- バッテリー情報を取得
-local function get_battery_status()
-  local bat = ""
-  for _, b in ipairs(wezterm.battery_info()) do
-    local icon = b.state == "Charging" and ICONS.bat_charging or ICONS.bat_discharging
-    bat = string.format("%s %.0f%% ", icon, b.state_of_charge * 100)
+-- CPU 負荷とメモリ使用率を取得 (Linux 特化)
+local function get_sys_info()
+  local load = ""
+  local mem = ""
+  
+  -- CPU Load (1分平均)
+  local f = io.open("/proc/loadavg", "r")
+  if f then
+    local content = f:read("*all")
+    f:close()
+    load = string.format("%s %s ", ICONS.cpu, content:match("^(%d+%.%d+)"))
   end
-  return bat
+
+  -- Memory Usage
+  local f_mem = io.open("/proc/meminfo", "r")
+  if f_mem then
+    local content = f_mem:read("*all")
+    f_mem:close()
+    local total = tonumber(content:match("MemTotal:%s+(%d+)"))
+    local available = tonumber(content:match("MemAvailable:%s+(%d+)"))
+    if total and available then
+      local used_percent = math.floor((total - available) / total * 100)
+      mem = string.format("%s %d%% ", ICONS.mem, used_percent)
+    end
+  end
+  
+  return load, mem
 end
 
 -- =============================================================================
@@ -64,34 +92,56 @@ function module.apply_to_config(_)
     local key_table = window:active_key_table()
     local color = WORKSPACE_COLORS[key_table] or WORKSPACE_COLORS.default
 
+    -- -------------------------------------------------------------------------
     -- 左側: ワークスペース表示
+    -- -------------------------------------------------------------------------
     window:set_left_status(wezterm.format({
       { Background = { Color = "transparent" } },
       { Foreground = { Color = color } },
       { Text = "  " .. workspace .. "  " },
     }))
 
-    -- 右側: Git, 時刻, バッテリー
-    local branch = get_git_branch(pane)
-    local time = wezterm.strftime("%H:%M")
-    local bat = get_battery_status()
-    
+    -- -------------------------------------------------------------------------
+    -- 右側: プログレッシブ・ステータス
+    -- -------------------------------------------------------------------------
     local right_status = {}
+    local branch = get_git_branch(pane)
+    local cwd = get_short_cwd(pane)
+    local load, mem = get_sys_info()
+    local time = wezterm.strftime("%H:%M")
     
-    -- Git ブランチがあれば表示
+    -- ホスト名 (SSH判定)
+    local user_vars = pane:get_user_vars()
+    if user_vars.ssh_host then
+      table.insert(right_status, { Foreground = { Color = "#ffd700" } })
+      table.insert(right_status, { Text = ICONS.server .. " " .. user_vars.ssh_host .. " │ " })
+    end
+
+    -- CWD (短縮パス)
+    table.insert(right_status, { Foreground = { Color = "#8b9ba8" } })
+    table.insert(right_status, { Text = ICONS.dir .. " " .. cwd .. "  " })
+    
+    -- Git
     if branch ~= "" then
       table.insert(right_status, { Foreground = { Color = "#a0b88c" } })
-      table.insert(right_status, { Text = ICONS.git .. " " .. branch .. "  " })
+      table.insert(right_status, { Text = "│ " .. ICONS.git .. " " .. branch .. " " })
     end
     
-    -- 時刻
-    table.insert(right_status, { Foreground = { Color = "#8b9ba8" } })
-    table.insert(right_status, { Text = ICONS.time .. " " .. time .. "  " })
+    -- リソース (CPU/メモリ)
+    table.insert(right_status, { Foreground = { Color = "#7a9ec2" } })
+    table.insert(right_status, { Text = "│ " .. load .. mem })
     
-    -- バッテリー
-    if bat ~= "" then
+    -- 時刻
+    table.insert(right_status, { Foreground = { Color = "#b4a7d6" } })
+    table.insert(right_status, { Text = "│ " .. ICONS.time .. " " .. time .. "  " })
+    
+    -- バッテリー (あれば)
+    local bat_info = wezterm.battery_info()
+    if #bat_info > 0 then
+      local b = bat_info[1]
+      local bat_icon = b.state == "Charging" and ICONS.bat_charging or ICONS.bat_discharging
       table.insert(right_status, { Foreground = { Color = "#d4a76a" } })
-      table.insert(right_status, { Text = bat })
+      table.insert(right_status, { Text = string.format("│ %s %.0f%% ", bat_icon, b.state_of_charge * 100) })
     end
 
     window:set_right_status(wezterm.format(right_status))
