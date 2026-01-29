@@ -68,7 +68,8 @@ local leader = { key = "q", mods = "CTRL", timeout_milliseconds = 2000 }
 local keys = {
   { key = "Enter", mods = "ALT", action = act.ToggleFullScreen },
   { key = "n", mods = "SUPER", action = act.SpawnWindow },
-  { key = "l", mods = "SUPER", action = act.ShowDebugOverlay },
+  { key = "l", mods = "CTRL|SHIFT", action = act.ShowDebugOverlay },
+  { key = ".", mods = "LEADER", action = act.ShowDebugOverlay },
   { key = "r", mods = "SUPER", action = act.ReloadConfiguration },
   { key = "R", mods = "CTRL|SHIFT", action = act.ReloadConfiguration },
 
@@ -233,7 +234,6 @@ local key_tables = {
     { key = "l", action = act.AdjustPaneSize({ "Right", 1 }) },
     { key = "k", action = act.AdjustPaneSize({ "Up", 1 }) },
     { key = "j", action = act.AdjustPaneSize({ "Down", 1 }) },
-    -- 1-9 で高さ(10%-90%)
     { key = "1", action = set_pane_height_percent(0.1) },
     { key = "2", action = set_pane_height_percent(0.2) },
     { key = "3", action = set_pane_height_percent(0.3) },
@@ -243,7 +243,6 @@ local key_tables = {
     { key = "7", action = set_pane_height_percent(0.7) },
     { key = "8", action = set_pane_height_percent(0.8) },
     { key = "9", action = set_pane_height_percent(0.9) },
-    -- Ctrl+1-9 で幅(10%-90%)
     { key = "1", mods = "CTRL", action = set_pane_width_percent(0.1) },
     { key = "2", mods = "CTRL", action = set_pane_width_percent(0.2) },
     { key = "3", mods = "CTRL", action = set_pane_width_percent(0.3) },
@@ -257,14 +256,6 @@ local key_tables = {
     { key = "q", action = "PopKeyTable" },
   },
 }
-
--- augment-command-palette: コマンドパレットに独自項目追加
-wezterm.on("augment-command-palette", function(window, pane)
-  return {
-    { brief = "Launch: Lazygit", icon = "md_git", action = act.SpawnTab("CurrentPaneDomain") }, -- 仮(実際はspawn_overlay_pane)
-    { brief = "Weather: wttr.in", icon = "md_weather_cloudy", action = act.SpawnTab({ args = { "curl", "wttr.in" } }) },
-  }
-end)
 
 function module.apply_to_config(config)
   config.disable_default_key_bindings = false

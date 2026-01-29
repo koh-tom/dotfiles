@@ -56,5 +56,7 @@ require("modules.opacity").apply_to_config(config)
 require("modules.claude_session").apply_to_config(config)
 require("modules.aws_profile").apply_to_config(config)
 require("modules.translate").apply_to_config(config)
+require("modules.colorscheme").apply_to_config(config)
+require("modules.smart_open").apply_to_config(config)
 
 return config
