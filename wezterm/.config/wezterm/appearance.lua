@@ -7,6 +7,14 @@ local appearance = {
   window_decorations = "RESIZE",
   window_close_confirmation = "NeverPrompt",
 
+  audible_bell = "Disabled",
+  visual_bell = {
+    fade_in_function = "EaseIn",
+    fade_in_duration_ms = 150,
+    fade_out_function = "EaseOut",
+    fade_out_duration_ms = 150,
+  },
+
   inactive_pane_hsb = {
     hue = 0.9,
     saturation = 0.9,

@@ -194,6 +194,25 @@ local keys = {
     }),
   },
 
+  -- スクロールバックバッファをNeovimで開く (LEADER + b)
+  {
+    key = "b",
+    mods = "LEADER",
+    action = wezterm.action_callback(function(window, pane)
+      local text = pane:get_lines_as_text(pane:get_dimensions().scrollback_rows)
+      local name = os.tmpname()
+      local f = io.open(name, "w+")
+      if f then
+        f:write(text)
+        f:flush()
+        f:close()
+        window:perform_action(act.SpawnCommandInNewTab({
+          args = { "nvim", "+", name },
+        }), pane)
+      end
+    end),
+  },
+
   -- モード開始
   { key = "s", mods = "LEADER", action = act.ActivateKeyTable({ name = "setting_mode", one_shot = false }) },
   { key = "x", mods = "SHIFT|CTRL", action = act.ActivateCopyMode },
@@ -222,11 +241,29 @@ local key_tables = {
     { key = "u", mods = "CTRL", action = act.CopyMode({ MoveByPage = -0.5 }) },
     { key = "d", mods = "CTRL", action = act.CopyMode({ MoveByPage = 0.5 }) },
     { key = "/", mods = "NONE", action = act.Search("CurrentSelectionOrEmptyString") },
+    { key = "^", mods = "NONE", action = act.CopyMode("MoveToStartOfLineContent") },
+    { key = "$", mods = "NONE", action = act.CopyMode("MoveToEndOfLineContent") },
+    { key = "e", mods = "NONE", action = act.CopyMode("MoveForwardWordEnd") },
+    { key = ";", mods = "NONE", action = act.CopyMode("JumpAgain") },
+    { key = ",", mods = "NONE", action = act.CopyMode("JumpReverse") },
+    { key = "H", mods = "NONE", action = act.CopyMode("MoveToViewportTop") },
+    { key = "M", mods = "NONE", action = act.CopyMode("MoveToViewportMiddle") },
+    { key = "L", mods = "NONE", action = act.CopyMode("MoveToViewportBottom") },
+    { key = "o", mods = "NONE", action = act.CopyMode("MoveToSelectionOtherEnd") },
+    { key = "O", mods = "NONE", action = act.CopyMode("MoveToSelectionOtherEndHoriz") },
+    { key = "b", mods = "CTRL", action = act.CopyMode("PageUp") },
+    { key = "f", mods = "CTRL", action = act.CopyMode("PageDown") },
+    { key = "c", mods = "CTRL", action = act.CopyMode("Close") },
+    { key = "[", mods = "NONE", action = act.CopyMode({ MoveBackwardZoneOfType = "Prompt" }) },
+    { key = "]", mods = "NONE", action = act.CopyMode({ MoveForwardZoneOfType = "Prompt" }) },
   },
   search_mode = {
     { key = "Escape", mods = "NONE", action = act.CopyMode("Close") },
     { key = "n", mods = "CTRL", action = act.Multiple({ act.CopyMode("NextMatch"), act.ActivateCopyMode }) },
     { key = "p", mods = "CTRL", action = act.Multiple({ act.CopyMode("PriorMatch"), act.ActivateCopyMode }) },
+    { key = "r", mods = "CTRL", action = act.CopyMode("CycleMatchType") },
+    { key = "u", mods = "CTRL", action = act.CopyMode("ClearPattern") },
+    { key = "x", mods = "CTRL", action = act.CopyMode("AcceptPattern") },
   },
   setting_mode = {
     { key = "h", action = act.AdjustPaneSize({ "Left", 1 }) },
