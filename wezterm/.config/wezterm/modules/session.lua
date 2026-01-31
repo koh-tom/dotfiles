@@ -198,6 +198,15 @@ local function restore_session()
 end
 
 -- ---------------------------------------------------------------------------
+-- セッション削除 (リセット)
+-- ---------------------------------------------------------------------------
+local function clear_session(window)
+  os.remove(SESSION_FILE)
+  wezterm.log_info("[session] Session file deleted")
+  window:toast_notification("WezTerm Session", "Session reset: starting fresh next time", nil, 3000)
+end
+
+-- ---------------------------------------------------------------------------
 -- apply_to_config
 -- ---------------------------------------------------------------------------
 function module.apply_to_config(config)
@@ -206,6 +215,14 @@ function module.apply_to_config(config)
     mods = "LEADER|SHIFT",
     action = wezterm.action_callback(function(window, _)
       save_session(window)
+    end),
+  })
+
+  table.insert(config.keys, {
+    key = "D",
+    mods = "LEADER|SHIFT",
+    action = wezterm.action_callback(function(window, _)
+      clear_session(window)
     end),
   })
 
