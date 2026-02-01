@@ -1,0 +1,36 @@
+[tools]
+# --- Core Languages (Example based) ---
+node = "latest"
+pnpm = "latest"
+python = "3.13.3"
+uv = "latest"
+
+# --- AI Tools (Example based) ---
+"npm:@anthropic-ai/claude-code" = "latest"
+"npm:@google/gemini-cli" = "latest"
+"npm:czg" = "latest"
+
+# --- Recommended TUI Utils (Phase 1 & 2 integration) ---
+neovim = "latest"
+lazygit = "latest"
+ripgrep = "latest"
+fd = "latest"
+fzf = "latest"
+starship = "latest"
+yazi = "latest"
+
+# --- WezTerm Module Support ---
+#"pipx:plamo-translate" = { version = "latest", uvx = "true" }
+
+[settings]
+idiomatic_version_file_enable_tools = ["node"]
+
+[env]
+EDITOR = "nvim"
+VISUAL = "nvim"
+
+[tasks]
+# mise run update
+update = "mise self-update && mise upgrade && apt update"
+# mise run dot
+dot = "cd ~/dotfiles && lazygit"
