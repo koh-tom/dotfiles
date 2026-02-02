@@ -23,6 +23,21 @@ config.window_background_opacity = 0.9
 config.status_update_interval = 1500
 
 -- =============================================================================
+-- $PATH 同期 (mise shims + local bin) — ベストプラクティス構成
+-- =============================================================================
+local home = wezterm.home_dir
+config.set_environment_variables = {
+  PATH = table.concat({
+    home .. "/.local/share/mise/shims",
+    home .. "/.local/bin",
+    "/usr/local/bin",
+    "/usr/bin",
+    "/bin",
+    os.getenv("PATH") or "",
+  }, ":"),
+}
+
+-- =============================================================================
 -- QuickSelect patterns (SUPER + Space等で利用)
 -- =============================================================================
 config.disable_default_quick_select_patterns = true
