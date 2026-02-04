@@ -1,0 +1,42 @@
+# --- OS specific ---
+.DS_Store
+Thumbs.db
+
+# --- Editors ---
+# Neovim
+*.swp
+*.swo
+**/undo/
+.netrwhist
+tags
+
+# VSCode
+.vscode/
+
+# --- Temporary files ---
+*.bak
+*~
+*.tmp
+
+# --- Examples/Reference ---
+# 参考リファレンス用フォルダを除外
+examples/
+
+# --- Tools state/cache (Globally) ---
+# mise
+.mise.toml
+.python-version
+.node-version
+
+# zsh
+**/.zsh_history
+**/.zcompdump*
+**/*.zwc
+
+# --- Secrets (Safety first!) ---
+.env
+.env.*
+*.pem
+*.key
+**/credentials
+**/config/gcloud/

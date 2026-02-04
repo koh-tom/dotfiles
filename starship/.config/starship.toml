@@ -1,0 +1,57 @@
+add_newline = true
+
+# ----------------------------------------------------
+# format
+# ----------------------------------------------------
+format = """
+${custom.directory}\
+$git_branch\
+$git_status\
+$python\
+$aws\
+$fill\
+$cmd_duration\
+$time\
+\n$character\
+"""
+
+[directory]
+disabled = true
+
+[custom.directory]
+command = "bash ~/.config/zsh/scripts/starship_directory.sh"
+when = "true"
+format = "$output"
+
+[git_branch]
+symbol = ""
+style = "fg:#769ff0 bg:#1d2230"
+format = """
+[](fg:#1d2230)\
+[$symbol $branch]($style)\
+"""
+
+[git_status]
+style = "fg:#769ff0 bg:#1d2230"
+format = """
+[$all_status$ahead_behind]($style)\
+[](fg:#1d2230)\
+"""
+
+[cmd_duration]
+min_time = 1
+style = 'fg:#e0af68'
+format = "[ $duration]($style)"
+
+[time]
+disabled = false
+time_format = "%R"
+format = '[[  $time](fg:#a0a9cb)]($style)'
+
+[character]
+vimcmd_symbol = '[V](bold green) '
+
+[aws]
+format = '[$symbol $profile ]($style)'
+symbol = "💭"
+style = "bold fg:#ffcb6b"

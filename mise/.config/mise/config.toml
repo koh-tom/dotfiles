@@ -1,5 +1,4 @@
 [tools]
-# --- Core Languages (Example based) ---
 node = "latest"
 pnpm = "latest"
 python = "3.13.3"
@@ -10,7 +9,7 @@ uv = "latest"
 "npm:@google/gemini-cli" = "latest"
 "npm:czg" = "latest"
 
-# --- Recommended TUI Utils (Phase 1 & 2 integration) ---
+# --- Recommended TUI Utils ---
 neovim = "latest"
 lazygit = "latest"
 ripgrep = "latest"
@@ -18,11 +17,15 @@ fd = "latest"
 fzf = "latest"
 starship = "latest"
 yazi = "latest"
-
-# --- WezTerm Module Support ---
-#"pipx:plamo-translate" = { version = "latest", uvx = "true" }
+"aqua:rossmacarthur/sheldon" = "latest"
+zoxide = "latest"
+deno = "latest"
+eza = "latest"
+bat = "latest"
 
 [settings]
+experimental = true
+asdf_compat = true
 idiomatic_version_file_enable_tools = ["node"]
 
 [env]
@@ -33,7 +36,7 @@ VISUAL = "nvim"
 # --- Common CLI Tools Settings ---
 # AWS CLI の出力を WezTerm のスクロールバックに直接流す (ページャー無効化)
 AWS_PAGER = ""
-# bat 等のシンタックスハイライトテーマを固定 (後の Phase で導入予定)
+# bat 等のシンタックスハイライトテーマを固定
 BAT_THEME = "TwoDark"
 
 # --- Locale & i18n ---
