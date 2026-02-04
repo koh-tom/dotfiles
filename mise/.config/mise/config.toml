@@ -26,8 +26,20 @@ yazi = "latest"
 idiomatic_version_file_enable_tools = ["node"]
 
 [env]
+# --- Editor Settings ---
 EDITOR = "nvim"
 VISUAL = "nvim"
+
+# --- Common CLI Tools Settings ---
+# AWS CLI の出力を WezTerm のスクロールバックに直接流す (ページャー無効化)
+AWS_PAGER = ""
+# bat 等のシンタックスハイライトテーマを固定 (後の Phase で導入予定)
+BAT_THEME = "TwoDark"
+
+# --- Locale & i18n ---
+# C.UTF-8 はモダンな Linux で必ず利用できる、英語ベースかつ Unicode 対応の安全なロケールです
+LANG = "C.UTF-8"
+LC_ALL = "C.UTF-8"
 
 [tasks]
 # mise run update
