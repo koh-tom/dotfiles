@@ -42,7 +42,18 @@ LANG = "C.UTF-8"
 LC_ALL = "C.UTF-8"
 
 [tasks]
-# mise run update
-update = "mise self-update && mise upgrade && apt update"
-# mise run dot
-dot = "cd ~/dotfiles && lazygit"
+# --- Maintenance ---
+# 全ツールの更新を一括実行
+update = { run = "mise self-update && mise upgrade && sudo apt update && sudo apt upgrade -y", description = "Update all tools via mise and apt" }
+
+# --- Shortcut Commands ---
+# どこにいてもドットファイルのリポジトリで Lazygit を起動
+dot = { run = "cd ~/dotfiles && lazygit", description = "Management dotfiles repo with lazygit" }
+# WezTerm の設定を即座に開く
+wez = { run = "nvim ~/dotfiles/wezterm/.config/wezterm/wezterm.lua", description = "Edit WezTerm config" }
+# mise の設定を即座に開く
+config = { run = "nvim ~/dotfiles/mise/.config/mise/config.toml", description = "Edit global mise config" }
+
+# --- External Tool Bridges ---
+# Claude Code をプロジェクトディレクトリ等で起動する例
+ai = { run = "claude", description = "Launch Claude Code AI assistant" }
