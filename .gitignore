@@ -32,6 +32,7 @@ examples/
 **/.zsh_history
 **/.zcompdump*
 **/*.zwc
+**/zsh/.config/zsh/.zsh_history
 
 # --- Secrets (Safety first!) ---
 .env

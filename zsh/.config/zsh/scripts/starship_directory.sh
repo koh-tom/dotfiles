@@ -1,8 +1,8 @@
 #!/bin/bash
 # ~/.config/zsh/scripts/starship_directory.sh
 
-# Color Palette (Tokyo Night / Vibrant)
-COLORS=("#80EBDF" "#7BC9FF" "#A29BFE" "#D6A2E8" "#FD79A8" "#FAB1A0")
+# Color Palette (Tokyo Night / Cool Ice)
+COLORS=("#73daca" "#7dcfff" "#7aa2f7" "#bb9af7")
 TEXT_COLOR="#1a1b26" # Deep dark
 LEFT_SEP=""
 RIGHT_SEP=""

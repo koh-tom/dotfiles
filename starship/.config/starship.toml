@@ -25,28 +25,22 @@ format = "$output"
 
 [git_branch]
 symbol = ""
-style = "fg:#769ff0 bg:#1d2230"
-format = """
-[](fg:#1d2230)\
-[$symbol $branch]($style)\
-"""
+style = "bold fg:#7aa2f7 bg:#1f2335"
+format = "[](fg:#1f2335)[$symbol $branch ]($style)"
 
 [git_status]
-style = "fg:#769ff0 bg:#1d2230"
-format = """
-[$all_status$ahead_behind]($style)\
-[](fg:#1d2230)\
-"""
+style = "bold fg:#f7768e bg:#1f2335"
+format = "[$all_status$ahead_behind]($style)[](fg:#1f2335) "
 
 [cmd_duration]
-min_time = 1
+min_time = 2000
 style = 'fg:#e0af68'
-format = "[ $duration]($style)"
+format = "[](fg:#e0af68)[󱎫 $duration](fg:#1a1b26 bg:#e0af68)[](fg:#e0af68) "
 
 [time]
 disabled = false
 time_format = "%R"
-format = '[[  $time](fg:#a0a9cb)]($style)'
+format = "[](fg:#1f2335)[ $time](fg:#a9b1d6 bg:#1f2335)[](fg:#1f2335)"
 
 [character]
 vimcmd_symbol = '[V](bold green) '
