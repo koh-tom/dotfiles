@@ -2,7 +2,7 @@ local wezterm = require("wezterm")
 local module = {}
 
 local appearance = {
-  color_scheme = "Solarized Dark Higher Contrast",
+  color_scheme = "Catppuccin Mocha",
 
   window_decorations = "RESIZE",
   window_close_confirmation = "NeverPrompt",
@@ -39,8 +39,8 @@ local appearance = {
       inactive_tab_edge = "none",
     },
     -- 背景色や ANSI カラーを固定しないことで、カラースキームの切替を有効化
-    selection_bg = "#d4c5b0",
-    selection_fg = "#1e1a2e",
+    selection_bg = "#585b70",
+    selection_fg = "#cdd6f4",
   },
 }
 

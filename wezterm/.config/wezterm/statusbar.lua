@@ -6,9 +6,9 @@ local module = {}
 -- =============================================================================
 
 local WORKSPACE_COLORS = {
-  default = "#b4a7d6",
-  copy_mode = "#ffd700",
-  setting_mode = "#39FF14",
+  default = "#cba6f7", -- Mauve
+  copy_mode = "#f9e2af", -- Yellow
+  setting_mode = "#a6e3a1", -- Green
 }
 
 local ICONS = {
@@ -118,21 +118,21 @@ function module.apply_to_config(_)
     end
 
     -- CWD (短縮パス)
-    table.insert(right_status, { Foreground = { Color = "#8b9ba8" } })
+    table.insert(right_status, { Foreground = { Color = "#a6adc8" } }) -- Subtext0
     table.insert(right_status, { Text = ICONS.dir .. " " .. cwd .. "  " })
     
     -- Git
     if branch ~= "" then
-      table.insert(right_status, { Foreground = { Color = "#a0b88c" } })
+      table.insert(right_status, { Foreground = { Color = "#a6e3a1" } }) -- Green
       table.insert(right_status, { Text = "│ " .. ICONS.git .. " " .. branch .. " " })
     end
     
     -- リソース (CPU/メモリ)
-    table.insert(right_status, { Foreground = { Color = "#7a9ec2" } })
+    table.insert(right_status, { Foreground = { Color = "#89dceb" } }) -- Sky
     table.insert(right_status, { Text = "│ " .. load .. mem })
     
     -- 時刻
-    table.insert(right_status, { Foreground = { Color = "#b4a7d6" } })
+    table.insert(right_status, { Foreground = { Color = "#b4befe" } }) -- Lavender
     table.insert(right_status, { Text = "│ " .. ICONS.time .. " " .. time .. "  " })
     
     -- バッテリー (あれば)
@@ -140,7 +140,7 @@ function module.apply_to_config(_)
     if #bat_info > 0 then
       local b = bat_info[1]
       local bat_icon = b.state == "Charging" and ICONS.bat_charging or ICONS.bat_discharging
-      table.insert(right_status, { Foreground = { Color = "#d4a76a" } })
+      table.insert(right_status, { Foreground = { Color = "#fab387" } }) -- Peach
       table.insert(right_status, { Text = string.format("│ %s %.0f%% ", bat_icon, b.state_of_charge * 100) })
     end
 

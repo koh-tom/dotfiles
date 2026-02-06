@@ -15,6 +15,9 @@ $time\
 \n$character\
 """
 
+[fill]
+symbol = " "
+
 [directory]
 disabled = true
 
@@ -25,22 +28,22 @@ format = "$output"
 
 [git_branch]
 symbol = ""
-style = "bold fg:#7aa2f7 bg:#1f2335"
-format = "[](fg:#1f2335)[$symbol $branch ]($style)"
+style = "bold fg:#cba6f7 bg:#313244" # Mauve on Surface0
+format = "[](fg:#313244)[$symbol $branch ]($style)"
 
 [git_status]
-style = "bold fg:#f7768e bg:#1f2335"
-format = "[$all_status$ahead_behind]($style)[](fg:#1f2335) "
+style = "bold fg:#f38ba8 bg:#313244" # Red on Surface0
+format = "[$all_status$ahead_behind]($style)[](fg:#313244) "
 
 [cmd_duration]
 min_time = 2000
-style = 'fg:#e0af68'
-format = "[](fg:#e0af68)[󱎫 $duration](fg:#1a1b26 bg:#e0af68)[](fg:#e0af68) "
+style = 'fg:#fab387' # Peach
+format = "[](fg:#fab387)[󱎫 $duration](fg:#11111b bg:#fab387)[](fg:#fab387) "
 
 [time]
 disabled = false
 time_format = "%R"
-format = "[](fg:#1f2335)[ $time](fg:#a9b1d6 bg:#1f2335)[](fg:#1f2335)"
+format = "[](fg:#313244)[ $time](fg:#89b4fa bg:#313244)[](fg:#313244)"
 
 [character]
 vimcmd_symbol = '[V](bold green) '

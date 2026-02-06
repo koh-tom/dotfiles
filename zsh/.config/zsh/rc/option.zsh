@@ -9,6 +9,8 @@ setopt AUTO_PUSHD
 setopt PUSHD_IGNORE_DUPS
 
 # --- Hooks ---
+autoload -Uz add-zsh-hook
+
 # cd した後に ls (eza) を自動実行
 function chpwd_ls() {
   if type eza &>/dev/null; then
