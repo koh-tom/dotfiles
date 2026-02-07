@@ -16,7 +16,8 @@ $time\
 """
 
 [fill]
-symbol = " "
+symbol = "·"
+style = "fg:#45475a" # Surface1
 
 [directory]
 disabled = true
