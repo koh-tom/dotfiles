@@ -110,6 +110,7 @@ fi
 if [[ "$TERM_PROGRAM" == "WezTerm" ]]; then
   # zsh-defer で遅延読み込みして起動速度を優先
   zsh-defer source_compiled "$HOME/.config/zsh/rc/pluginconfig/wezterm.zsh"
+  zsh-defer source_compiled "$HOME/.config/zsh/rc/pluginconfig/fzf_tab.zsh"
 fi
 
 # ----------------------------------------------------
