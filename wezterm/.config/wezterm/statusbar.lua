@@ -93,12 +93,18 @@ function module.apply_to_config(_)
     local color = WORKSPACE_COLORS[key_table] or WORKSPACE_COLORS.default
 
     -- -------------------------------------------------------------------------
-    -- 左側: ワークスペース表示
+    -- 左側: ワークスペース表示 & LEADER 状態
     -- -------------------------------------------------------------------------
+    local leader_text = "  " .. workspace .. "  "
+    if window:leader_is_active() then
+      color = "#ff757f" -- Hot Pink for Leader
+      leader_text = "  󱐋 LEADER  "
+    end
+
     window:set_left_status(wezterm.format({
       { Background = { Color = "transparent" } },
       { Foreground = { Color = color } },
-      { Text = "  " .. workspace .. "  " },
+      { Text = leader_text },
     }))
 
     -- -------------------------------------------------------------------------
