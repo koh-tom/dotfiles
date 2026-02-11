@@ -116,6 +116,29 @@ function module.apply_to_config(_)
     local load, mem = get_sys_info()
     local time = wezterm.strftime("%H:%M")
     
+    -- -------------------------------------------------------------------------
+    -- 右側: ガイド表示 (ショートカットヒント)
+    -- -------------------------------------------------------------------------
+    local hint_text = ""
+    local hint_fg = "#ffd700" -- Yellow
+
+    if window:leader_is_active() then
+      hint_text = " [r] Split-V | [d] Split-H | [f] Zoom | [z] CopyLast | [b] NvimScroll "
+    elseif key_table == "setting_mode" then
+      hint_text = " [h/j/k/l] Resize | [1-9] Ratio | [q/Esc] Exit "
+      hint_fg = "#a6e3a1" -- Green
+    elseif key_table == "copy_mode" then
+      hint_text = " [v] Select | [y] Copy | [/] Find | [n/p] Next/Prev | [q] Exit "
+      hint_fg = "#f9e2af" -- Yellow
+    elseif key_table == "search_mode" then
+      hint_text = " [Enter] Case | [Esc] Close "
+    end
+
+    if hint_text ~= "" then
+      table.insert(right_status, { Foreground = { Color = hint_fg } })
+      table.insert(right_status, { Text = "󱊑 " .. hint_text .. " │ " })
+    end
+
     -- ホスト名 (SSH判定)
     local user_vars = pane:get_user_vars()
     if user_vars.ssh_host then
