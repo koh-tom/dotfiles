@@ -130,3 +130,13 @@ zstyle ':completion:*' format '%B%F{blue}%d%f%b'
 zstyle ':completion:*' group-name ""
 zstyle ':completion:*:default' menu select=2
 autoload -Uz compinit && compinit
+
+# bun completions
+[ -s "/home/koh/.bun/_bun" ] && source "/home/koh/.bun/_bun"
+
+# ----------------------------------------------------
+# 11. Startup Screen (fastfetch)
+# ----------------------------------------------------
+if [[ "$TERM_PROGRAM" == "WezTerm" ]]; then
+  fastfetch
+fi

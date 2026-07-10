@@ -23,6 +23,7 @@ zoxide = "latest"
 deno = "latest"
 eza = "latest"
 bat = "latest"
+zig = "0.15.2"
 
 [settings]
 experimental = true

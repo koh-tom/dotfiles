@@ -14,6 +14,7 @@ config.font = wezterm.font("JetBrains Mono")
 
 -- Linux環境設定
 config.enable_wayland = false -- X11環境を優先する場合
+config.use_ime = true
 
 -- 透明度 (設定モードで後で可変にするがデフォルトは0.9前後を目標)
 -- 非フォーカス時の透過度
@@ -27,14 +28,14 @@ config.status_update_interval = 1500
 -- =============================================================================
 local home = wezterm.home_dir
 config.set_environment_variables = {
-  PATH = table.concat({
-    home .. "/.local/share/mise/shims",
-    home .. "/.local/bin",
-    "/usr/local/bin",
-    "/usr/bin",
-    "/bin",
-    os.getenv("PATH") or "",
-  }, ":"),
+	PATH = table.concat({
+		home .. "/.local/share/mise/shims",
+		home .. "/.local/bin",
+		"/usr/local/bin",
+		"/usr/bin",
+		"/bin",
+		os.getenv("PATH") or "",
+	}, ":"),
 }
 
 -- =============================================================================
@@ -42,18 +43,18 @@ config.set_environment_variables = {
 -- =============================================================================
 config.disable_default_quick_select_patterns = true
 config.quick_select_patterns = {
-  -- URL
-  "\\bhttps?://[\\w\\-._~:/?#@!$&'()*+,;=%]+",
-  -- AWS ARN
-  "\\barn:[\\w\\-]+:[\\w\\-]+:[\\w\\-]*:[0-9]*:[\\w\\-/:]+",
-  -- ファイルパス: スペース・記号の後にあるもののみ（プロンプト除外）
-  "(?<=[\\s:=(\"'`])(?:~|/)[/\\w\\-.@~]+",
-  -- ファイルパス: 行頭かつ行末まで（pwd出力など）
-  "(?m)^(?:~|/)[/\\w\\-.@~]+(?=\\s*$)",
-  -- Git commit hash (7-40 chars)
-  "\\b[0-9a-f]{7,40}\\b",
-  -- IP address
-  "\\b(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\b",
+	-- URL
+	"\\bhttps?://[\\w\\-._~:/?#@!$&'()*+,;=%]+",
+	-- AWS ARN
+	"\\barn:[\\w\\-]+:[\\w\\-]+:[\\w\\-]*:[0-9]*:[\\w\\-/:]+",
+	-- ファイルパス: スペース・記号の後にあるもののみ（プロンプト除外）
+	"(?<=[\\s:=(\"'`])(?:~|/)[/\\w\\-.@~]+",
+	-- ファイルパス: 行頭かつ行末まで（pwd出力など）
+	"(?m)^(?:~|/)[/\\w\\-.@~]+(?=\\s*$)",
+	-- Git commit hash (7-40 chars)
+	"\\b[0-9a-f]{7,40}\\b",
+	-- IP address
+	"\\b(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\b",
 }
 
 -- =============================================================================

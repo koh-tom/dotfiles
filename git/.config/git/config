@@ -13,3 +13,6 @@
 
 [merge]
     conflictstyle = zdiff3
+[user]
+	email = 223271102+koh-tom@users.noreply.github.com
+	name = koh-tom
