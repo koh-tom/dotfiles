@@ -40,7 +40,7 @@ run_check "WezTerm config load" timeout 15s wezterm \
 run_check "Fastfetch config" fastfetch \
   --config "$ROOT/fastfetch/.config/fastfetch/config.jsonc" --pipe
 
-if stow -n -v git mise starship wezterm zsh fastfetch omarchy waybar xdg-terminal ssh >/dev/null 2>&1; then
+if stow -n -v git mise starship wezterm zsh fastfetch omarchy waybar xdg-terminal ssh nvim >/dev/null 2>&1; then
   pass "GNU Stow layout"
 else
   fail "GNU Stow layout has conflicts"
