@@ -193,14 +193,16 @@ WezTerm は以下の順序で設定ファイルを探します（先に見つか
 ~/.config/wezterm/
 ├── wezterm.lua              # エントリポイント（一般設定 + モジュール読み込み）
 ├── appearance.lua           # テーマ、ウィンドウ外観、タブバースタイル
+├── omarchy_theme.lua        # Omarchyの現在パレットをWezTermへ変換
 ├── keymaps.lua              # キーバインド定義（全モード含む）
-├── statusbar.lua            # ステータスバー（Git, CPU, Mem, 時刻等）
+├── statusbar.lua            # ステータスバー（workspace, CWD, Git, SSH）
 ├── tab.lua                  # タブ描画ロジック（プロセス検出, アイコン）
 ├── workspace.lua            # ワークスペース管理
 ├── theme.lua                # (レガシー: 今は appearance.lua に統合済み)
 ├── modules/
 │   ├── opacity.lua          # フォーカス連動透過
 │   ├── claude_session.lua   # Claude Code セッション切替
+│   ├── project_cockpit.lua  # zoxideからプロジェクトworkspaceを起動
 │   ├── aws_profile.lua      # AWS プロファイル選択
 │   ├── translate.lua        # テキスト翻訳
 │   ├── colorscheme.lua      # カラースキーム切替
@@ -601,18 +603,16 @@ Vim のキーバインドをベースにしています。
 |------|------|----------|
 | `default` | デフォルトのワークスペース | 自動 |
 | `scratch` | 一時的なメモやコマンド実行用 | `CTRL + SUPER + s` |
-| `nb` | ノートブック（`nb` コマンド用） | `CTRL + SUPER + a` |
 
-> `scratch` と `nb` は「トグル」式で、押すたびに行って帰ってを繰り返します。
+> `scratch` は「トグル」式で、押すたびに行って帰ってを繰り返します。
 
 ### ワークスペース操作
 
 | キー | 動作 |
 |------|------|
 | `CTRL + SUPER + s` | scratch ワークスペースをトグル（行く/戻る） |
-| `CTRL + SUPER + a` | nb ワークスペースをトグル（行く/戻る） |
-| `CTRL + SUPER + n` | 次のワークスペースへ（scratch/nb をスキップ） |
-| `CTRL + SUPER + p` | 前のワークスペースへ（scratch/nb をスキップ） |
+| `CTRL + SUPER + n` | 次のワークスペースへ（scratchをスキップ） |
+| `CTRL + SUPER + p` | 前のワークスペースへ（scratchをスキップ） |
 | `LEADER + w` | ワークスペース一覧をfuzzy検索して選択 |
 
 ### 新しいワークスペースを作成する
@@ -682,6 +682,7 @@ Vim のキーバインドをベースにしています。
 | キー | 動作 |
 |------|------|
 | `LEADER + l` | ランチャー（Lazygit / Neovim / Yazi / Claude を起動） |
+| `LEADER + g` | Project Cockpit（zoxideからworkspaceと起動レシピを選択） |
 | `LEADER + b` | スクロールバックバッファをフル画面の Neovim で開く |
 | `LEADER + z` | 直前のコマンドと出力をまとめてコピー |
 | `LEADER + c` | Claude Code セッション切替（fzf） |
@@ -735,8 +736,8 @@ WezTerm 上で発生したアクションや、背後で実行していた重い
 
 | 状態 | 透過度 |
 |------|--------|
-| フォーカス中 | 0.85 (少し透ける) |
-| 非フォーカス | 0.60 (かなり透ける) |
+| フォーカス中 | 0.94 (わずかに透ける) |
+| 非フォーカス | 0.82 (背景が分かる程度) |
 
 > この機能は `wezterm.lua` 内でコメントアウト/有効化できます。
 
@@ -746,6 +747,10 @@ WezTerm 上で発生したアクションや、背後で実行していた重い
 fzf のインターフェースでプレビュー付きで切り替えることができます。
 
 **前提**: `fzf` と `lua` がインストールされていること。
+
+### modules/project_cockpit.lua — Project Cockpit
+
+`LEADER + g` でzoxideの履歴からプロジェクトを選び、Shell / Neovim / Claude Code / Lazygitのいずれかを専用workspaceとして起動します。Gitリポジトリ内のサブディレクトリはリポジトリルートへまとめられます。
 
 ### modules/aws_profile.lua — AWS プロファイル選択
 
@@ -797,7 +802,7 @@ fzf のインターフェースでプレビュー付きで切り替えること�
 ### 右ステータス（情報パネル）
 
 ```
- ~/dotfiles │  main │ 󰻠 0.52 󰍛 45% │ 󰅐 17:01 │ 󰁹 85%
+ ~/dotfiles │  main
 ```
 
 以下の情報がアイコン付きで表示されます：
@@ -807,13 +812,8 @@ fzf のインターフェースでプレビュー付きで切り替えること�
 | SSH ホスト名 | 󰒋 | SSH接続中のみ | `user_vars.ssh_host` |
 | カレントディレクトリ | 󰝰 | 常に表示 | `pane:get_current_working_dir()` |
 | Git ブランチ | 󰊢 | Gitリポジトリ内のみ | `git branch --show-current` |
-| CPU 負荷 | 󰻠 | 常に表示 | `/proc/loadavg` |
-| メモリ使用率 | 󰍛 | 常に表示 | `/proc/meminfo` |
-| 時刻 | 󰅐 | 常に表示 | `wezterm.strftime()` |
-| バッテリー | 󰁹 / 󰂄 | ノートPCのみ | `wezterm.battery_info()` |
 
-> Git ブランチ名は、ディレクトリ変更時のみ再取得される（キャッシュ最適化済み）。  
-> CPU/メモリは `/proc` ファイルシステムから直接読み取るため、外部コマンドの起動は不要です。
+> CPU、メモリ、時刻、バッテリーはOmarchyのWaybarへ集約しています。Gitブランチはディレクトリごとに短時間キャッシュされます。
 
 ---
 
@@ -892,14 +892,14 @@ config.font = wezterm.font("Fira Code")  -- フォント名
 `wezterm.lua` のベース値を変更：
 
 ```lua
-config.window_background_opacity = 0.85  -- 0.0(完全透明)〜1.0(不透明)
+config.window_background_opacity = 0.94  -- 0.0(完全透明)〜1.0(不透明)
 ```
 
 フォーカス連動の値は `modules/opacity.lua` で変更：
 
 ```lua
-overrides.window_background_opacity = 0.85  -- フォーカス時
-overrides.window_background_opacity = 0.6   -- 非フォーカス時
+overrides.window_background_opacity = 0.94  -- フォーカス時
+overrides.window_background_opacity = 0.82  -- 非フォーカス時
 ```
 
 ### LEADERキーの変更
@@ -983,6 +983,7 @@ require("modules.my_feature").apply_to_config(config)
 | `lazygit` | 任意 | ランチャー (`LEADER + l`) |
 | `yazi` | 任意 | ランチャー (`LEADER + l`) |
 | `nvim` | 任意 | スマートURL開きのファイルオープン (`LEADER + o`) |
+| `zoxide` | 推奨 | Project Cockpit (`LEADER + g`) |
 
 ---
 
@@ -1123,7 +1124,6 @@ config.font = wezterm.font("JetBrainsMono Nerd Font")
 | キー | 動作 |
 |------|------|
 | `CTRL + SUPER + s` | scratch トグル |
-| `CTRL + SUPER + a` | nb トグル |
 | `CTRL + SUPER + n/p` | 次/前のワークスペース |
 | `LEADER + w` | ワークスペース選択 |
 
@@ -1142,6 +1142,7 @@ config.font = wezterm.font("JetBrainsMono Nerd Font")
 | `LEADER + ,` | タブリネーム |
 | `LEADER + t` | カラースキーム切替 |
 | `LEADER + l` | ランチャー |
+| `LEADER + g` | Project Cockpit |
 | `LEADER + z` | 直前コマンドコピー |
 | `LEADER + o` | スマートURL開き |
 | `LEADER + c` | Claude セッション切替 |

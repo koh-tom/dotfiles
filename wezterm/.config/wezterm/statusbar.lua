@@ -1,31 +1,32 @@
 local wezterm = require("wezterm")
 local module = {}
+local palette = require("omarchy_theme").get_palette()
 
 -- =============================================================================
 -- 定数 & アイコン
 -- =============================================================================
 
 local WORKSPACE_COLORS = {
-  default = "#cba6f7", -- Mauve
-  copy_mode = "#f9e2af", -- Yellow
-  setting_mode = "#a6e3a1", -- Green
+  default = palette.accent,
+  copy_mode = palette.color3,
+  setting_mode = palette.color2,
 }
 
 local ICONS = {
   git = wezterm.nerdfonts.md_git,
-  time = wezterm.nerdfonts.md_clock_outline,
-  bat_charging = wezterm.nerdfonts.md_battery_charging,
-  bat_discharging = wezterm.nerdfonts.md_battery,
-  cpu = wezterm.nerdfonts.md_cpu_64_bit,
-  mem = wezterm.nerdfonts.md_memory,
   dir = wezterm.nerdfonts.md_folder_open,
   server = wezterm.nerdfonts.md_server,
+  time = wezterm.nerdfonts.md_clock_outline,
+  cpu = wezterm.nerdfonts.md_cpu_64_bit,
+  mem = wezterm.nerdfonts.md_memory,
+  bat_charging = wezterm.nerdfonts.md_battery_charging,
+  bat_discharging = wezterm.nerdfonts.md_battery,
 }
 
 -- キャッシュ用変数
 local last_color = nil
-local last_cwd = nil
-local last_git_branch = ""
+local git_cache = {}
+local GIT_CACHE_TTL = 2
 
 -- =============================================================================
 -- ヘルパー関数
@@ -45,19 +46,25 @@ end
 local function get_git_branch(pane)
   local cwd_url = pane:get_current_working_dir()
   local cwd = cwd_url and cwd_url.file_path or ""
-  if cwd == last_cwd then return last_git_branch end
-  last_cwd = cwd
+  if cwd == "" then return "" end
+
+  local now = os.time()
+  local cached = git_cache[cwd]
+  if cached and now - cached.updated_at < GIT_CACHE_TTL then
+    return cached.branch
+  end
 
   local success, stdout, _ = wezterm.run_child_process({ "git", "-C", cwd, "branch", "--show-current" })
-  last_git_branch = success and stdout:gsub("\n", "") or ""
-  return last_git_branch
+  local branch = success and stdout:gsub("\n", "") or ""
+  git_cache[cwd] = { branch = branch, updated_at = now }
+  return branch
 end
 
 -- CPU 負荷とメモリ使用率を取得 (Linux 特化)
 local function get_sys_info()
   local load = ""
   local mem = ""
-  
+
   -- CPU Load (1分平均)
   local f = io.open("/proc/loadavg", "r")
   if f then
@@ -78,7 +85,7 @@ local function get_sys_info()
       mem = string.format("%s %d%% ", ICONS.mem, used_percent)
     end
   end
-  
+
   return load, mem
 end
 
@@ -97,7 +104,7 @@ function module.apply_to_config(_)
     -- -------------------------------------------------------------------------
     local leader_text = "  " .. workspace .. "  "
     if window:leader_is_active() then
-      color = "#ff757f" -- Hot Pink for Leader
+      color = palette.color1
       leader_text = "  󱐋 LEADER  "
     end
 
@@ -113,23 +120,21 @@ function module.apply_to_config(_)
     local right_status = {}
     local branch = get_git_branch(pane)
     local cwd = get_short_cwd(pane)
-    local load, mem = get_sys_info()
-    local time = wezterm.strftime("%H:%M")
     
     -- -------------------------------------------------------------------------
     -- 右側: ガイド表示 (ショートカットヒント)
     -- -------------------------------------------------------------------------
     local hint_text = ""
-    local hint_fg = "#ffd700" -- Yellow
+    local hint_fg = palette.color3
 
     if window:leader_is_active() then
-      hint_text = " [r] Split-V | [d] Split-H | [f] Zoom | [z] CopyLast | [b] NvimScroll "
+      hint_text = " [g] Project | [l] Launch | [r/d] Split | [f] Zoom | [z] CopyLast "
     elseif key_table == "setting_mode" then
       hint_text = " [h/j/k/l] Resize | [1-9] Ratio | [q/Esc] Exit "
-      hint_fg = "#a6e3a1" -- Green
+      hint_fg = palette.color2
     elseif key_table == "copy_mode" then
       hint_text = " [v] Select | [y] Copy | [/] Find | [n/p] Next/Prev | [q] Exit "
-      hint_fg = "#f9e2af" -- Yellow
+      hint_fg = palette.color3
     elseif key_table == "search_mode" then
       hint_text = " [Enter] Case | [Esc] Close "
     end
@@ -142,34 +147,35 @@ function module.apply_to_config(_)
     -- ホスト名 (SSH判定)
     local user_vars = pane:get_user_vars()
     if user_vars.ssh_host then
-      table.insert(right_status, { Foreground = { Color = "#ffd700" } })
+      table.insert(right_status, { Foreground = { Color = palette.color3 } })
       table.insert(right_status, { Text = ICONS.server .. " " .. user_vars.ssh_host .. " │ " })
     end
 
     -- CWD (短縮パス)
-    table.insert(right_status, { Foreground = { Color = "#a6adc8" } }) -- Subtext0
+    table.insert(right_status, { Foreground = { Color = palette.color7 } })
     table.insert(right_status, { Text = ICONS.dir .. " " .. cwd .. "  " })
     
     -- Git
     if branch ~= "" then
-      table.insert(right_status, { Foreground = { Color = "#a6e3a1" } }) -- Green
+      table.insert(right_status, { Foreground = { Color = palette.color2 } })
       table.insert(right_status, { Text = "│ " .. ICONS.git .. " " .. branch .. " " })
     end
-    
+
     -- リソース (CPU/メモリ)
-    table.insert(right_status, { Foreground = { Color = "#89dceb" } }) -- Sky
+    local load, mem = get_sys_info()
+    table.insert(right_status, { Foreground = { Color = palette.color6 } })
     table.insert(right_status, { Text = "│ " .. load .. mem })
-    
+
     -- 時刻
-    table.insert(right_status, { Foreground = { Color = "#b4befe" } }) -- Lavender
-    table.insert(right_status, { Text = "│ " .. ICONS.time .. " " .. time .. "  " })
-    
+    table.insert(right_status, { Foreground = { Color = palette.color5 } })
+    table.insert(right_status, { Text = "│ " .. ICONS.time .. " " .. wezterm.strftime("%H:%M") .. "  " })
+
     -- バッテリー (あれば)
     local bat_info = wezterm.battery_info()
     if #bat_info > 0 then
       local b = bat_info[1]
       local bat_icon = b.state == "Charging" and ICONS.bat_charging or ICONS.bat_discharging
-      table.insert(right_status, { Foreground = { Color = "#fab387" } }) -- Peach
+      table.insert(right_status, { Foreground = { Color = palette.color3 } })
       table.insert(right_status, { Text = string.format("│ %s %.0f%% ", bat_icon, b.state_of_charge * 100) })
     end
 

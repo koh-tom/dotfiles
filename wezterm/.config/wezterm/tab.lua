@@ -1,5 +1,6 @@
 local wezterm = require("wezterm")
 local module = {}
+local palette = require("omarchy_theme").get_palette()
 
 -- Custom tab titles (tab_id -> string or nil)
 module.custom_title = {}
@@ -19,20 +20,20 @@ local ICONS = {
 }
 
 local ICON_COLORS = {
-  docker = "#7a9ec2",
-  neovim = "#a0b88c",
-  nb = "#b4a7d6",
-  ssh = "#c27878",
+  docker = palette.color4,
+  neovim = palette.color2,
+  nb = palette.color5,
+  ssh = palette.color1,
   claude = "#D97757",
 }
 
 local TAB_COLORS = {
-  foreground_inactive = "#8b8498",
+  foreground_inactive = palette.color8,
   background_inactive = "none",
-  foreground_active = "#1e1a2e",
-  background_active = "#b4a7d6",
-  background_ssh_active = "#c27878",
-  foreground_ssh_active = "#e8d8c4",
+  foreground_active = palette.background,
+  background_active = palette.accent,
+  background_ssh_active = palette.color1,
+  foreground_ssh_active = palette.background,
 }
 
 local DECORATIONS = {

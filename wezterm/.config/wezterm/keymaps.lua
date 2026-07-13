@@ -182,12 +182,16 @@ local keys = {
     mods = "LEADER",
     action = act.InputSelector({
       title = "Launch",
-      choices = { { label = "Lazygit" }, { label = "Neovim" }, { label = "Yazi" }, { label = "Claude" } },
+      choices = {
+        { id = "lazygit", label = "Lazygit" },
+        { id = "nvim", label = "Neovim" },
+        { id = "yazi", label = "Yazi" },
+        { id = "claude", label = "Claude" },
+      },
       fuzzy = true,
-      action = wezterm.action_callback(function(window, pane, _, label)
-        if label then
-          local cmd = label:lower()
-          local new_pane = pane:split({ direction = "Bottom", size = 1.0, args = { os.getenv("SHELL"), "-lc", cmd } })
+      action = wezterm.action_callback(function(window, pane, id)
+        if id then
+          local new_pane = pane:split({ direction = "Bottom", size = 1.0, args = { id } })
           window:perform_action(act.TogglePaneZoomState, new_pane)
         end
       end),

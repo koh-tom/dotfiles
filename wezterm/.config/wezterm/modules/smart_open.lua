@@ -24,18 +24,19 @@ function module.apply_to_config(config)
           wezterm.open_with(choices)
         elseif choices:match("^/") or choices:match("^~") then
           -- パスなら別ペインで Neovim で開く
+          local path = choices:gsub("^~", wezterm.home_dir)
           local new_pane = pane:split({
             direction = "Bottom",
             size = 1.0,
-            args = { os.getenv("SHELL"), "-lc", "nvim " .. choices },
+            args = { "nvim", "--", path },
           })
           window:perform_action(act.TogglePaneZoomState, new_pane)
         elseif #choices >= 7 then
-          -- Git Hash ぽければ git show を表示
+          -- Git Hash ならシェルを介さず git show を表示
           local new_pane = pane:split({
             direction = "Bottom",
             size = 1.0,
-            args = { os.getenv("SHELL"), "-lc", "git show " .. choices .. " | less -R" },
+            args = { "git", "-c", "color.ui=always", "show", "--no-ext-diff", choices },
           })
           window:perform_action(act.TogglePaneZoomState, new_pane)
         end
