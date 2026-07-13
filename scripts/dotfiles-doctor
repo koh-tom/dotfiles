@@ -90,6 +90,17 @@ else
   fail "Spurs theme missing files (run: mise run build-theme): $spurs_missing"
 fi
 
+# パッケージマニフェストの充足 (AURのwezterm-nightly-binはprovides weztermなので通常名で確認)
+pkg_missing=""
+while IFS= read -r pkg; do
+  pacman -Qq "$pkg" >/dev/null 2>&1 || pkg_missing+="$pkg "
+done < <(grep -vhE '^\s*(#|$)' packages/pacman.txt)
+if [[ -z $pkg_missing ]]; then
+  pass "Pacman manifest satisfied"
+else
+  fail "Missing packages (run: ./scripts/install-packages): $pkg_missing"
+fi
+
 # CLIテーマキャッシュ (無ければzsh起動時に生成されるためwarn)
 if [[ -r ${XDG_CACHE_HOME:-$HOME/.cache}/dotfiles/cli-theme.zsh ]]; then
   pass "CLI theme cache generated"

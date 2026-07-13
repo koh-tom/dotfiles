@@ -1,0 +1,4 @@
+# AURパッケージ (yayで導入)
+# wezterm-nightly-bin: 安定版20240203のWayland問題を回避するnightlyビルド。
+#   既存のweztermパッケージを置き換える (provides wezterm)。
+wezterm-nightly-bin

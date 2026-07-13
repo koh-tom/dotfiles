@@ -1,0 +1,7 @@
+# dotfilesが前提とする公式リポジトリのパッケージ (Omarchy標準に含まれない分)
+# 適用: ./scripts/install-packages
+zsh
+stow
+lua
+chafa
+github-cli
