@@ -1,0 +1,73 @@
+#!/bin/bash
+
+# Waybar用: トッテナムの次戦をTheSportsDBから取得してJSONで出力する。
+# APIは6時間キャッシュ。試合当日は class=matchday でピルが光る。COYS!
+
+set -uo pipefail
+
+TEAM_ID=133616 # Tottenham Hotspur
+CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/dotfiles"
+CACHE_FILE="$CACHE_DIR/spurs-fixture.json"
+CACHE_TTL=$((6 * 3600))
+
+mkdir -p "$CACHE_DIR"
+
+# キャッシュが新しければそれを使う
+if [[ ! -r $CACHE_FILE ]] || (($(date +%s) - $(stat -c %Y "$CACHE_FILE") > CACHE_TTL)); then
+  fresh=$(curl -sf --max-time 10 \
+    "https://www.thesportsdb.com/api/v1/json/123/eventsnext.php?id=$TEAM_ID" 2>/dev/null) || fresh=""
+  if [[ -n $fresh ]]; then
+    printf '%s' "$fresh" >"$CACHE_FILE"
+  fi
+fi
+
+if [[ ! -r $CACHE_FILE ]]; then
+  printf '{"text":""}\n'
+  exit 0
+fi
+
+python3 - "$CACHE_FILE" <<'PY'
+import json
+import sys
+from datetime import datetime, timezone
+
+try:
+    with open(sys.argv[1]) as f:
+        events = json.load(f).get("events") or []
+except (OSError, json.JSONDecodeError):
+    events = []
+
+now = datetime.now(timezone.utc)
+nxt = None
+for e in events:
+    ts = e.get("strTimestamp")
+    if not ts:
+        continue
+    try:
+        kickoff = datetime.fromisoformat(ts).replace(tzinfo=timezone.utc)
+    except ValueError:
+        continue
+    if kickoff > now:
+        nxt = (e, kickoff)
+        break
+
+if not nxt:
+    print(json.dumps({"text": ""}))
+    sys.exit(0)
+
+e, kickoff = nxt
+local = kickoff.astimezone()
+home, away = e.get("strHomeTeam", "?"), e.get("strAwayTeam", "?")
+opponent = away if "Tottenham" in home else home
+venue = "H" if "Tottenham" in home else "A"
+league = e.get("strLeague", "")
+is_matchday = local.date() == datetime.now().date()
+
+text = f"󱟃 vs {opponent} {local.strftime('%-m/%-d %H:%M')}"
+tooltip = f"{home} vs {away}\n{league} ({venue})\n{local.strftime('%Y-%m-%d %H:%M')} kickoff"
+print(json.dumps({
+    "text": text,
+    "class": "matchday" if is_matchday else "fixture",
+    "tooltip": tooltip,
+}, ensure_ascii=False))
+PY

@@ -5,7 +5,7 @@
   "spacing": 0,
   "height": 26,
   "modules-left": ["custom/omarchy", "hyprland/workspaces"],
-  "modules-center": ["clock", "custom/weather", "custom/update", "custom/voxtype", "custom/screenrecording-indicator", "custom/idle-indicator", "custom/notification-silencing-indicator"],
+  "modules-center": ["clock", "custom/spurs", "custom/weather", "custom/update", "custom/voxtype", "custom/screenrecording-indicator", "custom/idle-indicator", "custom/notification-silencing-indicator"],
   "modules-right": [
     "custom/dotfiles",
     "custom/claude",
@@ -22,6 +22,12 @@
     "return-type": "json",
     "interval": 10,
     "on-click": "hyprctl dispatch focuswindow class:org.wezfurlong.wezterm"
+  },
+  "custom/spurs": {
+    "exec": "$HOME/dotfiles/scripts/waybar-spurs-fixture",
+    "return-type": "json",
+    "interval": 3600,
+    "on-click": "xdg-open 'https://www.tottenhamhotspur.com/fixtures/men/'"
   },
   "custom/dotfiles": {
     "exec": "$HOME/dotfiles/scripts/waybar-dotfiles-status",
