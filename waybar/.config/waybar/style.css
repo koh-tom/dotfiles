@@ -77,6 +77,19 @@ tooltip {
   margin: 3px 2px;
 }
 
+/* --- 中央: Spursフィクスチャピル (試合当日はSpursイエロー) --- */
+#custom-spurs {
+  background: alpha(@foreground, 0.12);
+  border-radius: 99px;
+  padding: 0 12px;
+  margin: 3px 2px;
+}
+
+#custom-spurs.matchday {
+  background: #f9d616;
+  color: #090f24;
+}
+
 #custom-weather {
   margin-left: 6px;
   margin-right: 4px;
