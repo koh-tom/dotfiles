@@ -8,10 +8,10 @@ function module.apply_to_config(config)
     
     -- 他のモジュールの設定 (color_scheme 等) はそのままに、透過度だけを更新
     if window:is_focused() then
-      overrides.window_background_opacity = 0.85
+      overrides.window_background_opacity = 0.94
       -- Linux/Ubuntu では Acrylic 効かないためスキップ、または Blur 用
     else
-      overrides.window_background_opacity = 0.6
+      overrides.window_background_opacity = 0.82
     end
     
     window:set_config_overrides(overrides)
