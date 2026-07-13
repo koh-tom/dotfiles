@@ -1,0 +1,73 @@
+#!/bin/bash
+
+# dotfiles操作の統合チートシート。
+# WezTermキーバインド / zenoスニペット / miseタスク / zshエイリアスを
+# 設定ファイルから動的に集約するので、設定が増えるほど勝手に育つ。
+# Enterで選択行をクリップボードへコピー。
+
+set -uo pipefail
+
+generate() {
+  # WezTerm: LEADER系と各モードのキーテーブルのみ (デフォルト全キーはノイズ)。
+  # action_callbackはEmitEventとしか出ないため、descマップで人間語に変換する。
+  # 新しいLEADERコールバックを追加したらここにも1行足すこと。
+  if command -v wezterm >/dev/null 2>&1; then
+    timeout 10s wezterm show-keys 2>/dev/null | awk -F ' *-> *' '
+      BEGIN {
+        desc["LEADER g"] = "Project Cockpit (zoxide→workspace/レシピ)"
+        desc["LEADER l"] = "ランチャー (Lazygit/Neovim/Yazi/Claude/gh-dash/Btop)"
+        desc["LEADER c"] = "Claude Codeセッション切替 (状態+プレビュー)"
+        desc["LEADER z"] = "直前コマンドと出力をコピー"
+        desc["LEADER b"] = "スクロールバックをNeovimで開く"
+        desc["LEADER i"] = "Omarchy壁紙を背景に敷くトグル"
+        desc["LEADER /"] = "このチートシート"
+        desc["LEADER p"] = "AWSプロファイル選択"
+        desc["LEADER S"] = "セッション手動保存"
+        desc["LEADER D"] = "セッションリセット"
+        desc["LEADER t"] = "カラースキーム一時切替"
+        desc["LEADER w"] = "ワークスペース選択 (Shift+Cで新規作成)"
+        desc["SHIFT | CTRL c"] = "ペイン最小化/復元"
+      }
+      /^Key Table: / { table = $0; sub(/^Key Table: /, "", table); next }
+      /^Default key table/ { table = "key"; next }
+      /^\t/ {
+        line = $1; action = $2
+        gsub(/^\t/, "", line)
+        gsub(/  +/, " ", line)
+        if (table == "key" && line !~ /LEADER/ && !(line in desc)) next
+        if ((line in desc) && action ~ /^(EmitEvent|InputSelector|Multiple)/) action = desc[line]
+        printf "\033[35mWEZTERM %s\033[0m\t%s\t%s\n", table, line, action
+      }'
+  fi
+
+  # zenoスニペット (キーワード + Space で展開)
+  awk '
+    /- name:/ { name = $0; sub(/.*name: */, "", name) }
+    /keyword:/ { kw = $0; sub(/.*keyword: */, "", kw) }
+    /snippet:/ {
+      sn = $0; sub(/.*snippet: */, "", sn); gsub(/^"|"$/, "", sn)
+      printf "\033[33mSNIPPET\033[0m\t%s + Space\t%s  (%s)\n", kw, sn, name
+    }
+  ' "$HOME/.config/zeno/config.yml" 2>/dev/null
+
+  # miseタスク
+  mise tasks ls 2>/dev/null | awk '{
+    name = $1; $1 = ""; sub(/^ +/, "")
+    printf "\033[36mMISE\033[0m\tmise run %s\t%s\n", name, $0
+  }'
+
+  # zshエイリアス
+  grep -hE '^alias ' "$HOME/dotfiles/zsh/.config/zsh/rc/alias.zsh" 2>/dev/null |
+    sed -E $'s/^alias ([^=]+)=\'?([^\']*)\'?.*$/\033[32mALIAS\033[0m\\t\\1\\t\\2/'
+}
+
+copy_cmd="cat"
+if command -v wl-copy >/dev/null 2>&1; then
+  copy_cmd="wl-copy"
+fi
+
+generate | column -ts $'\t' | fzf \
+  --ansi --reverse --border=rounded \
+  --prompt="cheat > " \
+  --header="dotfiles cheatsheet — Enter: コピー / Esc: 閉じる" \
+  --bind "enter:execute-silent(printf %s {} | $copy_cmd)+abort"

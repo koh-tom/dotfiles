@@ -35,6 +35,7 @@ alias ....='cd ../../..'
 alias .....='cd ../../../..'
 
 # --- Convenience ---
+alias cheat='~/dotfiles/scripts/dotfiles-cheatsheet'  # 全キーバインド/スニペット/タスク検索
 alias reload='source "$ZDOTDIR/.zshrc"'
 alias cz='czg'                       # 対話式conventional commits
 alias dotcz='cd ~/dotfiles && czg'   # dotfilesをczgでコミット

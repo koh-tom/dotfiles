@@ -221,6 +221,20 @@ local keys = {
     end),
   },
 
+  -- チートシート (LEADER + /)
+  {
+    key = "/",
+    mods = "LEADER",
+    action = wezterm.action_callback(function(window, pane)
+      local new_pane = pane:split({
+        direction = "Bottom",
+        size = 1.0,
+        args = { os.getenv("SHELL") or "bash", "-lc", wezterm.home_dir .. "/dotfiles/scripts/dotfiles-cheatsheet" },
+      })
+      window:perform_action(act.TogglePaneZoomState, new_pane)
+    end),
+  },
+
   -- モード開始
   { key = "s", mods = "LEADER", action = act.ActivateKeyTable({ name = "setting_mode", one_shot = false }) },
   { key = "x", mods = "SHIFT|CTRL", action = act.ActivateCopyMode },
