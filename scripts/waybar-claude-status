@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# Waybar用: 稼働中のClaude Codeセッション数をJSONで出力する。
+# 0件のときはtextを空にしてモジュールごと隠す。
+
+count=$(pgrep -xc claude 2>/dev/null)
+count=${count:-0}
+
+if (( count == 0 )); then
+  printf '{"text":"","tooltip":"Claude Code: no sessions"}\n'
+else
+  printf '{"text":"✳ %s","class":"active","tooltip":"Claude Code: %s session(s)\\nclick: focus WezTerm"}\n' "$count" "$count"
+fi
