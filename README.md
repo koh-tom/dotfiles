@@ -24,8 +24,10 @@ Omarchyを母艦にした、ターミナル中心の個人用dotfilesです。GN
 | `zsh` | Zsh、Sheldon、補完、エイリアス |
 | `fastfetch` | Spursロゴ付きシステム表示 |
 | `omarchy` | テーマテンプレート、フック、メニュー拡張 |
-| `waybar` | 日付、CPU、メモリ、音量、バッテリーを表示する上部バー |
+| `waybar` | ピル型上部バー (Claudeセッション数、dotfilesドリフト、Spurs次戦付き) |
 | `xdg-terminal` | WezTermを既定端末にする設定 |
+| `ssh` | 1Password SSH agent優先のSSH設定 |
+| `nvim` | Omarchy LazyVimに重ねる自分用プラグイン層 |
 
 ## Omarchyでの初回セットアップ
 
@@ -55,6 +57,9 @@ mise run apply-profile   # 現在ホストのモニター設定を適用
 mise run build-theme     # Spursテーマをcolors.tomlから再生成
 mise run install-spurs   # Spursテーマを生成して実体ディレクトリへ配置
 mise run commit          # czgで対話式conventional commit
+mise run setup-signing   # 1Password SSH agentでコミット署名を有効化
+./scripts/install-packages  # packages/*.txt のpacman/AURパッケージを導入
+cheat                    # 全キーバインド/スニペット/タスクのfzfチートシート (WezTermではLEADER+/)
 ```
 
 Omarchyメニューの `Setup → Config → Dotfiles` からも、編集、Lazygit、Doctor、再適用、Spurs Modeへアクセスできます。
