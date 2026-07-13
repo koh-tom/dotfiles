@@ -18,9 +18,10 @@ end
 config.font = wezterm.font_with_fallback({ font_name, "JetBrainsMono Nerd Font", "JetBrains Mono" })
 
 -- Linux環境設定
--- wezterm 20240203 (安定版) はHyprlandのWaylandでウィンドウが表示されない既知問題があるため
--- XWayland経由で起動する。wezterm-git等に更新したらtrueへ戻してよい
-config.enable_wayland = false
+-- wezterm 20240203 (安定版) はHyprlandのWaylandでウィンドウが表示されない既知問題がある。
+-- バージョンから自動判定し、nightly (wezterm-nightly-bin) ならWaylandネイティブで起動する
+local wez_build_date = tonumber(wezterm.version:match("^(%d+)")) or 0
+config.enable_wayland = wez_build_date > 20240203
 config.use_ime = true
 
 -- 透明度 (設定モードで後で可変にするがデフォルトは0.9前後を目標)
