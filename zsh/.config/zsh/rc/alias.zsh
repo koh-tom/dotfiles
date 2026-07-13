@@ -36,6 +36,8 @@ alias .....='cd ../../../..'
 
 # --- Convenience ---
 alias reload='source "$ZDOTDIR/.zshrc"'
+alias cz='czg'                       # 対話式conventional commits
+alias dotcz='cd ~/dotfiles && czg'   # dotfilesをczgでコミット
 alias dot='cd ~/dotfiles && lazygit'
 alias wez='nvim ~/dotfiles/wezterm/.config/wezterm/wezterm.lua'
 alias miseconfig='nvim ~/dotfiles/mise/.config/mise/config.toml'
