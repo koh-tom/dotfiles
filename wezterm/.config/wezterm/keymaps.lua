@@ -187,11 +187,15 @@ local keys = {
         { id = "nvim", label = "Neovim" },
         { id = "yazi", label = "Yazi" },
         { id = "claude", label = "Claude" },
+        { id = "gh dash", label = "GitHub Dashboard (gh-dash)" },
+        { id = "btop", label = "Btop" },
       },
       fuzzy = true,
       action = wezterm.action_callback(function(window, pane, id)
         if id then
-          local new_pane = pane:split({ direction = "Bottom", size = 1.0, args = { id } })
+          local args = {}
+          for word in id:gmatch("%S+") do table.insert(args, word) end
+          local new_pane = pane:split({ direction = "Bottom", size = 1.0, args = args })
           window:perform_action(act.TogglePaneZoomState, new_pane)
         end
       end),
