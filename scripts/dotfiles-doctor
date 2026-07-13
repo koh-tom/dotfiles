@@ -40,7 +40,7 @@ run_check "WezTerm config load" timeout 15s wezterm \
 run_check "Fastfetch config" fastfetch \
   --config "$ROOT/fastfetch/.config/fastfetch/config.jsonc" --pipe
 
-if stow -n -v git mise starship wezterm zsh fastfetch omarchy waybar xdg-terminal >/dev/null 2>&1; then
+if stow -n -v git mise starship wezterm zsh fastfetch omarchy waybar xdg-terminal ssh >/dev/null 2>&1; then
   pass "GNU Stow layout"
 else
   fail "GNU Stow layout has conflicts"
@@ -115,6 +115,15 @@ for command_name in omarchy wezterm zsh mise stow starship fastfetch zoxide nvim
     fail "Missing command: $command_name"
   fi
 done
+
+# コミット署名 (任意機能なのでwarn止まり)
+if git config --get commit.gpgsign 2>/dev/null | grep -q true; then
+  pass "Git commit signing enabled"
+elif [[ -S $HOME/.1password/agent.sock ]]; then
+  warn "1Password agent is up but signing is off (run: mise run setup-signing)"
+else
+  warn "Git commit signing not set up (1Password SSH agent + mise run setup-signing)"
+fi
 
 for command_name in aws plamo-translate; do
   if command -v "$command_name" >/dev/null 2>&1; then
