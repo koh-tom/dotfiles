@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# 1Password SSH agentの鍵でgitコミット署名(Verifiedバッジ)を有効化する。
+# 前提: 1Password → 設定 → 開発者 → "SSHエージェントを使用" がONで、SSH鍵が1つ以上あること。
+
+set -euo pipefail
+
+sock="$HOME/.1password/agent.sock"
+cfg="${DOTFILES_ROOT:-$HOME/dotfiles}/git/.config/git/config"
+
+if [[ ! -S $sock ]]; then
+  cat >&2 <<'MSG'
+1Password SSH agentが見つかりません。先に有効化してください:
+  1Password → 設定 → 開発者 → "SSHエージェントを使用" をON
+  (SSH鍵が無ければ 開発者 → SSHキー → 新規作成)
+MSG
+  exit 1
+fi
+
+key=$(SSH_AUTH_SOCK=$sock ssh-add -L 2>/dev/null | head -1)
+if [[ -z $key ]]; then
+  printf '1Password agentに鍵がありません。1PasswordでSSH鍵を作成してください。\n' >&2
+  exit 1
+fi
+
+git config -f "$cfg" gpg.format ssh
+git config -f "$cfg" gpg.ssh.program /opt/1Password/op-ssh-sign
+git config -f "$cfg" user.signingkey "$key"
+git config -f "$cfg" commit.gpgsign true
+
+printf 'コミット署名を有効化しました:\n  %s\n\n' "$key"
+printf 'GitHubへ署名鍵として登録するには:\n  printf %%s "%s" | gh ssh-key add --type signing --title omarchy -\n' "$key"
