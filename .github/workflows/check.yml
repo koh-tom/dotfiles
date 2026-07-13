@@ -40,4 +40,4 @@ jobs:
         run: python3 -m json.tool claude/hooks.example.json >/dev/null
 
       - name: Stow dry-run
-        run: stow -n -v git mise starship wezterm zsh fastfetch omarchy waybar xdg-terminal ssh
+        run: stow -n -v git mise starship wezterm zsh fastfetch omarchy waybar xdg-terminal ssh nvim

@@ -3,4 +3,4 @@
 set -euo pipefail
 
 cd "${DOTFILES_ROOT:-$HOME/dotfiles}"
-stow -R -v git mise starship wezterm zsh fastfetch omarchy waybar xdg-terminal ssh
+stow -R -v git mise starship wezterm zsh fastfetch omarchy waybar xdg-terminal ssh nvim
