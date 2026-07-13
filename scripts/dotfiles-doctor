@@ -59,16 +59,16 @@ else
   fail "Zsh runtime state found: ${generated//$'\n'/, }"
 fi
 
-# WezTerm安定版(20240203以前)はHyprland Waylandでウィンドウが出ない既知問題がある
-if grep -Eq '^\s*config\.enable_wayland\s*=\s*true' wezterm/.config/wezterm/wezterm.lua; then
-  wez_version=$(wezterm --version 2>/dev/null | awk '{print $2}' | cut -d- -f1)
-  if [[ -n $wez_version && $wez_version -le 20240203 ]] 2>/dev/null; then
-    fail "enable_wayland=true + wezterm $wez_version はHyprlandでウィンドウ非表示になる (falseへ戻すかwezterm-gitへ更新)"
-  else
-    pass "WezTerm Wayland compatibility"
-  fi
+# WezTerm安定版(20240203以前)はHyprland Waylandでウィンドウが出ない既知問題がある。
+# wezterm.luaはバージョン自動判定でenable_waylandを決めるので、その仕組みの存在を検査する
+wez_version=$(wezterm --version 2>/dev/null | awk '{print $2}' | cut -d- -f1)
+if grep -q 'wez_build_date > 20240203' wezterm/.config/wezterm/wezterm.lua; then
+  pass "WezTerm Wayland auto-detection (build ${wez_version:-unknown})"
+elif grep -Eq '^\s*config\.enable_wayland\s*=\s*true' wezterm/.config/wezterm/wezterm.lua \
+  && [[ -n $wez_version && $wez_version -le 20240203 ]] 2>/dev/null; then
+  fail "enable_wayland=true + wezterm $wez_version はHyprlandでウィンドウ非表示になる"
 else
-  pass "WezTerm Wayland compatibility (XWayland)"
+  pass "WezTerm Wayland compatibility"
 fi
 
 # scriptsは全て実行可能であること
