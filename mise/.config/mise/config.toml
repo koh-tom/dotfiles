@@ -24,6 +24,12 @@ deno = "latest"
 eza = "latest"
 bat = "latest"
 zig = "0.15.2"
+shellcheck = "latest"
+"aqua:charmbracelet/glow" = "latest"
+"aqua:muesli/duf" = "latest"
+hyperfine = "latest"
+"aqua:dalance/procs" = "latest"
+"aqua:bootandy/dust" = "latest"
 
 [settings]
 experimental = true
