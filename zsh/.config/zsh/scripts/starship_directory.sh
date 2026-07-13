@@ -1,10 +1,27 @@
 #!/bin/bash
 # ~/.config/zsh/scripts/starship_directory.sh
 
-# Color Palette (Catppuccin Mocha inspired for raccoon wallpaper)
-# Gradient: Mauve -> Lavender -> Sapphire -> Sky -> Teal -> Peach
-COLORS=("#cba6f7" "#b4befe" "#74c7ec" "#89dceb" "#94e2d5" "#fab387")
-TEXT_COLOR="#11111b" # Crust (deep dark)
+# Read the active Omarchy palette, with Catppuccin-compatible fallbacks.
+declare -A THEME
+THEME_FILE="${HOME}/.config/omarchy/current/theme/colors.toml"
+if [[ -r "$THEME_FILE" ]]; then
+    while IFS='=' read -r key value; do
+        key=${key//[[:space:]]/}
+        value=${value//[[:space:]\"]/}
+        [[ -n "$key" && "$value" == \#* ]] && THEME["$key"]="$value"
+    done < "$THEME_FILE"
+fi
+
+# Gradient: accent -> magenta -> blue -> cyan -> green -> yellow
+COLORS=(
+    "${THEME[accent]:-#cba6f7}"
+    "${THEME[color5]:-#b4befe}"
+    "${THEME[color4]:-#74c7ec}"
+    "${THEME[color6]:-#89dceb}"
+    "${THEME[color2]:-#94e2d5}"
+    "${THEME[color3]:-#fab387}"
+)
+TEXT_COLOR="${THEME[background]:-#11111b}"
 LEFT_SEP=""
 RIGHT_SEP=""
 

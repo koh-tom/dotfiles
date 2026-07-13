@@ -1,22 +1,7 @@
-# ----------------------------------------------------
-# 1. Faster Loading: zcompile - Compile zsh files
-# ----------------------------------------------------
-function ensure_zcompiled {
-  local src=$1
-  local zwc="$src.zwc"
-  local dir="${src:h}"
-  if [[ ! -w "$dir" ]]; then
-    return
-  fi
-  if [[ ! -r "$zwc" || "$src" -nt "$zwc" ]]; then
-    zcompile "$src"
-  fi
-}
-
-function source_compiled {
-  ensure_zcompiled "$1"
-  builtin source "$1"
-}
+# Runtime state belongs outside the Stow-managed source tree.
+_zsh_cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
+_zsh_state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/zsh"
+mkdir -p "$_zsh_cache_dir" "$_zsh_state_dir"
 
 # ----------------------------------------------------
 # 2. Keybinds, Options & Aliases
@@ -24,9 +9,9 @@ function source_compiled {
 fpath=($ZDOTDIR/rc/functions $ZDOTDIR/rc/functions/*(/N) $fpath)
 autoload -Uz $ZDOTDIR/rc/functions/*(-.N:t) $ZDOTDIR/rc/functions/**/*(-.N:t)
 
-source_compiled "$ZDOTDIR/rc/alias.zsh"
-source_compiled "$ZDOTDIR/rc/option.zsh"
-source_compiled "$ZDOTDIR/rc/bindkey.zsh"
+source "$ZDOTDIR/rc/alias.zsh"
+source "$ZDOTDIR/rc/option.zsh"
+source "$ZDOTDIR/rc/bindkey.zsh"
 
 # ----------------------------------------------------
 # 3. Sheldon Plugin Manager (Plugin loadings)
@@ -35,12 +20,14 @@ cache_dir=${XDG_CACHE_HOME:-$HOME/.cache}
 sheldon_cache="$cache_dir/sheldon.zsh"
 sheldon_toml="$HOME/.config/sheldon/plugins.toml"
 
+# Zeno needs this before Sheldon loads the plugin.
+export ZENO_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/zeno"
+
 if [[ ! -r "$sheldon_cache" || "$sheldon_toml" -nt "$sheldon_cache" ]]; then
-  mkdir -p $cache_dir
-  /home/koh/.local/share/mise/shims/sheldon source > "$sheldon_cache"
-  zcompile "$sheldon_cache"
+  mkdir -p "$cache_dir"
+  command sheldon source > "$sheldon_cache"
 fi
-source_compiled "$sheldon_cache"
+source "$sheldon_cache"
 
 # ----------------------------------------------------
 # 4. mise (Delayed activation)
@@ -50,9 +37,8 @@ if type mise &>/dev/null; then
   if [[ ! -r "$_mise_cache" || "$(command -v mise)" -nt "$_mise_cache" ]]; then
     mise activate zsh > "$_mise_cache"
     mise activate --shims >> "$_mise_cache"
-    zcompile "$_mise_cache"
   fi
-  zsh-defer source_compiled "$_mise_cache"
+  zsh-defer source "$_mise_cache"
 fi
 
 # ----------------------------------------------------
@@ -65,8 +51,11 @@ setopt correct
 setopt interactive_comments
 setopt no_beep
 
-# History
-HISTFILE=$ZDOTDIR/.zsh_history
+# History. Migrate the legacy in-repository history once without deleting it.
+HISTFILE="$_zsh_state_dir/history"
+if [[ ! -e "$HISTFILE" && -r "$ZDOTDIR/.zsh_history" ]]; then
+  cp -p "$ZDOTDIR/.zsh_history" "$HISTFILE" 2>/dev/null
+fi
 HISTSIZE=100000
 SAVEHIST=100000
 setopt EXTENDED_HISTORY
@@ -85,9 +74,8 @@ if type zoxide &>/dev/null; then
   _zoxide_cache="${XDG_CACHE_HOME:-$HOME/.cache}/zoxide.zsh"
   if [[ ! -r "$_zoxide_cache" || "$(command -v zoxide)" -nt "$_zoxide_cache" ]]; then
     zoxide init zsh > "$_zoxide_cache"
-    zcompile "$_zoxide_cache"
   fi
-  source_compiled "$_zoxide_cache"
+  source "$_zoxide_cache"
 fi
 
 # ----------------------------------------------------
@@ -98,9 +86,8 @@ if type starship &>/dev/null; then
   _starship_config="${XDG_CONFIG_HOME:-$HOME/.config}/starship.toml"
   if [[ ! -r "$_starship_cache" || "$_starship_config" -nt "$_starship_cache" || "$(command -v starship)" -nt "$_starship_cache" ]]; then
     starship init zsh > "$_starship_cache"
-    zcompile "$_starship_cache"
   fi
-  source_compiled "$_starship_cache"
+  source "$_starship_cache"
 fi
 
 # ----------------------------------------------------
@@ -109,17 +96,8 @@ fi
 # WezTerm のシェル統合スクリプトを読み込み、ジャンプ機能を有効にする
 if [[ "$TERM_PROGRAM" == "WezTerm" ]]; then
   # zsh-defer で遅延読み込みして起動速度を優先
-  zsh-defer source_compiled "$HOME/.config/zsh/rc/pluginconfig/wezterm.zsh"
-  zsh-defer source_compiled "$HOME/.config/zsh/rc/pluginconfig/fzf_tab.zsh"
-fi
-
-# ----------------------------------------------------
-# 9. Zeno.zsh (SQLite History Search & Abbr)
-# ----------------------------------------------------
-# Sheldon で zeno がロードされた後に実行する必要があるため末尾付近に配置
-if [[ -n "$ZENO_HOME" ]]; then
-  export ZENO_HOME="${XDG_CONFIG_HOME:-$HOME/.config}/zeno"
-  # zeno の初期化 (Sheldon で zeno 読込済み)
+  zsh-defer source "$HOME/.config/zsh/rc/pluginconfig/wezterm.zsh"
+  zsh-defer source "$HOME/.config/zsh/rc/pluginconfig/fzf_tab.zsh"
 fi
 
 # ----------------------------------------------------
@@ -129,14 +107,19 @@ zstyle ':completion:*' matcher-list "" 'm:{[:lower:]}={[:upper:]}' '+m:{[:upper:
 zstyle ':completion:*' format '%B%F{blue}%d%f%b'
 zstyle ':completion:*' group-name ""
 zstyle ':completion:*:default' menu select=2
-autoload -Uz compinit && compinit
+autoload -Uz compinit
+compinit -d "$_zsh_cache_dir/zcompdump-$ZSH_VERSION"
 
 # bun completions
-[ -s "/home/koh/.bun/_bun" ] && source "/home/koh/.bun/_bun"
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
 
 # ----------------------------------------------------
 # 11. Startup Screen (fastfetch)
 # ----------------------------------------------------
-if [[ "$TERM_PROGRAM" == "WezTerm" ]]; then
-  fastfetch
+if [[ "$TERM_PROGRAM" == "WezTerm" ]] && (( $+commands[fastfetch] )); then
+  _fastfetch_stamp="${XDG_RUNTIME_DIR:-/tmp}/dotfiles-fastfetch-${UID}-${PPID}"
+  if [[ ! -e "$_fastfetch_stamp" ]]; then
+    : > "$_fastfetch_stamp"
+    fastfetch
+  fi
 fi

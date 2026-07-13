@@ -1,6 +1,36 @@
 [core]
     pager = delta
 
+[init]
+    defaultBranch = main
+
+[pull]
+    rebase = true
+
+[push]
+    autoSetupRemote = true
+
+[diff]
+    algorithm = histogram
+    colorMoved = plain
+    mnemonicPrefix = true
+
+[commit]
+    verbose = true
+
+[column]
+    ui = auto
+
+[branch]
+    sort = -committerdate
+
+[tag]
+    sort = -version:refname
+
+[rerere]
+    enabled = true
+    autoupdate = true
+
 [interactive]
     diffFilter = delta --color-only
 

@@ -1,0 +1,30 @@
+#!/bin/bash
+
+set -euo pipefail
+
+ROOT="${DOTFILES_ROOT:-$HOME/dotfiles}"
+profile="${1:-$(hostname)}"
+source_file="$ROOT/profiles/$profile/hypr/monitors.conf"
+target_file="$HOME/.config/hypr/monitors.conf"
+
+if [[ ! -f $source_file ]]; then
+  printf 'Unknown host profile: %s\n' "$profile" >&2
+  exit 1
+fi
+
+if cmp -s "$source_file" "$target_file"; then
+  printf 'Monitor profile is already active: %s\n' "$profile"
+  exit 0
+fi
+
+cp -p "$target_file" "$target_file.bak.$(date +%s)"
+install -m 0644 "$source_file" "$target_file"
+hyprctl reload
+
+errors=$(hyprctl configerrors)
+if [[ -n $errors ]]; then
+  printf '%s\n' "$errors" >&2
+  exit 1
+fi
+
+printf 'Applied monitor profile: %s\n' "$profile"

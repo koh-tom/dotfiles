@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# WezTerm reads `omarchy font current` during config reload.
+wezterm_config="$HOME/.config/wezterm/wezterm.lua"
+[[ -e $wezterm_config ]] && touch "$wezterm_config"
+

@@ -1,0 +1,99 @@
+#!/bin/bash
+
+set -u
+
+ROOT="${DOTFILES_ROOT:-$HOME/dotfiles}"
+failures=0
+warnings=0
+
+pass() { printf '  \033[32m✓\033[0m %s\n' "$1"; }
+fail() { printf '  \033[31m✗\033[0m %s\n' "$1"; failures=$((failures + 1)); }
+warn() { printf '  \033[33m!\033[0m %s\n' "$1"; warnings=$((warnings + 1)); }
+
+run_check() {
+  local label=$1
+  shift
+  if "$@" >/dev/null 2>&1; then pass "$label"; else fail "$label"; fi
+}
+
+cd "$ROOT" || exit 1
+
+printf '\nDotfiles Doctor\n\n'
+
+run_check "Zsh syntax" zsh -n \
+  zsh/.zshenv \
+  zsh/.config/zsh/.zshrc \
+  zsh/.config/zsh/rc/alias.zsh \
+  zsh/.config/zsh/rc/bindkey.zsh \
+  zsh/.config/zsh/rc/option.zsh \
+  zsh/.config/zsh/rc/pluginconfig/fzf_tab.zsh \
+  zsh/.config/zsh/rc/pluginconfig/wezterm.zsh
+
+lua_ok=true
+while IFS= read -r file; do
+  luac -p "$file" >/dev/null 2>&1 || lua_ok=false
+done < <(find wezterm -name '*.lua' -type f -print)
+if $lua_ok; then pass "Lua syntax"; else fail "Lua syntax"; fi
+
+run_check "WezTerm config load" timeout 15s wezterm \
+  --config-file "$ROOT/wezterm/.config/wezterm/wezterm.lua" show-keys --lua
+run_check "Fastfetch config" fastfetch \
+  --config "$ROOT/fastfetch/.config/fastfetch/config.jsonc" --pipe
+
+if stow -n -v git mise starship wezterm zsh fastfetch omarchy waybar xdg-terminal >/dev/null 2>&1; then
+  pass "GNU Stow layout"
+else
+  fail "GNU Stow layout has conflicts"
+fi
+
+generated=$(
+  git ls-files | while IFS= read -r file; do
+    if [[ -e $file && ( $file == *.zwc || $file == */.zcompdump* || $file == */.zsh_history ) ]]; then
+      printf '%s\n' "$file"
+    fi
+  done
+)
+if [[ -z $generated ]]; then
+  pass "No Zsh runtime state in repository"
+else
+  fail "Zsh runtime state found: ${generated//$'\n'/, }"
+fi
+
+for command_name in omarchy wezterm zsh mise stow starship fastfetch zoxide nvim lazygit yazi claude; do
+  if command -v "$command_name" >/dev/null 2>&1; then
+    pass "Command: $command_name"
+  else
+    fail "Missing command: $command_name"
+  fi
+done
+
+for command_name in aws plamo-translate; do
+  if command -v "$command_name" >/dev/null 2>&1; then
+    pass "Optional command: $command_name"
+  else
+    warn "Optional command not installed: $command_name"
+  fi
+done
+
+terminal_id=$(xdg-terminal-exec --print-id 2>/dev/null || true)
+if [[ $terminal_id == org.wezfurlong.wezterm.desktop* ]]; then
+  pass "WezTerm is the default terminal"
+else
+  warn "Default terminal is ${terminal_id:-unknown}"
+fi
+
+if hyprctl version >/dev/null 2>&1; then
+  errors=$(hyprctl configerrors 2>/dev/null || true)
+  if [[ -z $errors ]]; then pass "Hyprland config"; else fail "Hyprland config: $errors"; fi
+else
+  warn "Hyprland socket unavailable; configerrors skipped"
+fi
+
+if [[ -r $HOME/.config/omarchy/current/theme/colors.toml ]]; then
+  pass "Omarchy palette available"
+else
+  fail "Omarchy palette missing"
+fi
+
+printf '\nResult: %d failure(s), %d warning(s)\n' "$failures" "$warnings"
+(( failures == 0 ))
