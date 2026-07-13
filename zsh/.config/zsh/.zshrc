@@ -14,6 +14,16 @@ source "$ZDOTDIR/rc/option.zsh"
 source "$ZDOTDIR/rc/bindkey.zsh"
 
 # ----------------------------------------------------
+# 2.5. CLI theme (Omarchyパレット → fzf / bat / autosuggest)
+# ----------------------------------------------------
+_cli_theme="$_zsh_cache_dir/../dotfiles/cli-theme.zsh"
+_omarchy_palette="$HOME/.config/omarchy/current/theme/colors.toml"
+if [[ ! -r "$_cli_theme" || "$_omarchy_palette" -nt "$_cli_theme" ]]; then
+  "$HOME/dotfiles/scripts/generate-cli-theme" >/dev/null 2>&1
+fi
+[[ -r "$_cli_theme" ]] && source "$_cli_theme"
+
+# ----------------------------------------------------
 # 3. Sheldon Plugin Manager (Plugin loadings)
 # ----------------------------------------------------
 cache_dir=${XDG_CACHE_HOME:-$HOME/.cache}

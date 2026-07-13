@@ -39,7 +39,8 @@
     light = false      # set to true if you're in a terminal w/ a light background color (e.g. Solarized Light)
     side-by-side = true
     line-numbers = true
-    syntax-theme = Catppuccin Mocha
+    # ansi = 端末のANSI色を使う。Omarchyテーマ変更に自動追従する
+    syntax-theme = ansi
 
 [merge]
     conflictstyle = zdiff3

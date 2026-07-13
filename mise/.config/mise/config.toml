@@ -38,8 +38,7 @@ VISUAL = "nvim"
 # --- Common CLI Tools Settings ---
 # AWS CLI の出力を WezTerm のスクロールバックに直接流す (ページャー無効化)
 AWS_PAGER = ""
-# bat 等のシンタックスハイライトテーマを固定
-BAT_THEME = "TwoDark"
+# BAT_THEME は generate-cli-theme が生成する cli-theme.zsh 側で管理 (ansi = Omarchyパレット追従)
 
 # --- Locale & i18n ---
 # C.UTF-8 はモダンな Linux で必ず利用できる、英語ベースかつ Unicode 対応の安全なロケールです

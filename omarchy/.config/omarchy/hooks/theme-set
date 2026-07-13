@@ -1,6 +1,10 @@
 #!/bin/bash
 
 # Omarchy has already generated the current theme by the time this hook runs.
+
+# fzf / bat / zsh 系のCLI配色を新パレットで再生成
+"$HOME/dotfiles/scripts/generate-cli-theme" >/dev/null 2>&1 || true
+
 # Touching the entry point makes WezTerm reload colors without restarting panes.
 wezterm_config="$HOME/.config/wezterm/wezterm.lua"
 [[ -e $wezterm_config ]] && touch "$wezterm_config"
