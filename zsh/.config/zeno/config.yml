@@ -1,0 +1,88 @@
+# zeno.zsh スニペット / 補完定義
+# キーワード + Space で展開。{{}} はプレースホルダー (カーソルが移動する)。
+
+snippets:
+  # --- git ---
+  - name: git status
+    keyword: gs
+    snippet: git status --short --branch
+  - name: git add all
+    keyword: gaa
+    snippet: git add -A
+  - name: git commit
+    keyword: gcm
+    snippet: git commit -m '{{message}}'
+  - name: git push
+    keyword: gps
+    snippet: git push
+  - name: git pull
+    keyword: gpl
+    snippet: git pull
+  - name: git log graph
+    keyword: glo
+    snippet: git log --oneline --graph -20
+  - name: git diff
+    keyword: gd
+    snippet: git diff
+  - name: git switch
+    keyword: gsw
+    snippet: git switch {{branch}}
+
+  # --- dotfiles / mise ---
+  - name: dotfiles doctor
+    keyword: doc
+    snippet: mise run doctor
+  - name: dotfiles apply
+    keyword: mra
+    snippet: mise run apply
+  - name: dotfiles commit (czg)
+    keyword: dcz
+    snippet: cd ~/dotfiles && czg
+
+  # --- omarchy ---
+  - name: omarchy theme set
+    keyword: ots
+    snippet: omarchy theme set {{theme}}
+  - name: omarchy theme list
+    keyword: otl
+    snippet: omarchy theme list
+  - name: omarchy update
+    keyword: oup
+    snippet: omarchy update
+
+  # --- docker ---
+  - name: docker compose up
+    keyword: dcu
+    snippet: docker compose up -d
+  - name: docker compose down
+    keyword: dcd
+    snippet: docker compose down
+  - name: docker compose logs
+    keyword: dcl
+    snippet: docker compose logs -f
+
+  # --- パイプ (コマンドの後ろでだけ展開) ---
+  - name: pipe rg
+    keyword: G
+    snippet: "| rg '{{pattern}}'"
+    context:
+      lbuffer: '.+\s'
+  - name: pipe fzf
+    keyword: F
+    snippet: "| fzf"
+    context:
+      lbuffer: '.+\s'
+  - name: pipe bat
+    keyword: B
+    snippet: "| bat"
+    context:
+      lbuffer: '.+\s'
+
+completions:
+  - name: git switch
+    patterns:
+      - "^git switch $"
+    sourceCommand: "git branch --format='%(refname:short)'"
+    options:
+      --prompt: "'branch> '"
+    callback: "awk '{print $1}'"
