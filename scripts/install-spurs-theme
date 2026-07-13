@@ -6,6 +6,9 @@ ROOT="${DOTFILES_ROOT:-$HOME/dotfiles}"
 source_dir="$ROOT/themes/spurs"
 target_dir="$HOME/.config/omarchy/themes/spurs"
 
+# colors.tomlから全テーマファイルを再生成してから配置
+python3 "$ROOT/tools/build_theme.py" "$source_dir"
+
 mkdir -p "$target_dir"
 cp -a "$source_dir/." "$target_dir/"
 printf 'Installed Omarchy theme: Spurs\n'

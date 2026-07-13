@@ -1,0 +1,40 @@
+@define-color background-color #090f24;
+@define-color border-color     #1b458f;
+@define-color label            #f5f7ff;
+@define-color image            #f5f7ff;
+@define-color progress         #f9d616;
+
+window {
+    background-color: transparent;
+    border: none;
+    border-radius: 999px;
+    padding: 0;
+    box-shadow: none;
+}
+
+.osd,
+osd {
+    background-color: alpha(@background-color, 0.6);
+    border: 1px solid @border-color;
+    border-radius: 9999px;
+}
+
+image {
+    color: @image;
+    margin: 0 16px 0 0;
+}
+
+label {
+    color: @label;
+    font-size: 8px;
+}
+
+progressbar {
+    border-radius: 999px;
+    padding-bottom: 8px;
+    margin: 8px 0 0 0;
+}
+
+progress {
+    background-color: @progress;
+}
