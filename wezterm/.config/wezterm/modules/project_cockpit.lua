@@ -10,6 +10,7 @@ local RECIPES = {
   { id = "editor", label = "  Neovim", args = { "nvim" } },
   { id = "ai", label = "󰚩  Claude Code", args = { "claude" } },
   { id = "git", label = "  Lazygit", args = { "lazygit" } },
+  { id = "github", label = "  GitHub Dashboard", args = { "gh", "dash" } },
 }
 
 local function basename(path)
