@@ -31,13 +31,22 @@ sheldon_cache="$cache_dir/sheldon.zsh"
 sheldon_toml="$HOME/.config/sheldon/plugins.toml"
 
 # Zeno needs this before Sheldon loads the plugin.
-export ZENO_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/zeno"
+# スニペット定義 (config.yml) はdotfilesで管理する
+export ZENO_HOME="${XDG_CONFIG_HOME:-$HOME/.config}/zeno"
 
 if [[ ! -r "$sheldon_cache" || "$sheldon_toml" -nt "$sheldon_cache" ]]; then
   mkdir -p "$cache_dir"
   command sheldon source > "$sheldon_cache"
 fi
 source "$sheldon_cache"
+
+# Zenoウィジェット (プラグインロード後に定義される)
+if (( ${+functions[zeno-auto-snippet]} )); then
+  bindkey ' '    zeno-auto-snippet             # Space: キーワード展開
+  bindkey '^m'   zeno-auto-snippet-and-accept-line
+  bindkey '^r'   zeno-history-selection        # 履歴のfuzzy検索
+  bindkey '^x^s' zeno-insert-snippet           # スニペット一覧から挿入
+fi
 
 # ----------------------------------------------------
 # 4. mise (Delayed activation)
