@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# Claude Codeのhookから呼ばれ、WezTermのペインuser var "claude_state" を更新する。
+# WezTerm側 (tab.lua) がこの値でタブアイコンの色を変える。
+#   working   = 処理中 / waiting = 入力待ち / attention = 許可待ち等の通知 / (空) = 終了
+#
+# hookはターミナル配下で走るので /dev/tty へ OSC 1337 SetUserVar を直接書く。
+# tty が無いコンテキスト (headless等) では静かに何もしない。失敗してもhookを止めない。
+
+state="${1:-}"
+
+{
+  if [[ -w /dev/tty ]]; then
+    printf '\033]1337;SetUserVar=claude_state=%s\007' "$(printf %s "$state" | base64 | tr -d '\n')" >/dev/tty
+  fi
+} 2>/dev/null
+
+exit 0

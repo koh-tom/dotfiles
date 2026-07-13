@@ -24,7 +24,9 @@ local ICON_COLORS = {
   neovim = palette.color2,
   nb = palette.color5,
   ssh = palette.color1,
-  claude = "#D97757",
+  claude = "#D97757",          -- working: Claudeブランドオレンジ
+  claude_waiting = palette.color3,   -- 入力待ち: イエロー
+  claude_attention = palette.color1, -- 許可待ち等の通知: レッド
 }
 
 local TAB_COLORS = {
@@ -94,7 +96,7 @@ local function extract_project_name(cwd)
   return cwd:match("([^/]+)$") or cwd
 end
 
-local function get_icon_and_color(process_name, pane_title, cmdline, cwd, is_ssh, is_active, is_claude)
+local function get_icon_and_color(process_name, pane_title, cmdline, cwd, is_ssh, is_active, is_claude, claude_state)
   if is_ssh then
     local color = is_active and "#ffffff" or ICON_COLORS.ssh
     return ICONS.ssh, color
@@ -109,6 +111,12 @@ local function get_icon_and_color(process_name, pane_title, cmdline, cwd, is_ssh
   end
 
   if is_claude then
+    -- Claude Code hooks (claude-wezterm-state) が送るuser varで状態色を変える
+    if claude_state == "waiting" then
+      return ICONS.claude, ICON_COLORS.claude_waiting
+    elseif claude_state == "attention" then
+      return ICONS.claude, ICON_COLORS.claude_attention
+    end
     return ICONS.claude, ICON_COLORS.claude
   end
 
@@ -191,8 +199,9 @@ function module.apply_to_config(config)
       ssh_host_cache[pane_id] = nil
     end
 
-    -- Claude Code検出
+    -- Claude Code検出と状態 (hooks経由のuser var)
     local is_claude = claude_cache[pane_id] or false
+    local claude_state = user_vars.claude_state or ""
 
     -- タブの色
     local background, foreground = get_tab_colors(tab.is_active, is_ssh)
@@ -221,7 +230,7 @@ function module.apply_to_config(config)
     end
 
     -- アイコン
-    local icon, icon_color = get_icon_and_color(process_name, pane_title, cmdline, cached_cwd, is_ssh, tab.is_active, is_claude)
+    local icon, icon_color = get_icon_and_color(process_name, pane_title, cmdline, cached_cwd, is_ssh, tab.is_active, is_claude, claude_state)
 
     -- ズームインジケーター
     local zoom_indicator = has_zoomed_pane(tab.panes) and (ICONS.zoom .. " ") or ""

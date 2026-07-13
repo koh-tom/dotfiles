@@ -1,0 +1,17 @@
+{
+  "//": "~/.claude/settings.json にマージするhooks設定。WezTermのタブ色がClaude Codeの状態に追従する (scripts/claude-wezterm-state)。~/.claude はStow管理外なので手動でマージすること。",
+  "hooks": {
+    "UserPromptSubmit": [
+      { "hooks": [{ "type": "command", "command": "~/dotfiles/scripts/claude-wezterm-state working", "timeout": 5 }] }
+    ],
+    "Stop": [
+      { "hooks": [{ "type": "command", "command": "~/dotfiles/scripts/claude-wezterm-state waiting", "timeout": 5 }] }
+    ],
+    "Notification": [
+      { "hooks": [{ "type": "command", "command": "~/dotfiles/scripts/claude-wezterm-state attention", "timeout": 5 }] }
+    ],
+    "SessionEnd": [
+      { "hooks": [{ "type": "command", "command": "~/dotfiles/scripts/claude-wezterm-state ''", "timeout": 5 }] }
+    ]
+  }
+}

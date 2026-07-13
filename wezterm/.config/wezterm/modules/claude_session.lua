@@ -1,5 +1,6 @@
 local wezterm = require("wezterm")
 local act = wezterm.action
+local palette = require("omarchy_theme").get_palette()
 local module = {}
 
 -- アイコン定義
@@ -10,6 +11,35 @@ local ICONS = {
   separator = wezterm.nerdfonts.ple_right_half_circle_thin,
   status_running = "●",
 }
+
+-- hex色 → 24bit ANSI前景色エスケープ
+local function ansi_fg(hex)
+  local r, g, b = hex:match("#(%x%x)(%x%x)(%x%x)")
+  return string.format("\x1b[38;2;%d;%d;%dm", tonumber(r, 16), tonumber(g, 16), tonumber(b, 16))
+end
+
+-- claude_state user var → 状態色 (tab.luaと同じマッピング)
+local STATE_COLORS = {
+  working = "#D97757",
+  waiting = nil, -- palette.color3 (下で解決)
+  attention = nil, -- palette.color1
+}
+
+local function state_color(state)
+  if state == "waiting" then return palette.color3 end
+  if state == "attention" then return palette.color1 end
+  return STATE_COLORS.working
+end
+
+-- JSON Lines用の文字列エスケープ
+local function json_escape(s)
+  return (s or "")
+    :gsub("\\", "\\\\")
+    :gsub('"', '\\"')
+    :gsub("\r", "")
+    :gsub("\n", "\\n")
+    :gsub("\t", "\\t")
+end
 
 -- プロジェクト名を取得（パスから）
 local function get_project_name(path)
@@ -30,9 +60,11 @@ local function scan_active_claude_sessions()
         if process_name and process_name:find("claude") then
           local cwd_url = pane:get_current_working_dir()
           local cwd = cwd_url and cwd_url.file_path or ""
+          local user_vars = pane:get_user_vars() or {}
           table.insert(sessions, {
             pane = pane, pane_id = pane:pane_id(),
             workspace = workspace, cwd = cwd,
+            state = user_vars.claude_state or "",
             tab_id = tab:tab_id(), mux_window = mux_window,
           })
         end
@@ -51,13 +83,22 @@ local function export_sessions(sessions, filepath, formatted_path)
   for _, s in ipairs(sessions) do
     local project = get_project_name(s.cwd)
     local workspace = s.workspace or "default"
-    
+
+    -- ペイン末尾の画面内容をプレビューとして持たせる
+    local content = ""
+    local ok, text = pcall(function() return s.pane:get_lines_as_text(40) end)
+    if ok and text then content = text:gsub("%s+$", "") end
+
     -- JSON Line 形式 (preview script用)
-    jsonl:write(string.format('{"pane_id":"%s","workspace":"%s","project":"%s","content":""}\n', s.pane_id, workspace, project))
-    
-    -- fzf 表示用形式 (ANSI色付き)
-    local line = string.format("\x1b[38;5;114m%s \x1b[38;5;141m%s %s \x1b[38;5;240m%s \x1b[38;5;117m%s %s|%s\n",
-      ICONS.status_running, ICONS.workspace, workspace, ICONS.separator, ICONS.project, project, s.pane_id)
+    jsonl:write(string.format('{"pane_id":"%s","workspace":"%s","project":"%s","state":"%s","content":"%s"}\n',
+      s.pane_id, workspace, project, s.state, json_escape(content)))
+
+    -- fzf 表示用形式 (Omarchyパレット色 + 状態色の●)
+    local line = string.format("%s%s %s%s %s %s%s %s%s %s|%s\n",
+      ansi_fg(state_color(s.state)), ICONS.status_running,
+      ansi_fg(palette.color5), ICONS.workspace, workspace,
+      ansi_fg(palette.color8), ICONS.separator,
+      ansi_fg(palette.color4), ICONS.project, project, s.pane_id)
     fzf_in:write(line)
   end
   
@@ -83,7 +124,11 @@ local function create_fzf_selector()
     local config_dir = wezterm.config_dir or (os.getenv("HOME") .. "/.config/wezterm")
     local preview_script = config_dir .. "/scripts/preview_claude_session.lua"
 
-    local fzf_colors = "--color=fg:255,bg:-1,hl:117,fg+:255,bg+:237,hl+:141,info:240,prompt:141,pointer:141,marker:141,spinner:141,header:240"
+    local fzf_colors = string.format(
+      "--color=fg:%s,bg:-1,hl:%s,fg+:%s,bg+:%s,hl+:%s,info:%s,prompt:%s,pointer:%s,marker:%s,spinner:%s,header:%s",
+      palette.foreground, palette.accent, palette.color15, palette.color0,
+      palette.accent, palette.color8, palette.accent, palette.color3,
+      palette.color3, palette.color5, palette.color8)
     local command = string.format([[fzf --ansi --height=50%% --reverse --border=rounded --prompt="🤖 Claude Session > " --preview='lua "%s" "%s" {}' --preview-window=right:60%%:wrap --delimiter='|' --with-nth=1 %s < "%s" > "%s"]],
       preview_script, sessions_file, fzf_colors, fzf_input, result_file)
 

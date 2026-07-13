@@ -7,6 +7,7 @@
   "modules-left": ["custom/omarchy", "hyprland/workspaces"],
   "modules-center": ["clock", "custom/weather", "custom/update", "custom/voxtype", "custom/screenrecording-indicator", "custom/idle-indicator", "custom/notification-silencing-indicator"],
   "modules-right": [
+    "custom/claude",
     "group/tray-expander",
     "bluetooth",
     "network",
@@ -15,6 +16,12 @@
     "memory",
     "battery"
   ],
+  "custom/claude": {
+    "exec": "$HOME/dotfiles/scripts/waybar-claude-status",
+    "return-type": "json",
+    "interval": 10,
+    "on-click": "hyprctl dispatch focuswindow class:org.wezfurlong.wezterm"
+  },
   "hyprland/workspaces": {
     "on-click": "activate",
     "format": "{icon}",
