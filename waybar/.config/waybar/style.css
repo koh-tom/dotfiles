@@ -123,6 +123,22 @@ tooltip {
   color: #e5484d;
 }
 
+/* --- 右: dotfilesドリフトピル (dirty=黄 / 未push=水色) --- */
+#custom-dotfiles {
+  background: alpha(@foreground, 0.12);
+  border-radius: 99px;
+  padding: 0 10px;
+  margin: 3px 4px 3px 0;
+}
+
+#custom-dotfiles.dirty {
+  color: #f0b232;
+}
+
+#custom-dotfiles.ahead {
+  color: #58a6ff;
+}
+
 /* --- 右: Claude Codeセッション数ピル --- */
 #custom-claude {
   background: alpha(@foreground, 0.12);

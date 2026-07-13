@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Waybar用: ~/dotfiles の未コミット変更・未push状態をJSONで出力する。
+# クリーンなときはtextを空にしてモジュールごと隠す。
+
+repo="$HOME/dotfiles"
+
+if ! git -C "$repo" rev-parse --git-dir >/dev/null 2>&1; then
+  printf '{"text":""}\n'
+  exit 0
+fi
+
+dirty=$(git -C "$repo" status --porcelain 2>/dev/null | wc -l)
+ahead=$(git -C "$repo" rev-list --count '@{upstream}..HEAD' 2>/dev/null || echo 0)
+
+if (( dirty == 0 && ahead == 0 )); then
+  printf '{"text":"","tooltip":"dotfiles: clean"}\n'
+elif (( dirty > 0 )); then
+  printf '{"text":" %s","class":"dirty","tooltip":"dotfiles: %s uncommitted change(s)\\nclick: lazygit"}\n' "$dirty" "$dirty"
+else
+  printf '{"text":" %s","class":"ahead","tooltip":"dotfiles: %s unpushed commit(s)\\nclick: lazygit"}\n' "$ahead" "$ahead"
+fi
