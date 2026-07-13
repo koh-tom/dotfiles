@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# packages/*.txt のマニフェストからpacman/AURパッケージを導入する。
+# sudoパスワードを聞かれる前提の手動実行スクリプト (bootstrapからも呼ばれる)。
+
+set -euo pipefail
+
+ROOT="${DOTFILES_ROOT:-$HOME/dotfiles}"
+
+read_manifest() {
+  grep -vE '^\s*(#|$)' "$1"
+}
+
+mapfile -t pacman_pkgs < <(read_manifest "$ROOT/packages/pacman.txt")
+if ((${#pacman_pkgs[@]} > 0)); then
+  printf 'Installing pacman packages: %s\n' "${pacman_pkgs[*]}"
+  sudo pacman -S --needed --noconfirm "${pacman_pkgs[@]}"
+fi
+
+mapfile -t aur_pkgs < <(read_manifest "$ROOT/packages/aur.txt")
+if ((${#aur_pkgs[@]} > 0)); then
+  if command -v yay >/dev/null 2>&1; then
+    printf 'Installing AUR packages: %s\n' "${aur_pkgs[*]}"
+    yay -S --needed --noconfirm "${aur_pkgs[@]}"
+  else
+    printf 'yay not found; skipping AUR packages: %s\n' "${aur_pkgs[*]}" >&2
+  fi
+fi
+
+printf 'Package install complete.\n'
