@@ -58,6 +58,8 @@ install-spurs = { run = "cd ~/dotfiles && ./scripts/install-spurs-theme", descri
 build-theme = { run = "cd ~/dotfiles && python3 tools/build_theme.py themes/spurs", description = "Regenerate Spurs theme files from colors.toml" }
 
 # --- Shortcut Commands ---
+# 対話式conventional commits (カレントリポジトリで実行)
+commit = { run = "czg", description = "Conventional commit prompt (czg)" }
 # どこにいてもドットファイルのリポジトリで Lazygit を起動
 dot = { run = "cd ~/dotfiles && lazygit", description = "Management dotfiles repo with lazygit" }
 # WezTerm の設定を即座に開く
