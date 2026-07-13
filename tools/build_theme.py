@@ -257,6 +257,25 @@ input:selected {{
 
     files["icons.theme"] = "Yaru-blue\n"
 
+    # cava (オーディオビジュアライザ): ネイビー→白→イエローのグラデーション
+    grad_colors = [p["color4"], p["color12"], p["color7"], p["color15"],
+                   p["color11"], p["color3"], p["color11"], p["color15"]]
+    cava_lines = "\n".join(
+        f"gradient_color_{i + 1} = '{c}'" for i, c in enumerate(grad_colors)
+    )
+    files["cava_theme"] = f"""[color]
+gradient = 1
+gradient_count = {len(grad_colors)}
+{cava_lines}
+"""
+
+    # chromium.theme: ブラウザのフレーム色 (R, G, B)
+    bg = p["background"].lstrip("#")
+    files["chromium.theme"] = f"{int(bg[0:2], 16)}, {int(bg[2:4], 16)}, {int(bg[4:6], 16)}\n"
+
+    # vscode.json: 専用テーマ拡張が無いため空定義 (存在だけ期待される)
+    files["vscode.json"] = "{}\n"
+
     for filename, content in files.items():
         (theme_dir / filename).write_text(content)
         print(f"  wrote {filename}")

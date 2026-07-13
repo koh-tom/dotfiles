@@ -81,7 +81,7 @@ fi
 
 # Spursテーマの生成物が揃っていること
 spurs_missing=""
-for f in colors.toml btop.theme neovim.lua hyprland.conf hyprlock.conf mako.ini swayosd.css waybar.css wofi.css alacritty.toml icons.theme; do
+for f in colors.toml btop.theme neovim.lua hyprland.conf hyprlock.conf mako.ini swayosd.css waybar.css wofi.css alacritty.toml icons.theme cava_theme chromium.theme vscode.json; do
   [[ -f themes/spurs/$f ]] || spurs_missing+="$f "
 done
 if [[ -z $spurs_missing ]]; then
