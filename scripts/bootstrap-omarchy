@@ -1,0 +1,31 @@
+#!/bin/bash
+
+set -euo pipefail
+
+ROOT="${DOTFILES_ROOT:-$HOME/dotfiles}"
+stamp=$(date +%s)
+
+backup_file() {
+  local path=$1
+  if [[ -e $path && ! -L $path ]]; then
+    mv "$path" "$path.bak.$stamp"
+    printf 'Backed up %s\n' "$path"
+  fi
+}
+
+backup_file "$HOME/.config/git/config"
+backup_file "$HOME/.config/starship.toml"
+backup_file "$HOME/.config/fastfetch/config.jsonc"
+backup_file "$HOME/.config/omarchy/extensions/menu.sh"
+backup_file "$HOME/.config/xdg-terminals.list"
+backup_file "$HOME/.config/waybar/config.jsonc"
+backup_file "$HOME/.config/waybar/style.css"
+
+cd "$ROOT"
+./scripts/apply-dotfiles
+./scripts/install-spurs-theme
+
+current_theme=$(omarchy theme current)
+OMARCHY_THEME_SKIP_BACKGROUND=1 omarchy theme set "$current_theme"
+
+printf '\nBootstrap complete. Run: mise run doctor\n'

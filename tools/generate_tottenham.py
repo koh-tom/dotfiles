@@ -1,6 +1,9 @@
 import urllib.request
 from PIL import Image
 import os
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
 
 def download_and_convert_logo(url, target_height=26, char_aspect=2.0):
     # Download the logo
@@ -96,9 +99,9 @@ try:
             ascii_art_lines.append(line.rstrip())
         return ascii_art_lines
 
-    lines = convert_local_logo("spurs_logo.png", target_height=26, char_aspect=2.1)
+    lines = convert_local_logo(ROOT / "assets/spurs/spurs.png", target_height=26, char_aspect=2.1)
     
-    output_path = "/home/koh/dotfiles/logo.txt"
+    output_path = ROOT / "fastfetch/.config/fastfetch/logo.txt"
     with open(output_path, "w") as f:
         f.write("\n".join(lines) + "\n")
         

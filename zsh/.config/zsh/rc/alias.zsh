@@ -3,6 +3,7 @@ alias v="nvim"
 alias g="git"
 alias lg="lazygit"
 alias ra="yazi"
+alias ff="fastfetch"
 
 # Yazi: cd on quit
 # https://yazi-rs.github.io/docs/quick-start#shell-wrapper
@@ -34,7 +35,7 @@ alias ....='cd ../../..'
 alias .....='cd ../../../..'
 
 # --- Convenience ---
-alias reload='source ~/.zshrc'
+alias reload='source "$ZDOTDIR/.zshrc"'
 alias dot='cd ~/dotfiles && lazygit'
 alias wez='nvim ~/dotfiles/wezterm/.config/wezterm/wezterm.lua'
 alias miseconfig='nvim ~/dotfiles/mise/.config/mise/config.toml'

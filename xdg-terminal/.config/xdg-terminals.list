@@ -1,0 +1,3 @@
+# Terminal emulator preference order for xdg-terminal-exec
+org.wezfurlong.wezterm.desktop
+Alacritty.desktop

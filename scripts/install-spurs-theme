@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -euo pipefail
+
+ROOT="${DOTFILES_ROOT:-$HOME/dotfiles}"
+source_dir="$ROOT/themes/spurs"
+target_dir="$HOME/.config/omarchy/themes/spurs"
+
+mkdir -p "$target_dir"
+cp -a "$source_dir/." "$target_dir/"
+printf 'Installed Omarchy theme: Spurs\n'

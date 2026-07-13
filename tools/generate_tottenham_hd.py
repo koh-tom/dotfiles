@@ -1,16 +1,12 @@
-import urllib.request
 from PIL import Image
-import os
+from pathlib import Path
 
-url = "https://upload.wikimedia.org/wikipedia/en/thumb/b/b4/Tottenham_Hotspur.svg/960px-Tottenham_Hotspur.svg.png"
-print(f"Downloading {url}...")
-
-req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-with urllib.request.urlopen(req) as response, open('spurs.png', 'wb') as out_file:
-    out_file.write(response.read())
+ROOT = Path(__file__).resolve().parents[1]
+source_path = ROOT / "assets/spurs/spurs.png"
+output_path = ROOT / "fastfetch/.config/fastfetch/logo.txt"
 
 print("Processing image with Unicode half-blocks...")
-img = Image.open('spurs.png').convert('RGBA')
+img = Image.open(source_path).convert('RGBA')
 orig_width, orig_height = img.size
 
 # We want the output to be exactly 26 lines high to match the info boxes
@@ -52,7 +48,7 @@ for cy in range(target_char_height):
             
     ascii_lines.append(line.rstrip())
 
-with open('/home/koh/dotfiles/logo.txt', 'w') as f:
+with open(output_path, 'w') as f:
     f.write('\n'.join(ascii_lines) + '\n')
 
 print("Successfully generated ultra-high-res ASCII logo!")

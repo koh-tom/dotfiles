@@ -1,0 +1,14 @@
+#!/bin/bash
+
+doctor="$HOME/dotfiles/scripts/dotfiles-doctor"
+log_dir="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles"
+log_file="$log_dir/post-update-doctor.log"
+
+[[ -x $doctor ]] || exit 0
+mkdir -p "$log_dir"
+
+if "$doctor" >"$log_file" 2>&1; then
+  notify-send -u low "Dotfiles Doctor" "Omarchy update check passed"
+else
+  notify-send -u normal "Dotfiles Doctor" "Check $log_file for post-update drift"
+fi
