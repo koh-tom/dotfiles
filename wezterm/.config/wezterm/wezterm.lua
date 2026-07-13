@@ -92,6 +92,7 @@ if has_command("plamo-translate") then
 end
 require("modules.colorscheme").apply_to_config(config)
 require("modules.smart_open").apply_to_config(config)
+require("modules.background").apply_to_config(config)
 require("modules.session").apply_to_config(config)
 require("modules.notify").apply_to_config(config)
 

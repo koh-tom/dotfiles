@@ -128,7 +128,7 @@ function module.apply_to_config(_)
     local hint_fg = palette.color3
 
     if window:leader_is_active() then
-      hint_text = " [g] Project | [l] Launch | [r/d] Split | [f] Zoom | [z] CopyLast "
+      hint_text = " [g] Project | [l] Launch | [r/d] Split | [f] Zoom | [z] CopyLast | [i] BG "
     elseif key_table == "setting_mode" then
       hint_text = " [h/j/k/l] Resize | [1-9] Ratio | [q/Esc] Exit "
       hint_fg = palette.color2
