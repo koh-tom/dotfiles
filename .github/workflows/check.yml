@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install checkers
-        run: sudo apt-get update -q && sudo apt-get install -y -q zsh lua5.4 stow
+        run: sudo apt-get update -q && sudo apt-get install -y -q zsh lua5.4 stow shellcheck
 
       - name: Zsh syntax
         run: |
@@ -27,6 +27,11 @@ jobs:
           for f in scripts/* omarchy/.config/omarchy/hooks/* omarchy/.config/omarchy/extensions/*.sh; do
             bash -n "$f"
           done
+
+      - name: ShellCheck
+        run: |
+          shellcheck -S warning scripts/* omarchy/.config/omarchy/hooks/*
+          shellcheck -S warning --shell=bash omarchy/.config/omarchy/extensions/menu.sh
 
       - name: Python compile
         run: python3 -m py_compile tools/*.py
