@@ -59,7 +59,45 @@ else
   fail "Zsh runtime state found: ${generated//$'\n'/, }"
 fi
 
-for command_name in omarchy wezterm zsh mise stow starship fastfetch zoxide nvim lazygit yazi claude; do
+# WezTerm安定版(20240203以前)はHyprland Waylandでウィンドウが出ない既知問題がある
+if grep -Eq '^\s*config\.enable_wayland\s*=\s*true' wezterm/.config/wezterm/wezterm.lua; then
+  wez_version=$(wezterm --version 2>/dev/null | awk '{print $2}' | cut -d- -f1)
+  if [[ -n $wez_version && $wez_version -le 20240203 ]] 2>/dev/null; then
+    fail "enable_wayland=true + wezterm $wez_version はHyprlandでウィンドウ非表示になる (falseへ戻すかwezterm-gitへ更新)"
+  else
+    pass "WezTerm Wayland compatibility"
+  fi
+else
+  pass "WezTerm Wayland compatibility (XWayland)"
+fi
+
+# scriptsは全て実行可能であること
+non_exec=$(find scripts -type f ! -perm -u+x | tr '\n' ' ')
+if [[ -z $non_exec ]]; then
+  pass "All scripts are executable"
+else
+  fail "Non-executable scripts: $non_exec"
+fi
+
+# Spursテーマの生成物が揃っていること
+spurs_missing=""
+for f in colors.toml btop.theme neovim.lua hyprland.conf hyprlock.conf mako.ini swayosd.css waybar.css wofi.css alacritty.toml icons.theme; do
+  [[ -f themes/spurs/$f ]] || spurs_missing+="$f "
+done
+if [[ -z $spurs_missing ]]; then
+  pass "Spurs theme is complete"
+else
+  fail "Spurs theme missing files (run: mise run build-theme): $spurs_missing"
+fi
+
+# CLIテーマキャッシュ (無ければzsh起動時に生成されるためwarn)
+if [[ -r ${XDG_CACHE_HOME:-$HOME/.cache}/dotfiles/cli-theme.zsh ]]; then
+  pass "CLI theme cache generated"
+else
+  warn "CLI theme cache missing (generated on next shell start)"
+fi
+
+for command_name in omarchy wezterm zsh mise stow starship fastfetch zoxide nvim lazygit yazi claude czg; do
   if command -v "$command_name" >/dev/null 2>&1; then
     pass "Command: $command_name"
   else

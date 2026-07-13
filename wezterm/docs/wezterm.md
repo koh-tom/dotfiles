@@ -198,17 +198,17 @@ WezTerm は以下の順序で設定ファイルを探します（先に見つか
 ├── statusbar.lua            # ステータスバー（workspace, CWD, Git, SSH）
 ├── tab.lua                  # タブ描画ロジック（プロセス検出, アイコン）
 ├── workspace.lua            # ワークスペース管理
-├── theme.lua                # (レガシー: 今は appearance.lua に統合済み)
 ├── modules/
 │   ├── opacity.lua          # フォーカス連動透過
-│   ├── claude_session.lua   # Claude Code セッション切替
-│   ├── project_cockpit.lua  # zoxideからプロジェクトworkspaceを起動
+│   ├── claude_session.lua   # Claude Code セッション切替 (状態・プレビュー付き)
+│   ├── project_cockpit.lua  # zoxideからプロジェクトworkspaceを起動 (Dev Layout / .cockpit.lua)
 │   ├── aws_profile.lua      # AWS プロファイル選択
 │   ├── translate.lua        # テキスト翻訳
 │   ├── colorscheme.lua      # カラースキーム切替
-│   ├── session.lua          # セッション保存・復元
+│   ├── background.lua       # Omarchy壁紙を背景に敷くトグル (LEADER+i)
+│   ├── session.lua          # セッション保存・復元 (自動保存 + ペイン分割)
 │   ├── notify.lua           # デスクトップ・ベル通知
-│   └── smart_open.lua       # URL / パス / Hash の自動判別
+│   └── smart_open.lua       # URL / パス / path:line / owner/repo / Hash の自動判別
 └── scripts/
     └── preview_claude_session.lua  # fzf プレビュー用
 ```
@@ -685,9 +685,10 @@ Vim のキーバインドをベースにしています。
 | `LEADER + g` | Project Cockpit（zoxideからworkspaceと起動レシピを選択） |
 | `LEADER + b` | スクロールバックバッファをフル画面の Neovim で開く |
 | `LEADER + z` | 直前のコマンドと出力をまとめてコピー |
-| `LEADER + c` | Claude Code セッション切替（fzf） |
+| `LEADER + c` | Claude Code セッション切替（fzf、状態・プレビュー付き） |
 | `LEADER + p` | AWS プロファイル選択 |
-| `LEADER + S` | セッションを手動保存 (B-3) |
+| `LEADER + i` | Omarchy壁紙を背景に敷くトグル |
+| `LEADER + S` | セッションを手動保存（5分毎の自動保存もあり） |
 | `LEADER + D` | セッションのリセット（保存履歴を削除） |
 
 ### モード
@@ -713,10 +714,11 @@ Vim のキーバインドをベースにしています。
 
 **使い方**:
 - **手動保存**: `LEADER + S` (Shift+S) を押すと `~/.local/share/wezterm/sessions/last.json` に状態を書き出します。
+- **自動保存**: 起動中は5分ごとに静かに自動保存されます。
 - **リセット**: `LEADER + D` (Shift+D) を押すと保存されたセッションファイルを削除します。次回起動時は初期状態で始まります。
 - **自動復元**: WezTerm 起動時に最後に保存した状態を自動的にロードします。
 
-> **注記**: 現在は「ペインの分割（スプリット）」までは保存されませんが、タブの状態とディレクトリは正確に復元されます。
+> **注記**: ペインの分割はジオメトリから方向・比率を推定して復元するベストエフォート方式です。タブとディレクトリは正確に復元されます。
 
 ### modules/notify.lua — 通知連携モジュール (B-5)
 
@@ -851,20 +853,16 @@ fzf のインターフェースでプレビュー付きで切り替えること�
 
 ### 現在のテーマ
 
-- **カラースキーム**: Solarized Dark Higher Contrast（`LEADER + t` で変更可能）
-- **フォント**: JetBrains Mono 12pt
+- **カラースキーム**: Omarchyの現在テーマに自動追従（`omarchy_theme.lua` が colors.toml を変換。`LEADER + t` で一時変更可能）
+- **フォント**: `omarchy font current` の結果（フォールバック: JetBrainsMono Nerd Font 12pt）
 - **ウィンドウ**: タイトルバーなし（`RESIZE` 装飾のみ）
 - **タブバー**: 画面下部、ファンシースタイル
-- **背景透過度**: 0.9
+- **背景透過度**: フォーカス時 0.94 / 非フォーカス時 0.82
 
 ### Wayland と X11
 
-本設定では X11 を優先しています（`enable_wayland = false`）。  
-Wayland を使いたい場合は `wezterm.lua` の以下の行を変更してください：
-
-```lua
-config.enable_wayland = true  -- Wayland を有効化
-```
+**wezterm 安定版 (20240203) はHyprlandのWaylandでウィンドウが表示されない既知問題があるため、`enable_wayland = false`（XWayland経由）にしています。**  
+wezterm-git 等の新しいビルドへ更新した場合のみ `true` へ戻してください。`mise run doctor` がこの組み合わせを検査します。
 
 ---
 

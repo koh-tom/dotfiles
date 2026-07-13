@@ -1,0 +1,38 @@
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install checkers
+        run: sudo apt-get update -q && sudo apt-get install -y -q zsh lua5.4 stow
+
+      - name: Zsh syntax
+        run: |
+          zsh -n zsh/.zshenv zsh/.config/zsh/.zshrc \
+            zsh/.config/zsh/rc/*.zsh zsh/.config/zsh/rc/pluginconfig/*.zsh
+
+      - name: Lua syntax
+        run: find wezterm themes -name '*.lua' -print0 | xargs -0 -n1 luac5.4 -p
+
+      - name: Bash syntax
+        run: |
+          for f in scripts/* omarchy/.config/omarchy/hooks/* omarchy/.config/omarchy/extensions/*.sh; do
+            bash -n "$f"
+          done
+
+      - name: Python compile
+        run: python3 -m py_compile tools/*.py
+
+      - name: JSON validity
+        run: python3 -m json.tool claude/hooks.example.json >/dev/null
+
+      - name: Stow dry-run
+        run: stow -n -v git mise starship wezterm zsh fastfetch omarchy waybar xdg-terminal

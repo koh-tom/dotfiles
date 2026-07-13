@@ -4,12 +4,14 @@ Omarchyを母艦にした、ターミナル中心の個人用dotfilesです。GN
 
 ## 特徴
 
-- Omarchyの現在テーマ／フォントとWezTerm・Starshipを同期
-- WezTermのworkspace、Project Cockpit、Claudeセッション切替、Smart Open
-- XDG準拠のZsh履歴・キャッシュ管理
-- SpursロゴのfastfetchとカスタムOmarchyテーマ
-- ホスト別モニタープロファイル
-- `mise run doctor` による一括診断
+- Omarchyの現在テーマ／フォントとWezTerm・Starship・fzf・bat・deltaを同期
+- `colors.toml` 1枚からOmarchyテーマ一式を生成する `tools/build_theme.py`
+- WezTermのworkspace、Project Cockpit (Dev Layout / `.cockpit.lua`)、Smart Open
+- Claude Code連携: タブ色が状態(working/waiting/attention)に追従、fzfセッション切替、Waybarセッション数
+- Starshipバッジと統一したピル型Waybar (+ dotfilesドリフト表示)
+- zenoスニペット、czgコミットフロー、XDG準拠のZsh履歴・キャッシュ管理
+- セッション自動保存とペイン分割復元、ホスト別モニタープロファイル
+- `mise run doctor` による一括診断とGitHub Actionsの静的チェック
 
 ## Stowパッケージ
 
@@ -50,7 +52,9 @@ mise run apply           # 全Stowパッケージを再適用
 mise run update          # Omarchyとシステムを更新
 mise run update-tools    # mise管理ツールを更新
 mise run apply-profile   # 現在ホストのモニター設定を適用
-mise run install-spurs   # Spursテーマを実体ディレクトリへ配置
+mise run build-theme     # Spursテーマをcolors.tomlから再生成
+mise run install-spurs   # Spursテーマを生成して実体ディレクトリへ配置
+mise run commit          # czgで対話式conventional commit
 ```
 
 Omarchyメニューの `Setup → Config → Dotfiles` からも、編集、Lazygit、Doctor、再適用、Spurs Modeへアクセスできます。
@@ -61,14 +65,16 @@ Omarchyメニューの `Setup → Config → Dotfiles` からも、編集、Lazy
 
 | キー | 動作 |
 |---|---|
-| `LEADER g` | zoxideからProject Cockpitを開く |
+| `LEADER g` | zoxideからProject Cockpit (Dev Layout等のレシピ選択) |
 | `LEADER l` | Lazygit / Neovim / Yazi / Claudeランチャー |
-| `LEADER c` | 実行中のClaude Codeセッション切替 |
+| `LEADER c` | 実行中のClaude Codeセッション切替 (状態・プレビュー付き) |
 | `LEADER w` | workspace選択 |
 | `LEADER r/d` | ペイン分割 |
 | `LEADER s` | ペインリサイズモード |
-| `LEADER o` | URL・ファイル・Git hashをSmart Open |
+| `LEADER o` | URL・path:line・owner/repo・Git hashをSmart Open |
+| `LEADER i` | Omarchy壁紙を背景に敷くトグル |
 | `LEADER z` | 直前コマンドと出力をコピー |
+| `LEADER S/D` | セッション手動保存 / リセット (5分毎に自動保存) |
 
 詳細は [WezTerm完全ガイド](wezterm/docs/wezterm.md) を参照してください。
 
@@ -76,12 +82,18 @@ Omarchyメニューの `Setup → Config → Dotfiles` からも、編集、Lazy
 
 WezTermは `~/.config/omarchy/current/theme/colors.toml` と `omarchy font current` を直接参照します。Starshipは `omarchy/.config/omarchy/themed/starship.toml.tpl` からテーマ変更時に生成されます。
 
+さらに `scripts/generate-cli-theme` がテーマ変更のたびに fzf / zsh-autosuggestions の配色を再生成し、bat / delta は `ansi` テーマで端末パレットに自動追従します。テーマを替えるとプロンプト・ターミナル・CLIツールが一斉に染まります。
+
 ```bash
 omarchy theme set Rainynight
 omarchy theme set Spurs
 ```
 
-テーマ／フォント変更フックはWezTerm設定を自動リロードします。Spursテーマのソースは `themes/spurs/`、インストール先は `~/.config/omarchy/themes/spurs/` です。
+テーマ／フォント変更フックはWezTerm設定を自動リロードします。Spursテーマは `themes/spurs/colors.toml` が唯一のソースで、残りのファイルは `mise run build-theme` (`tools/build_theme.py`) が生成します。インストール先は `~/.config/omarchy/themes/spurs/` です。
+
+## Claude Code連携
+
+`claude/hooks.example.json` を `~/.claude/settings.json` にマージすると、Claude Codeのhooksが `scripts/claude-wezterm-state` 経由でWezTermへ状態を通知し、タブアイコン色が working(橙) / waiting(黄) / attention(赤) に変わります。`LEADER c` のセッション切替には画面プレビューと状態が表示され、Waybarには稼働セッション数が出ます。
 
 ## ホスト固有設定
 
@@ -96,5 +108,3 @@ omarchy theme set Spurs
 - 履歴・診断ログ: `$XDG_STATE_HOME`
 - Omarchyカスタムテーマ: `~/.config/omarchy/themes/`
 - Omarchy本体: `~/.local/share/omarchy/`。読み取りのみで編集禁止
-
-Windows / WSL向けの旧ローダーとMoonScriptビルドは互換用に残していますが、現在の主対象はOmarchyです。
