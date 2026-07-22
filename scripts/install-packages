@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# packages/*.txt のマニフェストからpacman/AURパッケージを導入する。
+# packages/*.txt のマニフェストからOSパッケージを導入する。
+# Arch(pacman/yay)とUbuntu/Debian(apt)を自動判定する。
 # sudoパスワードを聞かれる前提の手動実行スクリプト (bootstrapからも呼ばれる)。
 
 set -euo pipefail
@@ -11,20 +12,66 @@ read_manifest() {
   grep -vE '^\s*(#|$)' "$1"
 }
 
-mapfile -t pacman_pkgs < <(read_manifest "$ROOT/packages/pacman.txt")
-if ((${#pacman_pkgs[@]} > 0)); then
-  printf 'Installing pacman packages: %s\n' "${pacman_pkgs[*]}"
-  sudo pacman -S --needed --noconfirm "${pacman_pkgs[@]}"
-fi
-
-mapfile -t aur_pkgs < <(read_manifest "$ROOT/packages/aur.txt")
-if ((${#aur_pkgs[@]} > 0)); then
-  if command -v yay >/dev/null 2>&1; then
-    printf 'Installing AUR packages: %s\n' "${aur_pkgs[*]}"
-    yay -S --needed --noconfirm "${aur_pkgs[@]}"
-  else
-    printf 'yay not found; skipping AUR packages: %s\n' "${aur_pkgs[*]}" >&2
+install_arch() {
+  mapfile -t pacman_pkgs < <(read_manifest "$ROOT/packages/pacman.txt")
+  if ((${#pacman_pkgs[@]} > 0)); then
+    printf 'Installing pacman packages: %s\n' "${pacman_pkgs[*]}"
+    sudo pacman -S --needed --noconfirm "${pacman_pkgs[@]}"
   fi
+
+  mapfile -t aur_pkgs < <(read_manifest "$ROOT/packages/aur.txt")
+  if ((${#aur_pkgs[@]} > 0)); then
+    if command -v yay >/dev/null 2>&1; then
+      printf 'Installing AUR packages: %s\n' "${aur_pkgs[*]}"
+      yay -S --needed --noconfirm "${aur_pkgs[@]}"
+    else
+      printf 'yay not found; skipping AUR packages: %s\n' "${aur_pkgs[*]}" >&2
+    fi
+  fi
+}
+
+# wezterm/ghはUbuntu標準repoに無いため、公式apt repoを鍵付きで追加してから導入する
+add_apt_repo_wezterm() {
+  local list=/etc/apt/sources.list.d/wezterm.list
+  [[ -f $list ]] && return 0
+  curl -fsSL https://apt.fury.io/wez/gpg.key | sudo gpg --yes --dearmor -o /usr/share/keyrings/wezterm-fury.gpg
+  echo 'deb [signed-by=/usr/share/keyrings/wezterm-fury.gpg] https://apt.fury.io/wez/ * *' |
+    sudo tee "$list" >/dev/null
+}
+
+add_apt_repo_gh() {
+  local list=/etc/apt/sources.list.d/github-cli.list
+  [[ -f $list ]] && return 0
+  curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg |
+    sudo gpg --yes --dearmor -o /usr/share/keyrings/githubcli-archive-keyring.gpg
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" |
+    sudo tee "$list" >/dev/null
+}
+
+install_apt() {
+  mapfile -t apt_pkgs < <(read_manifest "$ROOT/packages/apt.txt")
+  ((${#apt_pkgs[@]} > 0)) || return 0
+
+  local needs_update=false
+  if [[ " ${apt_pkgs[*]} " == *" wezterm "* ]]; then
+    add_apt_repo_wezterm && needs_update=true
+  fi
+  if [[ " ${apt_pkgs[*]} " == *" gh "* ]]; then
+    add_apt_repo_gh && needs_update=true
+  fi
+  $needs_update && sudo apt-get update -q
+
+  printf 'Installing apt packages: %s\n' "${apt_pkgs[*]}"
+  sudo apt-get install -y -q "${apt_pkgs[@]}"
+}
+
+if command -v pacman >/dev/null 2>&1; then
+  install_arch
+elif command -v apt-get >/dev/null 2>&1; then
+  install_apt
+else
+  printf 'No supported package manager found (pacman/apt-get).\n' >&2
+  exit 1
 fi
 
 printf 'Package install complete.\n'

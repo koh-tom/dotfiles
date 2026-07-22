@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# 新規インストールしたUbuntu/Debianへ、このdotfilesの「ツール群」だけを移植する。
+# Hyprland / Waybar / Omarchyのテーマ連携はOmarchy本体前提の機能のため対象外。
+# WezTerm・zsh・mise管理ツール・fastfetch・nvim層・Spurs静的配色はここで揃う。
+
+set -euo pipefail
+
+ROOT="${DOTFILES_ROOT:-$HOME/dotfiles}"
+stamp=$(date +%s)
+
+if ! command -v apt-get >/dev/null 2>&1; then
+  printf 'apt-get not found. This script targets Ubuntu/Debian.\n' >&2
+  printf 'On Arch/Omarchy, use ./scripts/bootstrap-omarchy instead.\n' >&2
+  exit 1
+fi
+
+backup_file() {
+  local path=$1
+  if [[ -e $path && ! -L $path ]]; then
+    mv "$path" "$path.bak.$stamp"
+    printf 'Backed up %s\n' "$path"
+  fi
+}
+
+backup_file "$HOME/.config/git/config"
+backup_file "$HOME/.config/starship.toml"
+backup_file "$HOME/.config/fastfetch/config.jsonc"
+backup_file "$HOME/.ssh/config"
+backup_file "$HOME/.config/nvim/lua/plugins/koh.lua"
+
+cd "$ROOT"
+./scripts/install-packages
+
+# mise本体 (無ければ公式インストーラで導入。以降のCLIツール群はmise管理)
+if ! command -v mise >/dev/null 2>&1; then
+  curl -fsSL https://mise.run | sh
+  export PATH="$HOME/.local/bin:$PATH"
+fi
+
+# JetBrainsMono Nerd Font (タブ/ステータスバーのアイコン表示に必須。apt標準リポジトリには無い)
+font_dir="$HOME/.local/share/fonts/JetBrainsMonoNerdFont"
+if [[ ! -d $font_dir ]]; then
+  printf 'Installing JetBrainsMono Nerd Font...\n'
+  tmp=$(mktemp -d)
+  curl -fsSL -o "$tmp/JetBrainsMono.zip" \
+    https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip
+  mkdir -p "$font_dir"
+  unzip -q -o "$tmp/JetBrainsMono.zip" -d "$font_dir"
+  rm -rf "$tmp"
+  fc-cache -f "$font_dir" >/dev/null
+fi
+
+./scripts/apply-dotfiles-ubuntu
+mise install
+
+printf '\nBootstrap complete. Run: mise run doctor\n'
+printf '(Hyprland / Waybar / Omarchyテーマ連携は対象外です。詳細はREADMEを参照)\n'
