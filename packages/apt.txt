@@ -1,0 +1,16 @@
+# Ubuntu/Debian向けのapt管理パッケージ (ツール群移植用。Hyprland/Waybar/Omarchyは対象外)
+# 適用: ./scripts/install-packages (プラットフォーム自動判定)
+# wezterm と gh は公式apt repoを追加してから導入する (install-packages側で処理)
+zsh
+stow
+git
+curl
+build-essential
+unzip
+xz-utils
+ca-certificates
+fontconfig
+lua5.4
+chafa
+wezterm
+gh

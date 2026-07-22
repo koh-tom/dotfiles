@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# Ubuntu/Debian向け: Hyprland/Waybar/Omarchy専用パッケージを除いたサブセットをstowする。
+# 対応: scripts/apply-dotfiles (Arch/Omarchyでの全パッケージ版)
+
+set -euo pipefail
+
+cd "${DOTFILES_ROOT:-$HOME/dotfiles}"
+stow -R -v git mise starship wezterm zsh fastfetch ssh nvim
