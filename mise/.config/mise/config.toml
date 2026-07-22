@@ -30,6 +30,9 @@ shellcheck = "latest"
 hyperfine = "latest"
 "aqua:dalance/procs" = "latest"
 "aqua:bootandy/dust" = "latest"
+# fastfetch: Ubuntu 22.04のapt標準リポジトリに無いためmiseで統一管理する
+# (Arch/Omarchyでは既にOmarchy本体が提供するが、mise版がPATH優先されても実害はない)
+"aqua:fastfetch-cli/fastfetch" = "latest"
 
 [settings]
 experimental = true
