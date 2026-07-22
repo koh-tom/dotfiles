@@ -39,5 +39,17 @@ jobs:
       - name: JSON validity
         run: python3 -m json.tool claude/hooks.example.json >/dev/null
 
-      - name: Stow dry-run
+      - name: Stow dry-run (Arch/Omarchy full set)
         run: stow -n -v git mise starship wezterm zsh fastfetch omarchy waybar xdg-terminal ssh nvim
+
+      - name: Stow dry-run (Ubuntu tool subset)
+        run: stow -n -v git mise starship wezterm zsh fastfetch ssh nvim
+
+      - name: Fastfetch config JSONC validity
+        run: |
+          python3 -c "
+          import json, re
+          text = open('fastfetch/.config/fastfetch/config.jsonc', encoding='utf-8').read()
+          stripped = re.sub(r'^\s*//.*$', '', text, flags=re.MULTILINE)
+          json.loads(stripped)
+          "
