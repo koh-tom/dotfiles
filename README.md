@@ -64,6 +64,20 @@ cheat                    # 全キーバインド/スニペット/タスクのfzf
 
 Omarchyメニューの `Setup → Config → Dotfiles` からも、編集、Lazygit、Doctor、再適用、Spurs Modeへアクセスできます。
 
+## Ubuntu / Debianでの移植セットアップ
+
+Hyprland・Waybar・Omarchyのテーマ連携はOmarchy(Arch)本体が前提の機能なので対象外ですが、**ツール群**(WezTerm・zsh・mise管理ツール・git・fastfetch・nvim層・Spurs静的配色)はUbuntu/Debianへそのまま移植できます。各設定ファイルはOmarchy CLIが無い環境では自動的にデフォルト値へフォールバックする設計です。
+
+```bash
+git clone <repository-url> ~/dotfiles
+cd ~/dotfiles
+./scripts/bootstrap-ubuntu
+```
+
+`bootstrap-ubuntu` は以下を順に行います: `packages/apt.txt` のパッケージ導入(WezTerm/GitHub CLIは公式apt repoを追加)、mise本体のインストール、JetBrainsMono Nerd Fontの導入、`git mise starship wezterm zsh fastfetch ssh nvim` のみをStow、`mise install` でCLIツール一式を導入。セットアップ後は同じく `mise run doctor` で診断できます(Arch/Omarchy専用チェックは自動でスキップされます)。
+
+日常操作は `mise run apply-ubuntu`(縮小Stowセットの再適用)以外は上記と共通です。
+
 ## WezTerm
 
 主な操作は `CTRL + q` をLEADERとして使います。
@@ -113,3 +127,13 @@ omarchy theme set Spurs
 - 履歴・診断ログ: `$XDG_STATE_HOME`
 - Omarchyカスタムテーマ: `~/.config/omarchy/themes/`
 - Omarchy本体: `~/.local/share/omarchy/`。読み取りのみで編集禁止
+
+## OS依存の切り分け
+
+| 層 | Arch / Omarchy | Ubuntu / Debian |
+|---|---|---|
+| ツール群 (WezTerm・zsh・mise管理ツール・git・fastfetch・nvim層・Spurs静的配色) | ✅ フル対応 | ✅ `bootstrap-ubuntu` で移植 |
+| テーマ連携パイプライン (`omarchy theme set` → colors.toml → 各ツール) | ✅ | ❌ Omarchy本体が必要 |
+| Hyprland / Waybar / `omarchy-*` ヘルパー | ✅ | ❌ 対象外 (要Omarchy) |
+| パッケージ管理 | `packages/pacman.txt` / `aur.txt` | `packages/apt.txt` |
+| 診断 | `mise run doctor` (フルチェック) | `mise run doctor` (ツール群のみ自動判定) |
