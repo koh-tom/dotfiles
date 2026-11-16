@@ -1,0 +1,16 @@
+#!/bin/bash
+# Waybar の memory モジュール相当 (Quattro バー用、Waybar 形式 JSON を出力)。
+#   format:         " {percentage:>2}%"
+#   tooltip-format: "Memory: {used:0.1f} / {total:0.1f} GiB"
+# Waybar と同じく used = MemTotal - MemAvailable。
+set -euo pipefail
+
+awk '
+  /^MemTotal:/     { total = $2 }
+  /^MemAvailable:/ { avail = $2 }
+  END {
+    used = total - avail
+    pct = int(100 * used / total + 0.5)
+    printf "{\"text\":\"\xee\xbf\x85 %2d%%\",\"tooltip\":\"Memory: %.1f / %.1f GiB\",\"percentage\":%d}\n", pct, used / 1048576, total / 1048576, pct
+  }
+' /proc/meminfo

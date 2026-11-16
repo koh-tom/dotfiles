@@ -1,0 +1,15 @@
+{
+  // Omarchy 4 (Quattro) 用メニュー拡張 (dotfiles: quattro/)
+  // 移植元: omarchy/.config/omarchy/extensions/menu.sh (Omarchy 3.x の bash 拡張。消さずに残す)
+  //
+  // 3.x の Setup > Config には Hypridle / Hyprlock / Swayosd / Walker / Waybar の編集項目を
+  // 足していたが、Quattro ではそれらのツール自体が無くなる (Quickshell に統合) ので移植しない。
+  // Hyprland / Hyprsunset / XCompose / Git は Quattro の Setup > Config に標準で入っている。
+
+  "setup.config.dotfiles": {"icon":"","label":"Dotfiles"},
+  "setup.config.dotfiles.edit": {"icon":"","label":"Edit","action":"omarchy-launch-editor \"$HOME/dotfiles\""},
+  "setup.config.dotfiles.git": {"icon":"","label":"Git","action":"uwsm-app -- xdg-terminal-exec --dir=\"$HOME/dotfiles\" lazygit"},
+  "setup.config.dotfiles.doctor": {"icon":"󰒓","label":"Doctor","action":"uwsm-app -- xdg-terminal-exec --dir=\"$HOME/dotfiles\" bash -lc 'mise run doctor; printf \"\\nPress Enter to close\"; read -r'"},
+  "setup.config.dotfiles.reapply": {"icon":"󰑐","label":"Reapply","action":"uwsm-app -- xdg-terminal-exec --dir=\"$HOME/dotfiles\" bash -lc 'mise run apply; printf \"\\nPress Enter to close\"; read -r'"},
+  "setup.config.dotfiles.spurs": {"icon":"","label":"Spurs Mode","action":"omarchy-theme-set Spurs"}
+}

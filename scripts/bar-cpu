@@ -1,0 +1,25 @@
+#!/bin/bash
+# Waybar の cpu モジュール相当 (Quattro バー用、Waybar 形式 JSON を出力)。
+#   format:         " {usage:>2}%"
+#   tooltip-format: "CPU load: {load}\nAverage: {avg_frequency} GHz"
+# usage は前回呼び出しとの /proc/stat 差分 (Waybar と同じ方式)。初回は起動時からの平均。
+set -euo pipefail
+
+state="${XDG_RUNTIME_DIR:-/tmp}/dotfiles-bar-cpu.stat"
+read -r _ user nice system idle iowait irq softirq steal _ < /proc/stat
+total=$((user + nice + system + idle + iowait + irq + softirq + steal))
+idle_all=$((idle + iowait))
+
+prev_total=0 prev_idle=0
+[[ -r $state ]] && read -r prev_total prev_idle < "$state"
+printf '%s %s\n' "$total" "$idle_all" > "$state"
+
+dt=$((total - prev_total)) di=$((idle_all - prev_idle))
+if ((prev_total == 0 || dt <= 0)); then dt=$total di=$idle_all; fi
+usage=$(( (100 * (dt - di) + dt / 2) / dt ))
+
+load=$(cut -d' ' -f1 /proc/loadavg)
+freq=$(awk -F: '/^cpu MHz/ {s += $2; n++} END {if (n) printf "%.2f", s / n / 1000; else print "0.00"}' /proc/cpuinfo)
+
+printf '{"text":"\xef\x92\xbc %2d%%","tooltip":"CPU load: %s\\nAverage: %s GHz","percentage":%d}\n' \
+  "$usage" "$load" "$freq" "$usage"

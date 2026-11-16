@@ -1,0 +1,3 @@
+-- 移植元: ~/.config/hypr/looknfeel.conf
+-- .conf 側は general/decoration/animations/layout の全項目がコメントアウトで、
+-- 実効的な上書きはゼロ。Omarchy 既定のままにするため、ここも何も設定しない。

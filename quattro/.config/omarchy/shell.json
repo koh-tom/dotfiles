@@ -1,0 +1,173 @@
+{
+  "version": 1,
+  "idle": {
+    "screensaver": 150,
+    "lock": 152
+  },
+  "bar": {
+    "position": "top",
+    "background": "opaque",
+    "layout": {
+      "left": [
+        {
+          "id": "omarchy.menu"
+        },
+        {
+          "id": "omarchy.workspaces"
+        }
+      ],
+      "centerBegin": [],
+      "center": [
+        {
+          "id": "omarchy.clock",
+          "format": "MM/dd ddd  HH:mm",
+          "formatAlt": "dd MMMM 'W'ww yyyy",
+          "verticalFormat": "HH\n—\nmm"
+        },
+        {
+          "id": "spurs",
+          "type": "qml",
+          "source": "~/.config/omarchy/bar/modules/DotfilesPill.qml",
+          "exec": "$HOME/dotfiles/scripts/waybar-spurs-fixture",
+          "interval": 3600,
+          "pill": true,
+          "padding": 12,
+          "margin": 2,
+          "onClick": "xdg-open 'https://www.tottenhamhotspur.com/fixtures/men/'",
+          "classBackgrounds": {
+            "matchday": "#f9d616"
+          },
+          "classColors": {
+            "matchday": "#090f24"
+          }
+        },
+        {
+          "id": "omarchy.weather"
+        },
+        {
+          "id": "omarchy.system-update"
+        },
+        {
+          "id": "voxtype",
+          "type": "qml",
+          "source": "~/.config/omarchy/bar/modules/DotfilesPill.qml",
+          "exec": "command -v voxtype >/dev/null && voxtype status --extended --format json",
+          "interval": 2,
+          "hideWhenEmpty": true,
+          "padding": 0,
+          "margin": 0,
+          "altText": {
+            "idle": "",
+            "recording": "󰍬",
+            "transcribing": "󰔟"
+          },
+          "classColors": {
+            "recording": "#e5484d"
+          },
+          "onClick": "omarchy-voxtype-model",
+          "onRightClick": "omarchy-voxtype-config"
+        },
+        {
+          "id": "omarchy.indicators",
+          "items": [
+            "ScreenRecording"
+          ]
+        },
+        {
+          "id": "idle",
+          "type": "qml",
+          "source": "~/.config/omarchy/bar/modules/DotfilesPill.qml",
+          "exec": "$HOME/dotfiles/scripts/dotfiles-idle status",
+          "interval": 5,
+          "padding": 2,
+          "margin": 0,
+          "fontSize": 10,
+          "onClick": "$HOME/dotfiles/scripts/dotfiles-idle toggle",
+          "onRightClick": "$HOME/dotfiles/scripts/dotfiles-idle pause 60",
+          "classColors": {
+            "active": "#e5484d"
+          },
+          "classOpacity": {
+            "enabled": 0.45
+          }
+        },
+        {
+          "id": "omarchy.indicators",
+          "items": [
+            "Dnd"
+          ]
+        }
+      ],
+      "centerEnd": [],
+      "right": [
+        {
+          "id": "dotfiles",
+          "type": "qml",
+          "source": "~/.config/omarchy/bar/modules/DotfilesPill.qml",
+          "exec": "$HOME/dotfiles/scripts/waybar-dotfiles-status",
+          "interval": 60,
+          "pill": true,
+          "onClick": "xdg-terminal-exec bash -lc 'cd ~/dotfiles && lazygit'",
+          "classColors": {
+            "dirty": "#f0b232",
+            "ahead": "#58a6ff"
+          },
+          "padding": 10
+        },
+        {
+          "id": "claude",
+          "type": "qml",
+          "source": "~/.config/omarchy/bar/modules/DotfilesPill.qml",
+          "exec": "$HOME/dotfiles/scripts/waybar-claude-status",
+          "interval": 10,
+          "pill": true,
+          "color": "#d97757",
+          "onClick": "$HOME/dotfiles/scripts/hypr-dispatch 'hl.dsp.focus({ window = \"class:org.wezfurlong.wezterm\" })' focuswindow class:org.wezfurlong.wezterm",
+          "padding": 10
+        },
+        {
+          "id": "omarchy.tray"
+        },
+        {
+          "id": "omarchy.bluetooth"
+        },
+        {
+          "id": "omarchy.network"
+        },
+        {
+          "id": "omarchy.audio"
+        },
+        {
+          "id": "cpu",
+          "type": "qml",
+          "source": "~/.config/omarchy/bar/modules/DotfilesPill.qml",
+          "exec": "$HOME/dotfiles/scripts/bar-cpu",
+          "interval": 5,
+          "pill": true,
+          "padding": 8,
+          "margin": 0,
+          "onClick": "omarchy-launch-or-focus-tui btop",
+          "onRightClick": "xdg-terminal-exec"
+        },
+        {
+          "id": "memory",
+          "type": "qml",
+          "source": "~/.config/omarchy/bar/modules/DotfilesPill.qml",
+          "exec": "$HOME/dotfiles/scripts/bar-memory",
+          "interval": 5,
+          "pill": true,
+          "padding": 8,
+          "margin": 0,
+          "onClick": "omarchy-launch-or-focus-tui btop"
+        },
+        {
+          "id": "omarchy.power"
+        }
+      ]
+    }
+  },
+  "disabledPlugins": [
+    "omarchy.dock"
+  ],
+  "plugins": []
+}

@@ -3,7 +3,10 @@
 
 # Read the active Omarchy palette, with Catppuccin-compatible fallbacks.
 declare -A THEME
-THEME_FILE="${HOME}/.config/omarchy/current/theme/colors.toml"
+# 4.x (Quattro) は ~/.local/state/omarchy/current、3.x は ~/.config/omarchy/current
+omarchy_current="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/current"
+[[ -d $omarchy_current/theme ]] || omarchy_current="$HOME/.config/omarchy/current"
+THEME_FILE="$omarchy_current/theme/colors.toml"
 if [[ -r "$THEME_FILE" ]]; then
     while IFS='=' read -r key value; do
         key=${key//[[:space:]]/}

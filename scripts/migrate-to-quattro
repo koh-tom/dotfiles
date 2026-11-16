@@ -1,0 +1,137 @@
+#!/bin/bash
+# Omarchy 3.x → 4 (Quattro) 移行の dotfiles 側手順。Omarchy 本体の移行
+# (メニュー Update > Omarchy to Quattro = omarchy-upgrade-to-quattro) の前後に1回ずつ実行する。
+#
+#   scripts/migrate-to-quattro pre  [--apply]   移行前 (3.x で実行)
+#   scripts/migrate-to-quattro post [--apply]   Omarchy の移行完了直後、再起動の前に実行
+#   scripts/migrate-to-quattro verify           再起動後、Lua 構成で動いている状態を検証
+#
+# --apply を付けない限り何も変更せず、やることを表示するだけ。
+# 既存の .conf 群は消さない (hypr パッケージにそのまま残る)。
+set -euo pipefail
+
+root="${DOTFILES_ROOT:-$HOME/dotfiles}"
+parity="$root/tests/quattro-parity"
+phase=${1:-}
+apply=0
+[[ ${2:-} == --apply ]] && apply=1
+
+say() { printf '\033[1m==> %s\033[0m\n' "$*"; }
+note() { printf '    %s\n' "$*"; }
+die() { printf '\033[31mERROR:\033[0m %s\n' "$*" >&2; exit 1; }
+run() {
+  if ((apply)); then
+    note "+ $*"
+    "$@"
+  else
+    note "(dry-run) $*"
+  fi
+}
+
+is_quattro() { [[ -e /usr/share/omarchy/default/hypr/bootstrap.lua ]]; }
+
+check_not_snapshot() {
+  if [[ $(findmnt -no FSTYPE /) == overlay ]] || grep -q '/.snapshots/' /proc/cmdline; then
+    die "スナップショットから起動中です (/ が RAM 上)。Limine の通常エントリで起動し直してから実行してください"
+  fi
+}
+
+case $phase in
+  pre)
+    is_quattro && die "既に Omarchy 4 です。post か verify を使ってください"
+    check_not_snapshot
+    hypr_ver=$(pacman -Q hyprland | awk '{print $2}')
+    [[ $hypr_ver == 0.56* ]] || die "hyprland $hypr_ver で動いています。0.56 の .conf 構成で正常に動いている状態から始めてください (ベースラインが取れないため)"
+
+    say "1. 移行前の実効状態 (ベースライン) を確認"
+    if [[ -f $parity/baseline/meta.json ]]; then
+      note "既存: $(python3 -c "import json;m=json.load(open('$parity/baseline/meta.json'));print(m['captured_at'], 'Omarchy', m['omarchy'], '/', m['hyprland'][:16])")"
+      note "設定を変えた後なら取り直す: $parity/capture-baseline"
+    else
+      run "$parity/capture-baseline"
+    fi
+
+    say "2. 移植版の同等性検査 (FAIL=0 であること)"
+    "$parity/run" || die "同等性検査に FAIL があります。直してから移行してください"
+
+    say "3. dotfiles 管理外の .conf を dotfiles 内に保管 (移行スクリプトが書き換え・退避するため)"
+    legacy="$root/quattro/legacy-conf/hypr"
+    run mkdir -p "$legacy"
+    for f in "$HOME"/.config/hypr/*.conf; do
+      [[ -f $f && ! -L $f ]] || continue   # dotfiles へのリンク (dropdown.conf 等) は既に管理済み
+      run cp -p "$f" "$legacy/"
+    done
+
+    say "4. 手動スナップショット (失敗時にこの時点へ戻れるように)"
+    run sudo snapper -c root create -d "before-omarchy-quattro" --userdata important=yes
+
+    say "5. Hyprland の 0.56 固定 (IgnorePkg) を外す — Quattro は上流 Hyprland に追従する"
+    if grep -qE '^IgnorePkg *=.*\bhyprland\b' /etc/pacman.conf; then
+      # 単語単位で消す (hyprland-guiutils 等の部分一致は消さない)
+      run sudo sed -i -E '/^IgnorePkg *=/{s/$/ /; s/ (xdg-desktop-portal-hyprland|hyprland)(  *)/ /g; s/ (xdg-desktop-portal-hyprland|hyprland)(  *)/ /g; s/ +$//}' /etc/pacman.conf
+      run sudo sed -i -E '/^IgnorePkg *= *$/d' /etc/pacman.conf
+    else
+      note "固定なし"
+    fi
+
+    say "次にやること"
+    note "Omarchy メニュー: Update > Omarchy → Update > Omarchy to Quattro"
+    note "完了メッセージが出たら、再起動する前に: $0 post --apply"
+    ;;
+
+  post)
+    is_quattro || die "Omarchy 4 のパッケージ (/usr/share/omarchy) が見つかりません。先に Omarchy 側の移行を実行してください"
+
+    say "1. .conf 構成を強制する HYPRLAND_CONFIG を外す (残すと再起動後に設定が全部効かない)"
+    env_link="$HOME/.config/environment.d/hyprland-config.conf"
+    if [[ -e $env_link || -L $env_link ]]; then
+      run rm "$env_link"
+      run systemctl --user unset-environment HYPRLAND_CONFIG
+    else
+      note "設定なし"
+    fi
+
+    say "2. Omarchy が生成した既定 Lua / shell.json を退避 (dotfiles 版に差し替えるため)"
+    stamp=$(date +%Y%m%d%H%M%S)
+    for f in hypr/hyprland.lua hypr/bindings.lua hypr/input.lua hypr/looknfeel.lua hypr/autostart.lua \
+             omarchy/shell.json omarchy/extensions/omarchy-menu.jsonc; do
+      target="$HOME/.config/$f"
+      if [[ -f $target && ! -L $target ]]; then
+        run mv "$target" "$target.quattro-default.$stamp"
+      fi
+    done
+
+    say "3. モニタ設定 (ホスト固有なので stow せず通常ファイルとしてコピー)"
+    monitors="$HOME/.config/hypr/monitors.lua"
+    if [[ -f $monitors ]] && ! cmp -s "$monitors" "$root/quattro/seed/hypr/monitors.lua"; then
+      run cp -p "$monitors" "$monitors.quattro-default.$stamp"
+    fi
+    run install -m 0644 "$root/quattro/seed/hypr/monitors.lua" "$monitors"
+
+    say "4. dotfiles を適用 (Quattro モード: quattro パッケージを追加、.conf 群は残す)"
+    run "$root/scripts/apply-dotfiles"
+
+    say "5. 同等性検査 (移植版の静的検証)"
+    "$parity/run" || note "FAIL あり。上の表を確認してください"
+
+    say "次にやること"
+    note "再起動 → ログイン後に: $0 verify"
+    ;;
+
+  verify)
+    is_quattro || die "Omarchy 4 ではありません"
+    say "1. 実機の Lua 構成と移行前ベースラインの比較"
+    "$parity/run" --live
+    say "2. dotfiles-doctor"
+    "$root/scripts/dotfiles-doctor" || true
+    say "見た目の確認 (自動では検証できない部分)"
+    note "- バー: spurs / dotfiles / claude / cpu / memory のピル表示と色、クリック動作"
+    note "- SUPER+\` のドロップダウン端末、3本指スワイプ、Chrome の2本指戻る"
+    note "- 150秒放置でスクリーンセーバー → 152秒でロック"
+    ;;
+
+  *)
+    sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'
+    exit 1
+    ;;
+esac

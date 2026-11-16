@@ -1,0 +1,21 @@
+#!/bin/bash
+# Hyprland の dispatch を .conf 構成 (0.56) と Lua 構成 (Omarchy 4 / Hyprland 0.57+) の両方で通す。
+#
+#   hypr-dispatch '<Lua式>' <旧dispatcher> [旧引数...]
+#   例: hypr-dispatch 'hl.dsp.workspace.toggle_special("dropdown")' togglespecialworkspace dropdown
+#
+# 背景: Lua 構成では `hyprctl dispatch` が Lua 式を取る。0.56 の .conf 構成では Lua 式は
+# "Invalid dispatcher" を返すが終了コードは 0 なので、`||` ではなく出力で判定する。
+set -uo pipefail
+
+lua=${1:?usage: hypr-dispatch LUA_EXPR LEGACY_DISPATCHER [ARGS...]}
+shift
+
+out=$(hyprctl dispatch "$lua" 2>&1)
+if [[ $out == ok ]]; then
+  exit 0
+fi
+
+(($# > 0)) || { printf '%s\n' "$out" >&2; exit 1; }
+out=$(hyprctl dispatch "$@" 2>&1)
+[[ $out == ok ]] || { printf '%s\n' "$out" >&2; exit 1; }
