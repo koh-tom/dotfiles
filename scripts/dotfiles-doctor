@@ -102,7 +102,7 @@ fi
 
 # Spursテーマの生成物が揃っていること
 spurs_missing=""
-for f in colors.toml btop.theme neovim.lua hyprland.conf hyprlock.conf mako.ini swayosd.css waybar.css wofi.css alacritty.toml icons.theme cava_theme chromium.theme vscode.json; do
+for f in colors.toml btop.theme neovim.lua hyprland.conf hyprland.lua hyprlock.conf mako.ini swayosd.css waybar.css wofi.css alacritty.toml icons.theme cava_theme chromium.theme vscode.json; do
   [[ -f themes/spurs/$f ]] || spurs_missing+="$f "
 done
 if [[ -z $spurs_missing ]]; then
@@ -183,8 +183,53 @@ if is_arch_omarchy; then
     warn "Hyprland socket unavailable; configerrors skipped"
   fi
 
-  if [[ -r $HOME/.config/omarchy/current/theme/colors.toml ]]; then
-    pass "Omarchy palette available"
+  if [[ -e /usr/share/omarchy/default/hypr/bootstrap.lua ]]; then
+    # Omarchy 4 (Quattro): Lua 構成。.conf を強制する設定や 0.56 固定が残っていたら壊れる。
+    if [[ -L $HOME/.config/hypr/hyprland.lua && $(readlink "$HOME/.config/hypr/hyprland.lua") == *dotfiles/quattro/* ]]; then
+      pass "hyprland.lua is the dotfiles port (quattro/)"
+    else
+      warn "$HOME/.config/hypr/hyprland.lua is not the dotfiles port; run scripts/migrate-to-quattro post"
+    fi
+    if [[ $(systemctl --user show-environment 2>/dev/null | grep -c '^HYPRLAND_CONFIG=') -gt 0 ]]; then
+      fail "HYPRLAND_CONFIG still set (forces legacy .conf); remove ~/.config/environment.d/hyprland-config.conf and re-login"
+    else
+      pass "HYPRLAND_CONFIG not forced"
+    fi
+    if grep -qE '^IgnorePkg *=.*\bhyprland\b' /etc/pacman.conf 2>/dev/null; then
+      warn "hyprland still in IgnorePkg; Quattro follows upstream Hyprland, remove the pin"
+    else
+      pass "hyprland not pinned"
+    fi
+  else
+    # Omarchy 3.x (.conf): Hyprland 0.56 は hyprland.lua を .conf より優先し、0.57 で .conf が廃止された。
+    # Quattro へ移行するまで: lua ファイル無し / 明示パス / 0.56 固定 を確認する。
+    if [[ -e $HOME/.config/hypr/hyprland.lua ]]; then
+      fail "$HOME/.config/hypr/hyprland.lua exists (shadows hyprland.conf); move it away and re-login"
+    else
+      pass "No hyprland.lua shadowing hyprland.conf"
+    fi
+    if [[ $(systemctl --user show-environment 2>/dev/null | grep -c '^HYPRLAND_CONFIG=') -gt 0 ]]; then
+      pass "HYPRLAND_CONFIG pinned to hyprland.conf (environment.d)"
+    else
+      warn "HYPRLAND_CONFIG not in user environment; run: systemctl --user daemon-reload (then re-login)"
+    fi
+    hypr_ver=$(pacman -Q hyprland 2>/dev/null | awk '{print $2}')
+    if [[ -n $hypr_ver && $hypr_ver == 0.5[7-9]* || $hypr_ver == 0.[6-9]* || $hypr_ver == [1-9]* ]]; then
+      fail "hyprland $hypr_ver drops .conf support; downgrade to 0.56.x or migrate to Omarchy 4 (scripts/migrate-to-quattro)"
+    elif [[ -n $hypr_ver ]]; then
+      pass "hyprland $hypr_ver still reads hyprland.conf"
+    fi
+    if grep -qE '^IgnorePkg *=.*\bhyprland\b' /etc/pacman.conf 2>/dev/null; then
+      pass "hyprland pinned via IgnorePkg"
+    else
+      warn "hyprland not in IgnorePkg; next update may pull 0.57+ (Lua-only)"
+    fi
+  fi
+
+  omarchy_current="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/current"
+  [[ -d $omarchy_current/theme ]] || omarchy_current="$HOME/.config/omarchy/current"
+  if [[ -r $omarchy_current/theme/colors.toml ]]; then
+    pass "Omarchy palette available ($omarchy_current)"
   else
     fail "Omarchy palette missing"
   fi

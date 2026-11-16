@@ -1,0 +1,4 @@
+# stow 対象外 (quattro パッケージの説明・初期値ファイル)
+^/README\.md$
+^/seed$
+^/legacy-conf$

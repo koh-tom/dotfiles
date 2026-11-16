@@ -9,7 +9,10 @@
 
 set -euo pipefail
 
-theme_file="$HOME/.config/omarchy/current/theme/colors.toml"
+# 4.x (Quattro) は ~/.local/state/omarchy/current、3.x は ~/.config/omarchy/current
+omarchy_current="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/current"
+[[ -d $omarchy_current/theme ]] || omarchy_current="$HOME/.config/omarchy/current"
+theme_file="$omarchy_current/theme/colors.toml"
 out_dir="${XDG_CACHE_HOME:-$HOME/.cache}/dotfiles"
 out_file="$out_dir/cli-theme.zsh"
 
@@ -69,9 +72,11 @@ gui:
     defaultFgColor:
       - "${C[foreground]}"
 git:
-  paging:
-    colorArg: always
-    pager: delta --paging=never --line-numbers --syntax-theme ansi
+  # 差分ビューで | を押すと delta ⇔ difftastic(構文差分) を切り替え
+  pagers:
+    - colorArg: always
+      pager: delta --paging=never --line-numbers --syntax-theme ansi
+    - externalDiffCommand: difft --color=always --display=inline
 EOF
 
 # --- yazi (Yazi 26+ の [mgr] スキーマ) ---

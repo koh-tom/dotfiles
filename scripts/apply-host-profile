@@ -4,8 +4,14 @@ set -euo pipefail
 
 ROOT="${DOTFILES_ROOT:-$HOME/dotfiles}"
 profile="${1:-$(hostname)}"
-source_file="$ROOT/profiles/$profile/hypr/monitors.conf"
-target_file="$HOME/.config/hypr/monitors.conf"
+# Omarchy 4 (Quattro) は Lua 構成 (monitors.lua)、3.x は .conf 構成 (monitors.conf)
+if [[ -e /usr/share/omarchy/default/hypr/bootstrap.lua ]]; then
+  ext=lua
+else
+  ext=conf
+fi
+source_file="$ROOT/profiles/$profile/hypr/monitors.$ext"
+target_file="$HOME/.config/hypr/monitors.$ext"
 
 if [[ ! -f $source_file ]]; then
   printf 'Unknown host profile: %s\n' "$profile" >&2

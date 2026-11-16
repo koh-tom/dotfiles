@@ -3,4 +3,22 @@
 set -euo pipefail
 
 cd "${DOTFILES_ROOT:-$HOME/dotfiles}"
-stow -R -v git mise starship wezterm zsh fastfetch omarchy waybar xdg-terminal ssh nvim
+
+packages=(atuin chrome git mise starship wezterm zsh fastfetch hypr omarchy waybar xdg-terminal ssh nvim)
+
+if [[ -e /usr/share/omarchy/default/hypr/bootstrap.lua ]]; then
+  # Omarchy 4 (Quattro): Hyprland は Lua 構成。quattro パッケージを足し、
+  # .conf 構成を強制する HYPRLAND_CONFIG (hypr/.config/environment.d) は張らない。
+  # hypr パッケージの .conf 群は移植元として残す (Lua 構成からは読まれない)。
+  link="$HOME/.config/environment.d/hyprland-config.conf"
+  if [[ -L $link && $(readlink "$link") == *dotfiles/hypr/* ]]; then
+    rm "$link"
+    echo "removed $link (Quattro では不要)"
+  fi
+  stow -R -v --ignore='hyprland-config\.conf' hypr
+  others=()
+  for p in "${packages[@]}"; do [[ $p == hypr ]] || others+=("$p"); done
+  stow -R -v "${others[@]}" quattro
+else
+  stow -R -v "${packages[@]}"
+fi

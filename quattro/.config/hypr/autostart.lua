@@ -1,0 +1,2 @@
+-- 移植元: ~/.config/hypr/autostart.conf (コメントのみで実効的な exec-once は無し)
+-- cliphist の exec-once は hyprland.conf 直書きだったので personal/clipboard-history.lua へ。

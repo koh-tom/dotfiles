@@ -7,9 +7,17 @@ export XDG_CACHE_HOME=${XDG_CACHE_HOME:-${HOME}/.cache}
 export XDG_DATA_HOME=${XDG_DATA_HOME:-${HOME}/.local/share}
 export XDG_STATE_HOME=${XDG_STATE_HOME:-${HOME}/.local/state}
 
+# Omarchy の現在テーマの場所: 4.x (Quattro) は ~/.local/state/omarchy/current、
+# 3.x は ~/.config/omarchy/current。両対応のため存在する方を使う。
+if [[ -d "$XDG_STATE_HOME/omarchy/current/theme" ]]; then
+  export OMARCHY_CURRENT_DIR="$XDG_STATE_HOME/omarchy/current"
+else
+  export OMARCHY_CURRENT_DIR="$HOME/.config/omarchy/current"
+fi
+
 # Omarchy creates this file from the user theme template on theme changes.
-if [[ -r "$HOME/.config/omarchy/current/theme/starship.toml" ]]; then
-  export STARSHIP_CONFIG="$HOME/.config/omarchy/current/theme/starship.toml"
+if [[ -r "$OMARCHY_CURRENT_DIR/theme/starship.toml" ]]; then
+  export STARSHIP_CONFIG="$OMARCHY_CURRENT_DIR/theme/starship.toml"
 else
   export STARSHIP_CONFIG="$XDG_CONFIG_HOME/starship.toml"
 fi

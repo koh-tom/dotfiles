@@ -5,7 +5,7 @@
     python3 tools/build_theme.py [themes/spurs]
 
 colors.toml (と backgrounds/) だけ手で書けば、btop / neovim / hyprland /
-hyprlock / mako / swayosd / waybar / alacritty / wofi / icons / preview.png
+hyprland.lua / hyprlock / mako / swayosd / waybar / alacritty / wofi / icons / preview.png
 を機械生成する。生成物はテーマディレクトリ直下に置かれ、
 `mise run install-spurs` でOmarchyへ配置される。
 """
@@ -102,6 +102,18 @@ general {{
     col.active_border = rgb({p['accent'].lstrip('#')})
     col.inactive_border = rgb({p['color0'].lstrip('#')})
 }}
+"""
+
+    # Omarchy 4 (Quattro) はテーマの hyprland.lua を読む (hyprland.conf は 3.x 用に残す)
+    files["hyprland.lua"] = f"""-- Generated from {name}/colors.toml by tools/build_theme.py
+hl.config({{
+  general = {{
+    col = {{
+      active_border = "rgb({p['accent'].lstrip('#')})",
+      inactive_border = "rgb({p['color0'].lstrip('#')})",
+    }},
+  }},
+}})
 """
 
     files["hyprlock.conf"] = f"""$color = {rgba(p['background'])}
