@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# system/battery/*.service を /etc/systemd/system/ へ配置し、有効化して即時適用する。
+# ThinkPad (thinkpad_acpi) 専用。sudoパスワードを聞かれる前提の手動実行スクリプト。
+
+set -euo pipefail
+
+ROOT="${DOTFILES_ROOT:-$HOME/dotfiles}"
+BAT=/sys/class/power_supply/BAT0
+
+if [[ ! -e "$BAT/charge_control_end_threshold" ]]; then
+  printf 'Charge threshold not supported on this machine; skipping.\n' >&2
+  exit 0
+fi
+
+for source_file in "$ROOT"/system/battery/*.service; do
+  unit="$(basename "$source_file")"
+  sudo install -m 0644 "$source_file" "/etc/systemd/system/$unit"
+  printf 'Installed: /etc/systemd/system/%s\n' "$unit"
+  sudo systemctl daemon-reload
+  sudo systemctl enable "$unit"
+  sudo systemctl restart "$unit"
+done
+
+printf 'Thresholds: start=%s%% end=%s%%\n' \
+  "$(cat "$BAT/charge_control_start_threshold")" \
+  "$(cat "$BAT/charge_control_end_threshold")"

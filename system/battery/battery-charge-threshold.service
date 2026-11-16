@@ -1,0 +1,16 @@
+# ThinkPadのバッテリー充電しきい値を起動時に設定する (dotfiles: system/battery/)
+# 75%を下回ったら充電開始、80%で停止。満充電放置による劣化を抑える。
+# 外出前に100%まで充電したいとき: sudo sh -c 'echo 100 > /sys/class/power_supply/BAT0/charge_control_end_threshold'
+# (次回起動時に80%へ戻る)
+[Unit]
+Description=Set ThinkPad battery charge thresholds
+ConditionPathExists=/sys/class/power_supply/BAT0/charge_control_end_threshold
+
+[Service]
+Type=oneshot
+# 終了値を先に上げてから開始値を書かないと、開始値>終了値になる瞬間にEINVALになる
+ExecStart=/bin/sh -c 'echo 80 > /sys/class/power_supply/BAT0/charge_control_end_threshold; echo 75 > /sys/class/power_supply/BAT0/charge_control_start_threshold; echo 80 > /sys/class/power_supply/BAT0/charge_control_end_threshold'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
