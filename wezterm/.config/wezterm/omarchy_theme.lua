@@ -2,6 +2,18 @@ local wezterm = require("wezterm")
 
 local module = {}
 
+-- Omarchy の現在テーマの場所。4.x (Quattro) は ~/.local/state/omarchy/current、
+-- 3.x は ~/.config/omarchy/current。存在する方を使う (両対応)。
+function module.current_dir()
+  local state = (os.getenv("XDG_STATE_HOME") or (wezterm.home_dir .. "/.local/state")) .. "/omarchy/current"
+  local probe = io.open(state .. "/theme/colors.toml", "r")
+  if probe then
+    probe:close()
+    return state
+  end
+  return wezterm.home_dir .. "/.config/omarchy/current"
+end
+
 local defaults = {
   accent = "#89b4fa",
   cursor = "#cdd6f4",
@@ -33,7 +45,7 @@ local function read_palette()
   local palette = {}
   for key, value in pairs(defaults) do palette[key] = value end
 
-  local path = wezterm.home_dir .. "/.config/omarchy/current/theme/colors.toml"
+  local path = module.current_dir() .. "/theme/colors.toml"
   local file = io.open(path, "r")
   if not file then return palette end
 
@@ -63,6 +75,8 @@ function module.apply_to_config(config)
     cursor_border = p.cursor,
     selection_bg = p.selection_background,
     selection_fg = p.selection_foreground,
+    -- ペイン分割線。非アクティブ側を暗くするのと合わせて境界をはっきりさせる
+    split = p.accent,
     ansi = { p.color0, p.color1, p.color2, p.color3, p.color4, p.color5, p.color6, p.color7 },
     brights = { p.color8, p.color9, p.color10, p.color11, p.color12, p.color13, p.color14, p.color15 },
   }

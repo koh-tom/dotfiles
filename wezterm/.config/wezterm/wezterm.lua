@@ -17,6 +17,38 @@ if font_ok and font_stdout and font_stdout:match("%S") then
 end
 config.font = wezterm.font_with_fallback({ font_name, "JetBrainsMono Nerd Font", "JetBrains Mono" })
 
+-- 斜体 (コメント等) だけ手書き風の Monaspace Radon にする。未インストールなら通常の斜体のまま
+-- (pacman -S otf-monaspace)。require内ではrun_child_processが使えないのでここで判定する
+local radon_ok, radon_out = wezterm.run_child_process({ "fc-list", "Monaspace Radon" })
+if radon_ok and radon_out:match("%S") then
+	config.font_rules = {
+		{
+			italic = true,
+			intensity = "Normal",
+			font = wezterm.font_with_fallback({
+				{ family = "Monaspace Radon", style = "Italic" },
+				{ family = font_name, style = "Italic" },
+			}),
+		},
+		{
+			italic = true,
+			intensity = "Bold",
+			font = wezterm.font_with_fallback({
+				{ family = "Monaspace Radon", weight = "Bold", style = "Italic" },
+				{ family = font_name, weight = "Bold", style = "Italic" },
+			}),
+		},
+	}
+end
+
+-- 描画: GPU (WebGpu) で高リフレッシュレートに追従させ、スクロールやアニメーションを滑らかにする
+config.front_end = "WebGpu"
+config.webgpu_power_preference = "LowPower" -- ノートの内蔵GPUで十分。電池優先
+config.max_fps = 120
+config.animation_fps = 60
+config.cursor_blink_ease_in = "EaseOut"
+config.cursor_blink_ease_out = "EaseOut"
+
 -- Linux環境設定
 -- wezterm 20240203 (安定版) はHyprlandのWaylandでウィンドウが表示されない既知問題がある。
 -- バージョンから自動判定し、nightly (wezterm-nightly-bin) ならWaylandネイティブで起動する
@@ -93,8 +125,16 @@ if has_command("plamo-translate") then
 end
 require("modules.colorscheme").apply_to_config(config)
 require("modules.smart_open").apply_to_config(config)
+require("modules.cheatbar").apply_to_config(config)
 require("modules.background").apply_to_config(config)
-require("modules.session").apply_to_config(config)
+-- ドロップダウン端末 (scripts/wezterm-dropdown) は別プロセスなので、
+-- セッション復元でタブが全部開いたり、メインのセッションを上書きしたりしないよう外す
+if not os.getenv("WEZTERM_DROPDOWN") then
+	require("modules.session").apply_to_config(config)
+end
 require("modules.notify").apply_to_config(config)
+require("modules.hyperlinks").apply_to_config(config)
+-- config.keys を参照するので最後に読む
+require("modules.palette").apply_to_config(config)
 
 return config

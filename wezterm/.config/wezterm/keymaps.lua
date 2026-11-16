@@ -94,7 +94,11 @@ local keys = {
   { key = "8", mods = "SUPER", action = act.ActivateTab(7) },
   { key = "9", mods = "SUPER", action = act.ActivateTab(-1) },
   { key = "t", mods = "SUPER", action = act.SpawnTab("CurrentPaneDomain") },
+  -- SUPER+W は Omarchy(Hyprland) が「Close window」で先に奪うため WezTerm には届かず、
+  -- ウィンドウごと落ちる。Omarchy 上では LEADER + q (quit tab) でタブだけ閉じる。
+  -- (LEADER + w は workspace.lua のワークスペース切替で使用中)
   { key = "w", mods = "SUPER", action = act.CloseCurrentTab({ confirm = true }) },
+  { key = "q", mods = "LEADER", action = act.CloseCurrentTab({ confirm = true }) },
   
   -- タブリネーム (LEADER + ,)
   {

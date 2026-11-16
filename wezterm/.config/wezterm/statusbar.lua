@@ -1,21 +1,31 @@
 local wezterm = require("wezterm")
 local module = {}
 local palette = require("omarchy_theme").get_palette()
+local tab = require("tab")
+local workspace_color = require("workspace_color")
 
 -- =============================================================================
 -- 定数 & アイコン
 -- =============================================================================
 
 local WORKSPACE_COLORS = {
-  default = palette.accent,
   copy_mode = palette.color3,
   setting_mode = palette.color2,
 }
+
+-- nerdfont名が(バージョン差で)存在しなくてもステータスバー全体を壊さない
+local function nf(name, fallback)
+  local ok, glyph = pcall(function() return wezterm.nerdfonts[name] end)
+  if ok and glyph and glyph ~= "" then return glyph end
+  return fallback
+end
 
 local ICONS = {
   git = wezterm.nerdfonts.md_git,
   dir = wezterm.nerdfonts.md_folder_open,
   server = wezterm.nerdfonts.md_server,
+  nix = wezterm.nerdfonts.linux_nixos,
+  push = nf("md_key_alert", nf("md_key", "󰌆")),
   time = wezterm.nerdfonts.md_clock_outline,
   cpu = wezterm.nerdfonts.md_cpu_64_bit,
   mem = wezterm.nerdfonts.md_memory,
@@ -89,6 +99,40 @@ local function get_sys_info()
   return load, mem
 end
 
+-- タブ列が使った残り幅を返す (retroタブバーは右ステータスを左から切り詰めるだけなので自前で予算管理する)
+local function available_right_width(window, left_text)
+  local mux_window = window:mux_window()
+  local active_tab = window:active_tab()
+  if not (mux_window and active_tab) then return math.huge end
+  local used = wezterm.column_width(left_text)
+  for _, t in ipairs(mux_window:tabs()) do
+    used = used + (tab.rendered_width[t:tab_id()] or 0)
+  end
+  return active_tab:get_size().cols - used - 1
+end
+
+-- segments: { {prio=, items={format要素...}, width=} ...}。prioが小さいものから捨てて予算に収める
+local function fit_segments(segments, budget)
+  local total = 0
+  for _, seg in ipairs(segments) do total = total + seg.width end
+  local order = {}
+  for i, seg in ipairs(segments) do order[#order + 1] = { i = i, prio = seg.prio } end
+  table.sort(order, function(a, b) return a.prio < b.prio end)
+  local dropped = {}
+  for _, o in ipairs(order) do
+    if total <= budget then break end
+    dropped[o.i] = true
+    total = total - segments[o.i].width
+  end
+  local out = {}
+  for i, seg in ipairs(segments) do
+    if not dropped[i] then
+      for _, item in ipairs(seg.items) do out[#out + 1] = item end
+    end
+  end
+  return out
+end
+
 -- =============================================================================
 -- メイン処理
 -- =============================================================================
@@ -97,7 +141,8 @@ function module.apply_to_config(_)
   wezterm.on("update-status", function(window, pane)
     local workspace = window:active_workspace()
     local key_table = window:active_key_table()
-    local color = WORKSPACE_COLORS[key_table] or WORKSPACE_COLORS.default
+    -- 通常時はワークスペースごとの色 (左下・カーソル・アクティブタブで共通)
+    local color = WORKSPACE_COLORS[key_table] or workspace_color(workspace)
 
     -- -------------------------------------------------------------------------
     -- 左側: ワークスペース表示 & LEADER 状態
@@ -116,14 +161,21 @@ function module.apply_to_config(_)
 
     -- -------------------------------------------------------------------------
     -- 右側: プログレッシブ・ステータス
+    -- タブが増えて幅が足りなくなったら prio の低い項目から非表示にする
     -- -------------------------------------------------------------------------
-    local right_status = {}
+    local segments = {}
+    local function add(prio, fg, text)
+      segments[#segments + 1] = {
+        prio = prio,
+        items = { { Foreground = { Color = fg } }, { Text = text } },
+        width = wezterm.column_width(text),
+      }
+    end
+
     local branch = get_git_branch(pane)
     local cwd = get_short_cwd(pane)
-    
-    -- -------------------------------------------------------------------------
-    -- 右側: ガイド表示 (ショートカットヒント)
-    -- -------------------------------------------------------------------------
+
+    -- ガイド表示 (ショートカットヒント)
     local hint_text = ""
     local hint_fg = palette.color3
 
@@ -139,46 +191,52 @@ function module.apply_to_config(_)
       hint_text = " [Enter] Case | [Esc] Close "
     end
 
+    -- prio: 大きいほど最後まで残る
     if hint_text ~= "" then
-      table.insert(right_status, { Foreground = { Color = hint_fg } })
-      table.insert(right_status, { Text = "󱊑 " .. hint_text .. " │ " })
+      add(90, hint_fg, "󱊑 " .. hint_text .. " │ ")
     end
 
     -- ホスト名 (SSH判定)
     local user_vars = pane:get_user_vars()
     if user_vars.ssh_host then
-      table.insert(right_status, { Foreground = { Color = palette.color3 } })
-      table.insert(right_status, { Text = ICONS.server .. " " .. user_vars.ssh_host .. " │ " })
+      add(80, palette.color3, ICONS.server .. " " .. user_vars.ssh_host .. " │ ")
     end
 
     -- CWD (短縮パス)
-    table.insert(right_status, { Foreground = { Color = palette.color7 } })
-    table.insert(right_status, { Text = ICONS.dir .. " " .. cwd .. "  " })
-    
+    add(30, palette.color7, ICONS.dir .. " " .. cwd .. "  ")
+
     -- Git
     if branch ~= "" then
-      table.insert(right_status, { Foreground = { Color = palette.color2 } })
-      table.insert(right_status, { Text = "│ " .. ICONS.git .. " " .. branch .. " " })
+      add(60, palette.color2, "│ " .. ICONS.git .. " " .. branch .. " ")
+    end
+
+    -- Nix devshell (zsh側precmdのSetUserVar連携。中身はnixwhereで確認)
+    if user_vars.nix_shell and user_vars.nix_shell ~= "" then
+      add(40, palette.color6, "│ " .. ICONS.nix .. " " .. user_vars.nix_shell .. " ")
+    end
+
+    -- push認証 (常時表示。personal=緑 / lab=赤)。commit authorは常にpersonalなので"誰としてpushするか"
+    if user_vars.gh_push and user_vars.gh_push ~= "" then
+      local push_color = user_vars.gh_push == "lab" and palette.color1 or palette.color2
+      add(70, push_color, "│ " .. ICONS.push .. " push:" .. user_vars.gh_push .. " ")
     end
 
     -- リソース (CPU/メモリ)
     local load, mem = get_sys_info()
-    table.insert(right_status, { Foreground = { Color = palette.color6 } })
-    table.insert(right_status, { Text = "│ " .. load .. mem })
+    add(10, palette.color6, "│ " .. load .. mem)
 
     -- 時刻
-    table.insert(right_status, { Foreground = { Color = palette.color5 } })
-    table.insert(right_status, { Text = "│ " .. ICONS.time .. " " .. wezterm.strftime("%H:%M") .. "  " })
+    add(50, palette.color5, "│ " .. ICONS.time .. " " .. wezterm.strftime("%H:%M") .. "  ")
 
     -- バッテリー (あれば)
     local bat_info = wezterm.battery_info()
     if #bat_info > 0 then
       local b = bat_info[1]
       local bat_icon = b.state == "Charging" and ICONS.bat_charging or ICONS.bat_discharging
-      table.insert(right_status, { Foreground = { Color = palette.color3 } })
-      table.insert(right_status, { Text = string.format("│ %s %.0f%% ", bat_icon, b.state_of_charge * 100) })
+      add(20, palette.color3, string.format("│ %s %.0f%% ", bat_icon, b.state_of_charge * 100))
     end
 
+    local right_status = fit_segments(segments, available_right_width(window, leader_text))
     window:set_right_status(wezterm.format(right_status))
 
     -- カーソル色変更

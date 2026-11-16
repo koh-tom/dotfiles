@@ -7,6 +7,8 @@ format = """
 ${custom.directory}\
 $git_branch\
 $git_status\
+${custom.push_personal}${custom.push_lab}\
+$nix_shell\
 $python\
 $aws\
 $fill\
@@ -48,6 +50,25 @@ format = "[](fg:#313244)[ $time](fg:#89b4fa bg:#313244)[](fg:#313244)"
 
 [character]
 vimcmd_symbol = '[V](bold green) '
+
+# push認証を常時表示 (ghpushで切替)。personal=緑 / lab=赤。値で色を変えるため2モジュール構成
+[custom.push_personal]
+when = '[ "$GH_PUSH_AS" != lab ]'
+command = "echo personal"
+format = "[](fg:#a6e3a1)[ push:$output ]($style)[](fg:#a6e3a1) "
+style = "bold fg:#11111b bg:#a6e3a1"
+
+[custom.push_lab]
+when = '[ "$GH_PUSH_AS" = lab ]'
+command = "echo lab"
+format = "[](fg:#f38ba8)[ push:$output ]($style)[](fg:#f38ba8) "
+style = "bold fg:#11111b bg:#f38ba8"
+
+
+[nix_shell]
+symbol = "❄ "
+format = "[](fg:#94e2d5)[$symbol$name ]($style)[](fg:#94e2d5) "
+style = "bold fg:#11111b bg:#94e2d5" # Crust on Teal
 
 [aws]
 format = '[$symbol $profile ]($style)'
