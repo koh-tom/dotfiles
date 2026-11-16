@@ -179,8 +179,10 @@
     "return-type": "json"
   },
   "custom/idle-indicator": {
-    "on-click": "omarchy-toggle-idle",
-    "exec": "$OMARCHY_PATH/default/waybar/indicators/idle.sh",
+    // 自動ロックの状態を常に表示 (Omarchy標準は停止中のみ表示)。左: 切替 / 右: 1時間だけ止める
+    "on-click": "$HOME/dotfiles/scripts/dotfiles-idle toggle",
+    "on-click-right": "$HOME/dotfiles/scripts/dotfiles-idle pause 60",
+    "exec": "$HOME/dotfiles/scripts/dotfiles-idle status",
     "signal": 9,
     "return-type": "json"
   },

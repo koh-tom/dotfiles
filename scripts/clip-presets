@@ -1,0 +1,83 @@
+#!/bin/bash
+
+# よく使う定型文のプリセット。SUPER+V の履歴 (cliphist) とは別枠。
+#
+#   clip-presets          一覧から選んでクリップボードへ (SUPER+ALT+V)
+#   clip-presets save     今のクリップボードに名前を付けて保存 (SUPER+ALT+C)
+#   clip-presets delete   一覧から選んで削除 (SUPER+ALT+SHIFT+C)
+#
+# 中身は機密を含みうるので dotfiles (git) には置かず、
+# $XDG_DATA_HOME/clip-presets/<名前> に1件1ファイル (0600) で保存する。
+# 保存時は元のコピーを履歴 (cliphist) から消し、取り出し時は wl-copy --sensitive で残さない。
+
+set -euo pipefail
+
+dir="${CLIP_PRESETS_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/clip-presets}"
+umask 077
+mkdir -p "$dir"
+
+notify() {
+  notify-send -t 1500 "Clip presets" "$1"
+}
+
+# 名前一覧から1つ選ばせる (無ければ通知して終了)
+pick() {
+  local names
+  names=$(find "$dir" -mindepth 1 -maxdepth 1 -type f -printf '%f\n' | sort)
+  if [[ -z $names ]]; then
+    notify "No presets yet (SUPER+ALT+C to save)"
+    exit 0
+  fi
+  if command -v walker >/dev/null; then
+    printf '%s\n' "$names" | walker --dmenu --placeholder "$1" || true
+  else
+    # Omarchy 4 (Quattro) は Walker が無く、シェルのメニューで選ぶ
+    local -a list
+    mapfile -t list <<<"$names"
+    omarchy-menu-select "$1" "${list[@]}" || true
+  fi
+}
+
+# 文字入力 (Walker の --inputonly 相当)
+ask() {
+  if command -v walker >/dev/null; then
+    walker --dmenu --inputonly --placeholder "$1" </dev/null || true
+  else
+    omarchy-menu-input "$1" || true
+  fi
+}
+
+case "${1:-paste}" in
+paste)
+  name=$(pick "Clip presets")
+  [[ -n $name && -f $dir/$name ]] || exit 0
+  wl-copy --sensitive <"$dir/$name"
+  notify "Copied: $name"
+  ;;
+save)
+  text=$(wl-paste --no-newline 2>/dev/null || true)
+  if [[ -z $text ]]; then
+    notify "Clipboard is empty"
+    exit 1
+  fi
+  name=$(ask "Preset name")
+  # ファイル名にできない / と先頭の . を避ける
+  name=${name//\//∕}
+  name=${name#.}
+  [[ -n $name ]] || exit 0
+  printf '%s' "$text" >"$dir/$name"
+  # 登録元としてコピーした時点で履歴に入っているので消しておく
+  cliphist delete-query "$text" 2>/dev/null || true
+  notify "Saved: $name"
+  ;;
+delete)
+  name=$(pick "Delete preset")
+  [[ -n $name && -f $dir/$name ]] || exit 0
+  rm -f -- "${dir:?}/$name"
+  notify "Deleted: $name"
+  ;;
+*)
+  printf 'usage: %s [paste|save|delete]\n' "${0##*/}" >&2
+  exit 2
+  ;;
+esac

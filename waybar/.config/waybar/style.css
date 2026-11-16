@@ -193,6 +193,11 @@ tooltip {
 }
 
 #custom-screenrecording-indicator.active,
+/* 自動ロック有効時は控えめに (停止中は下の .active で赤) */
+#custom-idle-indicator.enabled {
+  color: alpha(@foreground, 0.45);
+}
+
 #custom-idle-indicator.active,
 #custom-notification-silencing-indicator.active {
   color: #e5484d;
