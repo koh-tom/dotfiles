@@ -30,6 +30,14 @@ shellcheck = "latest"
 hyperfine = "latest"
 "aqua:dalance/procs" = "latest"
 "aqua:bootandy/dust" = "latest"
+# --- Modern Shell UX ---
+# atuin: シェル履歴DB (Ctrl+R)。difftastic: 構文差分 (git dft / lazygit)
+# television: 高速fuzzyランチャー (tv)。carapace: 1000+コマンドの補完 (fzf-tab経由で表示)
+atuin = "latest"
+# aquaレジストリの資産名が古く失敗するため github バックエンドで取得
+"github:Wilfred/difftastic" = { version = "latest", bin = "difft" }
+television = "latest"
+carapace = "latest"
 # fastfetch: Ubuntu 22.04のapt標準リポジトリに無いためmiseで統一管理する
 # (Arch/Omarchyでは既にOmarchy本体が提供するが、mise版がPATH優先されても実害はない)
 "aqua:fastfetch-cli/fastfetch" = "latest"
@@ -61,6 +69,7 @@ update = { run = "omarchy update", description = "Update Omarchy and system pack
 update-tools = { run = "mise upgrade && mise run lock", description = "Update mise tools and refresh the lockfile" }
 lock = { run = "MISE_CONFIG_DIR=~/dotfiles/mise/.config/mise mise lock --global --platform linux-x64,linux-x64-musl", description = "Refresh the mise lockfile for Omarchy" }
 doctor = { run = "cd ~/dotfiles && ./scripts/dotfiles-doctor", description = "Validate the complete dotfiles setup" }
+parity = { run = "cd ~/dotfiles && ./tests/quattro-parity/run", description = "Check the Omarchy 4 (Quattro) port against the 3.x baseline" }
 apply = { run = "cd ~/dotfiles && ./scripts/apply-dotfiles", description = "Reapply all Stow packages" }
 apply-ubuntu = { run = "cd ~/dotfiles && ./scripts/apply-dotfiles-ubuntu", description = "Reapply the Ubuntu/Debian Stow subset (no Hyprland/Waybar/Omarchy)" }
 apply-profile = { run = "cd ~/dotfiles && ./scripts/apply-host-profile", description = "Apply this host's monitor profile" }

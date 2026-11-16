@@ -1,0 +1,73 @@
+# nix develop/nix shellがPATHに溶かし込んだ中身を可視化する
+# 使い方:
+#   nixwhere          … devshell由来のパッケージ一覧 (パッケージ名 + 提供バイナリ)
+#   nixwhere <cmd>    … コマンドがどのstoreパス由来かを追跡
+#   nixwhere -i       … fzfでパッケージ→バイナリを対話的に探索
+emulate -L zsh
+
+# --- 引数あり: コマンドの由来を追跡 ---
+if [[ $# -gt 0 && "$1" != "-i" ]]; then
+  local cmd=$1 p real pkg
+  p=$(command -v -- "$cmd") || { print -u2 "nixwhere: コマンドが見つからない: $cmd"; return 1 }
+  real=${p:A}
+  print -P "%B$cmd%b"
+  print -r -- "  PATH : $p"
+  [[ "$real" != "$p" ]] && print -r -- "  実体 : $real"
+  if [[ "$real" == /nix/store/* ]]; then
+    pkg=${${real#/nix/store/}%%/*}  # <hash>-<pname-version>
+    print -r -- "  由来 : ❄ ${pkg#*-}"
+    print -r -- "  store: /nix/store/$pkg"
+  else
+    print -r -- "  由来 : nix外 (システム/mise等)"
+  fi
+  return 0
+fi
+
+# --- PATHをnix store由来とそれ以外に分類 ---
+local -a nix_dirs other_dirs
+local d
+for d in $path; do
+  if [[ "$d" == /nix/store/* ]]; then
+    nix_dirs+=("$d")
+  else
+    other_dirs+=("$d")
+  fi
+done
+
+if (( ${#nix_dirs} == 0 )); then
+  print "❄ PATHに/nix/storeのエントリなし (devshellの外?)"
+  return 0
+fi
+
+# --- 対話モード: fzfでパッケージ→bin一覧をプレビュー ---
+if [[ "$1" == "-i" ]]; then
+  if ! (( $+commands[fzf] )); then
+    print -u2 "nixwhere: -i にはfzfが必要"
+    return 1
+  fi
+  for d in $nix_dirs; do
+    print -r -- "${${${d#/nix/store/}%%/*}#*-}"$'\t'"$d"
+  done | fzf --delimiter=$'\t' --with-nth=1 \
+             --preview 'ls -1 {2}' --preview-label=' binaries ' \
+             --prompt='❄ devshell> ' | cut -f2
+  return
+fi
+
+# --- 一覧表示 ---
+local hdr="❄ nix devshell PATH: ${#nix_dirs} packages"
+[[ -n "$IN_NIX_SHELL" ]] && hdr+="  (IN_NIX_SHELL=$IN_NIX_SHELL)"
+print -P "%F{blue}%B$hdr%b%f"
+
+local pkg shown
+local -a bins
+for d in $nix_dirs; do
+  pkg=${${${d#/nix/store/}%%/*}#*-}
+  bins=("$d"/*(N-*:t))
+  shown="${(j: :)bins[1,6]}"
+  (( ${#bins} > 6 )) && shown+=" …(計${#bins})"
+  printf "  %-36s %s\n" "$pkg" "$shown"
+done
+
+if (( ${#other_dirs} > 0 )); then
+  print -P "%F{8}nix外のPATH: ${#other_dirs}件 (${(j:, :)${(@)other_dirs[1,3]/#$HOME/~}}…)%f"
+fi

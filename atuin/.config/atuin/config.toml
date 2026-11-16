@@ -1,0 +1,30 @@
+# atuin 設定 (dotfiles管理)。全項目: https://docs.atuin.sh/configuration/config/
+
+## 検索UI
+search_mode = "fuzzy"
+# 起動時の絞り込み。Ctrl+R 中に Ctrl+R を押すと global/host/session/directory を循環する
+filter_mode = "global"
+style = "compact"
+inline_height = 25
+show_preview = true
+show_help = true
+# Enter で即実行せず、コマンドラインに置いて編集できるようにする (Tab も同じ)
+enter_accept = false
+# Esc で抜けたとき入力中のクエリではなく元のコマンドラインに戻す
+exit_mode = "return-original"
+
+## 記録
+# パスワード等を誤って打った行は残さない
+secrets_filter = true
+history_filter = [
+  "^export .*(TOKEN|SECRET|PASSWORD|KEY)=",
+  "^ *$",
+]
+cwd_filter = []
+
+## 同期・通知 (アカウント未使用。ローカルDBのみ)
+auto_sync = false
+update_check = false
+
+[stats]
+common_subcommands = ["git", "docker", "mise", "nix", "systemctl", "cargo", "npm", "pnpm", "uv"]

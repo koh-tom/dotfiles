@@ -72,6 +72,10 @@ url = "https://github.com/rossmacarthur/sheldon/releases/download/0.8.5/sheldon-
 checksum = "sha256:80aa0be617072c278d67fd6c5fbce4903d3801d78b6abf8f058f0648d2242c78"
 url = "https://github.com/rossmacarthur/sheldon/releases/download/0.8.5/sheldon-0.8.5-x86_64-unknown-linux-musl.tar.gz"
 
+[[tools.atuin]]
+version = "18.23.0"
+backend = "aqua:atuinsh/atuin"
+
 [[tools.bat]]
 version = "0.26.1"
 backend = "aqua:sharkdp/bat"
@@ -83,6 +87,10 @@ url = "https://github.com/sharkdp/bat/releases/download/v0.26.1/bat-v0.26.1-x86_
 [tools.bat."platforms.linux-x64-musl"]
 checksum = "sha256:0dcd8ac79732c0d5b136f11f4ee00e581440e16a44eab5b3105b611bbf2cf191"
 url = "https://github.com/sharkdp/bat/releases/download/v0.26.1/bat-v0.26.1-x86_64-unknown-linux-musl.tar.gz"
+
+[[tools.carapace]]
+version = "1.8.0"
+backend = "aqua:carapace-sh/carapace-bin"
 
 [[tools.delta]]
 version = "0.19.2"
@@ -143,6 +151,20 @@ url = "https://github.com/junegunn/fzf/releases/download/v0.72.0/fzf-0.72.0-linu
 [tools.fzf."platforms.linux-x64-musl"]
 checksum = "sha256:0e58e4bd0b3c5d68c56b54c460a6863d0de79633ed18d388575a960ab447b006"
 url = "https://github.com/junegunn/fzf/releases/download/v0.72.0/fzf-0.72.0-linux_amd64.tar.gz"
+
+[[tools."github:Wilfred/difftastic"]]
+version = "0.71.0"
+backend = "github:Wilfred/difftastic"
+
+[tools."github:Wilfred/difftastic"."platforms.linux-x64"]
+checksum = "sha256:61aea5394a53c56f144637cf39b3a0c0dafa27769731745e5851ff276e6478da"
+url = "https://github.com/Wilfred/difftastic/releases/download/0.71.0/difft-0.71.0-x86_64-unknown-linux-gnu.tar.gz"
+url_api = "https://api.github.com/repos/Wilfred/difftastic/releases/assets/573539079"
+
+[tools."github:Wilfred/difftastic"."platforms.linux-x64-musl"]
+checksum = "sha256:0a65e6715df992b0adae012e606bd9cc74fa6cfe90eaf13bbae165a0a19b3086"
+url = "https://github.com/Wilfred/difftastic/releases/download/0.71.0/difft-0.71.0-x86_64-unknown-linux-musl.tar.gz"
+url_api = "https://api.github.com/repos/Wilfred/difftastic/releases/assets/573541111"
 
 [[tools.hyperfine]]
 version = "1.20.0"
@@ -265,6 +287,10 @@ url = "https://github.com/starship/starship/releases/download/v1.25.1/starship-x
 [tools.starship."platforms.linux-x64-musl"]
 checksum = "sha256:c6ddd3ecb9c0071a2ad38d98cee748160066b7c4f197421268058f4a5d6f8504"
 url = "https://github.com/starship/starship/releases/download/v1.25.1/starship-x86_64-unknown-linux-musl.tar.gz"
+
+[[tools.television]]
+version = "0.15.9"
+backend = "aqua:alexpasmantier/television"
 
 [[tools.uv]]
 version = "0.11.12"
