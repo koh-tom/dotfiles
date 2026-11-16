@@ -1,0 +1,462 @@
+{
+  "binds": [
+    {
+      "flags": "d",
+      "mods": "SUPER",
+      "key": "RETURN",
+      "description": "Terminal",
+      "dispatcher": "exec",
+      "arg": "uwsm-app -- xdg-terminal-exec --dir=\"$(omarchy-cmd-terminal-cwd)\"",
+      "where": "/home/koh/.config/hypr/bindings.conf:2"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER ALT",
+      "key": "RETURN",
+      "description": "Tmux",
+      "dispatcher": "exec",
+      "arg": "uwsm-app -- xdg-terminal-exec --dir=\"$(omarchy-cmd-terminal-cwd)\" bash -c \"tmux attach || tmux new -s Work\"",
+      "where": "/home/koh/.config/hypr/bindings.conf:3"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER SHIFT",
+      "key": "RETURN",
+      "description": "Browser",
+      "dispatcher": "exec",
+      "arg": "omarchy-launch-browser",
+      "where": "/home/koh/.config/hypr/bindings.conf:4"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER SHIFT",
+      "key": "F",
+      "description": "File manager",
+      "dispatcher": "exec",
+      "arg": "uwsm-app -- nautilus --new-window",
+      "where": "/home/koh/.config/hypr/bindings.conf:5"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER ALT SHIFT",
+      "key": "F",
+      "description": "File manager (cwd)",
+      "dispatcher": "exec",
+      "arg": "uwsm-app -- nautilus --new-window \"$(omarchy-cmd-terminal-cwd)\"",
+      "where": "/home/koh/.config/hypr/bindings.conf:6"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER SHIFT",
+      "key": "B",
+      "description": "Browser",
+      "dispatcher": "exec",
+      "arg": "omarchy-launch-browser",
+      "where": "/home/koh/.config/hypr/bindings.conf:7"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER SHIFT ALT",
+      "key": "B",
+      "description": "Browser (private)",
+      "dispatcher": "exec",
+      "arg": "omarchy-launch-browser --private",
+      "where": "/home/koh/.config/hypr/bindings.conf:8"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER SHIFT",
+      "key": "M",
+      "description": "Music",
+      "dispatcher": "exec",
+      "arg": "omarchy-launch-or-focus spotify",
+      "where": "/home/koh/.config/hypr/bindings.conf:9"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER SHIFT ALT",
+      "key": "M",
+      "description": "Music TUI",
+      "dispatcher": "exec",
+      "arg": "omarchy-launch-or-focus-tui cliamp",
+      "where": "/home/koh/.config/hypr/bindings.conf:10"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER SHIFT",
+      "key": "N",
+      "description": "Editor",
+      "dispatcher": "exec",
+      "arg": "omarchy-launch-editor",
+      "where": "/home/koh/.config/hypr/bindings.conf:11"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER SHIFT",
+      "key": "D",
+      "description": "Docker",
+      "dispatcher": "exec",
+      "arg": "omarchy-launch-tui lazydocker",
+      "where": "/home/koh/.config/hypr/bindings.conf:12"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER SHIFT",
+      "key": "G",
+      "description": "Signal",
+      "dispatcher": "exec",
+      "arg": "omarchy-launch-or-focus ^signal$ \"uwsm-app -- signal-desktop\"",
+      "where": "/home/koh/.config/hypr/bindings.conf:13"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER SHIFT",
+      "key": "O",
+      "description": "Obsidian",
+      "dispatcher": "exec",
+      "arg": "omarchy-launch-or-focus ^obsidian$ \"uwsm-app -- obsidian\"",
+      "where": "/home/koh/.config/hypr/bindings.conf:14"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER SHIFT",
+      "key": "W",
+      "description": "Typora",
+      "dispatcher": "exec",
+      "arg": "uwsm-app -- typora --enable-wayland-ime",
+      "where": "/home/koh/.config/hypr/bindings.conf:15"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER SHIFT",
+      "key": "SLASH",
+      "description": "Passwords",
+      "dispatcher": "exec",
+      "arg": "uwsm-app -- 1password",
+      "where": "/home/koh/.config/hypr/bindings.conf:16"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER",
+      "key": "T",
+      "description": "Wezterm",
+      "dispatcher": "exec",
+      "arg": "wezterm",
+      "where": "/home/koh/.config/hypr/bindings.conf:17"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER SHIFT",
+      "key": "A",
+      "description": "ChatGPT",
+      "dispatcher": "exec",
+      "arg": "omarchy-launch-webapp \"https://chatgpt.com\"",
+      "where": "/home/koh/.config/hypr/bindings.conf:19"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER SHIFT ALT",
+      "key": "A",
+      "description": "Grok",
+      "dispatcher": "exec",
+      "arg": "omarchy-launch-webapp \"https://grok.com\"",
+      "where": "/home/koh/.config/hypr/bindings.conf:20"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER SHIFT",
+      "key": "C",
+      "description": "Calendar",
+      "dispatcher": "exec",
+      "arg": "omarchy-launch-webapp \"https://app.hey.com/calendar/weeks/\"",
+      "where": "/home/koh/.config/hypr/bindings.conf:21"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER SHIFT",
+      "key": "E",
+      "description": "Email",
+      "dispatcher": "exec",
+      "arg": "omarchy-launch-webapp \"https://app.hey.com\"",
+      "where": "/home/koh/.config/hypr/bindings.conf:22"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER SHIFT",
+      "key": "Y",
+      "description": "YouTube",
+      "dispatcher": "exec",
+      "arg": "omarchy-launch-webapp \"https://youtube.com/\"",
+      "where": "/home/koh/.config/hypr/bindings.conf:23"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER SHIFT ALT",
+      "key": "G",
+      "description": "WhatsApp",
+      "dispatcher": "exec",
+      "arg": "omarchy-launch-or-focus-webapp WhatsApp \"https://web.whatsapp.com/\"",
+      "where": "/home/koh/.config/hypr/bindings.conf:24"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER SHIFT CTRL",
+      "key": "G",
+      "description": "Google Messages",
+      "dispatcher": "exec",
+      "arg": "omarchy-launch-or-focus-webapp \"Google Messages\" \"https://messages.google.com/web/conversations\"",
+      "where": "/home/koh/.config/hypr/bindings.conf:25"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER SHIFT",
+      "key": "P",
+      "description": "Google Photos",
+      "dispatcher": "exec",
+      "arg": "omarchy-launch-or-focus-webapp \"Google Photos\" \"https://photos.google.com/\"",
+      "where": "/home/koh/.config/hypr/bindings.conf:26"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER SHIFT",
+      "key": "X",
+      "description": "X",
+      "dispatcher": "exec",
+      "arg": "omarchy-launch-webapp \"https://x.com/\"",
+      "where": "/home/koh/.config/hypr/bindings.conf:27"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER SHIFT ALT",
+      "key": "X",
+      "description": "X Post",
+      "dispatcher": "exec",
+      "arg": "omarchy-launch-webapp \"https://x.com/compose/post\"",
+      "where": "/home/koh/.config/hypr/bindings.conf:28"
+    },
+    {
+      "flags": "",
+      "mods": "SUPER ALT",
+      "key": "left",
+      "description": "",
+      "dispatcher": "workspace",
+      "arg": "e-1",
+      "where": "/home/koh/.config/hypr/bindings.conf:31"
+    },
+    {
+      "flags": "",
+      "mods": "SUPER ALT",
+      "key": "right",
+      "description": "",
+      "dispatcher": "workspace",
+      "arg": "e+1",
+      "where": "/home/koh/.config/hypr/bindings.conf:32"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER",
+      "key": "V",
+      "description": "Clipboard",
+      "dispatcher": "exec",
+      "arg": "cliphist list | walker --dmenu | cliphist decode | wl-copy",
+      "where": "/home/koh/.config/hypr/hyprland.conf:27"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER",
+      "key": "GRAVE",
+      "description": "Dropdown terminal",
+      "dispatcher": "exec",
+      "arg": "~/dotfiles/scripts/wezterm-dropdown",
+      "where": "/home/koh/.config/hypr/dropdown.conf:4"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER ALT",
+      "key": "V",
+      "description": "Clipboard presets",
+      "dispatcher": "exec",
+      "arg": "~/dotfiles/scripts/clip-presets",
+      "where": "/home/koh/.config/hypr/clip-presets.conf:5"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER ALT",
+      "key": "C",
+      "description": "Save clipboard as preset",
+      "dispatcher": "exec",
+      "arg": "~/dotfiles/scripts/clip-presets save",
+      "where": "/home/koh/.config/hypr/clip-presets.conf:6"
+    },
+    {
+      "flags": "d",
+      "mods": "SUPER ALT SHIFT",
+      "key": "C",
+      "description": "Delete clipboard preset",
+      "dispatcher": "exec",
+      "arg": "~/dotfiles/scripts/clip-presets delete",
+      "where": "/home/koh/.config/hypr/clip-presets.conf:7"
+    }
+  ],
+  "unbinds": [],
+  "window_rules": [
+    {
+      "match": {
+        "class": "(Alacritty|kitty|foot)"
+      },
+      "props": {
+        "scroll_touchpad": 1.5
+      },
+      "where": "/home/koh/.config/hypr/input.conf:45"
+    },
+    {
+      "match": {
+        "class": "com.mitchellh.ghostty"
+      },
+      "props": {
+        "scroll_touchpad": 0.2
+      },
+      "where": "/home/koh/.config/hypr/input.conf:46"
+    },
+    {
+      "match": {
+        "class": "org.wezfurlong.wezterm.dropdown"
+      },
+      "props": {
+        "workspace": "special:dropdown",
+        "float": true,
+        "size": "(monitor_w*0.8) (monitor_h*0.5)",
+        "move": "(monitor_w*0.1) (monitor_h*0.04)",
+        "animation": "slide top"
+      },
+      "where": "/home/koh/.config/hypr/dropdown.conf:14",
+      "name": "wezterm-dropdown"
+    },
+    {
+      "match": {
+        "class": "org.gnome.Evince"
+      },
+      "props": {
+        "tag": "-floating-window"
+      },
+      "where": "/home/koh/.config/hypr/windows.conf:4"
+    }
+  ],
+  "options": {
+    "input:kb_layout": {
+      "value": "jp",
+      "where": "/home/koh/.config/hypr/input.conf:10"
+    },
+    "input:kb_options": {
+      "value": "compose:caps",
+      "where": "/home/koh/.config/hypr/input.conf:11"
+    },
+    "input:repeat_rate": {
+      "value": 40,
+      "where": "/home/koh/.config/hypr/input.conf:14"
+    },
+    "input:repeat_delay": {
+      "value": 250,
+      "where": "/home/koh/.config/hypr/input.conf:15"
+    },
+    "input:numlock_by_default": {
+      "value": true,
+      "where": "/home/koh/.config/hypr/input.conf:18"
+    },
+    "input:touchpad:scroll_factor": {
+      "value": 0.4,
+      "where": "/home/koh/.config/hypr/input.conf:34"
+    },
+    "gestures:workspace_swipe_create_new": {
+      "value": false,
+      "where": "/home/koh/.config/hypr/gestures.conf:8"
+    }
+  },
+  "gestures": [
+    {
+      "fingers": 3,
+      "direction": "horizontal",
+      "action": "workspace",
+      "where": "/home/koh/.config/hypr/gestures.conf:4"
+    }
+  ],
+  "exec_once": [
+    {
+      "cmd": "wl-paste --type text --watch cliphist store",
+      "where": "/home/koh/.config/hypr/hyprland.conf:25"
+    },
+    {
+      "cmd": "wl-paste --type image --watch cliphist store",
+      "where": "/home/koh/.config/hypr/hyprland.conf:26"
+    }
+  ],
+  "env": [],
+  "monitors": [
+    {
+      "spec": "eDP-1,1920x1080@60.03,3229x1741,1.5,vrr,0",
+      "where": "/home/koh/.config/hypr/monitors.conf:3"
+    },
+    {
+      "spec": "HDMI-A-1,1920x1080@60.0,2883x661,1.0,vrr,0",
+      "where": "/home/koh/.config/hypr/monitors.conf:4"
+    }
+  ],
+  "files": [
+    "/home/koh/.config/hypr/hyprland.conf",
+    "/home/koh/.config/hypr/monitors.conf",
+    "/home/koh/.config/hypr/input.conf",
+    "/home/koh/.config/hypr/bindings.conf",
+    "/home/koh/.config/hypr/looknfeel.conf",
+    "/home/koh/.config/hypr/autostart.conf",
+    "/home/koh/.config/hypr/dropdown.conf",
+    "/home/koh/.config/hypr/clip-presets.conf",
+    "/home/koh/.config/hypr/windows.conf",
+    "/home/koh/.config/hypr/gestures.conf"
+  ],
+  "skipped_sources": [
+    {
+      "source": "~/.local/share/omarchy/default/hypr/autostart.conf",
+      "where": "/home/koh/.config/hypr/hyprland.conf:4"
+    },
+    {
+      "source": "~/.local/share/omarchy/default/hypr/bindings/media.conf",
+      "where": "/home/koh/.config/hypr/hyprland.conf:5"
+    },
+    {
+      "source": "~/.local/share/omarchy/default/hypr/bindings/clipboard.conf",
+      "where": "/home/koh/.config/hypr/hyprland.conf:6"
+    },
+    {
+      "source": "~/.local/share/omarchy/default/hypr/bindings/tiling-v2.conf",
+      "where": "/home/koh/.config/hypr/hyprland.conf:7"
+    },
+    {
+      "source": "~/.local/share/omarchy/default/hypr/bindings/utilities.conf",
+      "where": "/home/koh/.config/hypr/hyprland.conf:8"
+    },
+    {
+      "source": "~/.local/share/omarchy/default/hypr/envs.conf",
+      "where": "/home/koh/.config/hypr/hyprland.conf:9"
+    },
+    {
+      "source": "~/.local/share/omarchy/default/hypr/looknfeel.conf",
+      "where": "/home/koh/.config/hypr/hyprland.conf:10"
+    },
+    {
+      "source": "~/.local/share/omarchy/default/hypr/input.conf",
+      "where": "/home/koh/.config/hypr/hyprland.conf:11"
+    },
+    {
+      "source": "~/.local/share/omarchy/default/hypr/windows.conf",
+      "where": "/home/koh/.config/hypr/hyprland.conf:12"
+    },
+    {
+      "source": "~/.config/omarchy/current/theme/hyprland.conf",
+      "where": "/home/koh/.config/hypr/hyprland.conf:13"
+    },
+    {
+      "source": "~/.local/state/omarchy/toggles/hypr/*.conf",
+      "where": "/home/koh/.config/hypr/hyprland.conf:23"
+    }
+  ]
+}

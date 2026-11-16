@@ -20,7 +20,7 @@ jobs:
             zsh/.config/zsh/rc/*.zsh zsh/.config/zsh/rc/pluginconfig/*.zsh
 
       - name: Lua syntax
-        run: find wezterm themes -name '*.lua' -print0 | xargs -0 -n1 luac5.4 -p
+        run: find wezterm themes quattro profiles tests -name '*.lua' -print0 | xargs -0 -n1 luac5.4 -p
 
       - name: Bash syntax
         run: |
@@ -31,16 +31,23 @@ jobs:
       - name: ShellCheck
         run: |
           shellcheck -S warning scripts/* omarchy/.config/omarchy/hooks/*
+          shellcheck -S warning tests/quattro-parity/run tests/quattro-parity/capture-baseline
           shellcheck -S warning --shell=bash omarchy/.config/omarchy/extensions/menu.sh
 
       - name: Python compile
-        run: python3 -m py_compile tools/*.py
+        run: python3 -m py_compile tools/*.py tests/quattro-parity/*.py
 
       - name: JSON validity
-        run: python3 -m json.tool claude/hooks.example.json >/dev/null
+        run: |
+          python3 -m json.tool claude/hooks.example.json >/dev/null
+          python3 -m json.tool quattro/.config/omarchy/shell.json >/dev/null
+          for f in tests/quattro-parity/known-diffs.json tests/quattro-parity/baseline/*.json; do python3 -m json.tool "$f" >/dev/null; done
 
       - name: Stow dry-run (Arch/Omarchy full set)
         run: stow -n -v git mise starship wezterm zsh fastfetch omarchy waybar xdg-terminal ssh nvim
+
+      - name: Stow dry-run (Omarchy 4 port)
+        run: stow -n -v quattro
 
       - name: Stow dry-run (Ubuntu tool subset)
         run: stow -n -v git mise starship wezterm zsh fastfetch ssh nvim
