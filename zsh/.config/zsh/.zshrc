@@ -17,7 +17,7 @@ source "$ZDOTDIR/rc/bindkey.zsh"
 # 2.5. CLI theme (Omarchyパレット → fzf / bat / autosuggest)
 # ----------------------------------------------------
 _cli_theme="$_zsh_cache_dir/../dotfiles/cli-theme.zsh"
-_omarchy_palette="$HOME/.config/omarchy/current/theme/colors.toml"
+_omarchy_palette="${OMARCHY_CURRENT_DIR:-$HOME/.config/omarchy/current}/theme/colors.toml"
 if [[ ! -r "$_cli_theme" || "$_omarchy_palette" -nt "$_cli_theme" ]]; then
   "$HOME/dotfiles/scripts/generate-cli-theme" >/dev/null 2>&1
 fi
@@ -129,6 +129,13 @@ zstyle ':completion:*:default' menu select=2
 autoload -Uz compinit
 compinit -d "$_zsh_cache_dir/zcompdump-$ZSH_VERSION"
 
+# ----------------------------------------------------
+# 10.5. Modern shell tools (compinit / zeno の後に読む)
+# ----------------------------------------------------
+source "$ZDOTDIR/rc/pluginconfig/carapace.zsh"
+source "$ZDOTDIR/rc/pluginconfig/television.zsh"
+source "$ZDOTDIR/rc/pluginconfig/atuin.zsh"
+
 # bun completions
 [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
 
@@ -140,5 +147,7 @@ if [[ "$TERM_PROGRAM" == "WezTerm" ]] && (( $+commands[fastfetch] )); then
   if [[ ! -e "$_fastfetch_stamp" ]]; then
     : > "$_fastfetch_stamp"
     fastfetch
+    # dotfiles の機能を少しずつ思い出すための tip を1件 (tips/tips.tsv)
+    "$HOME/dotfiles/scripts/dotfiles-tip"
   fi
 fi

@@ -42,6 +42,22 @@
     # ansi = 端末のANSI色を使う。Omarchyテーマ変更に自動追従する
     syntax-theme = ansi
 
+# difftastic (構文を理解する差分)。通常の diff は delta のまま、明示したときだけ使う
+#   git dft        … 作業ツリーの差分     git dlog / git dshow … ログ・コミットを構文差分で
+[difftool "difftastic"]
+    cmd = difft "$LOCAL" "$REMOTE"
+
+[difftool]
+    prompt = false
+
+[pager]
+    difftool = true
+
+[alias]
+    dft = difftool --tool=difftastic
+    dlog = -c diff.external=difft log -p --ext-diff
+    dshow = -c diff.external=difft show --ext-diff
+
 [merge]
     conflictstyle = zdiff3
 [user]

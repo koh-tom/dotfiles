@@ -28,6 +28,10 @@ else
   alias la='ls -A'
 fi
 
+# --- Nix ---
+alias nd='nix develop --command zsh'  # devshellにzshのまま入る (❄表示とnixwhereが効く)
+alias nw='nixwhere'                   # devshellのPATH可視化
+
 # --- Navigation ---
 alias ..='cd ..'
 alias ...='cd ../..'
@@ -36,6 +40,7 @@ alias .....='cd ../../../..'
 
 # --- Convenience ---
 alias cheat='~/dotfiles/scripts/dotfiles-cheatsheet'  # 全キーバインド/スニペット/タスク検索
+alias tip='~/dotfiles/scripts/dotfiles-tip'          # tips をランダム表示。tip -l で全件検索
 alias reload='source "$ZDOTDIR/.zshrc"'
 alias cz='czg'                       # 対話式conventional commits
 alias dotcz='cd ~/dotfiles && czg'   # dotfilesをczgでコミット

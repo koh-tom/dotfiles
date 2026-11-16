@@ -6,4 +6,4 @@
 set -euo pipefail
 
 cd "${DOTFILES_ROOT:-$HOME/dotfiles}"
-stow -R -v git mise starship wezterm zsh fastfetch ssh nvim
+stow -R -v atuin git mise starship wezterm zsh fastfetch ssh nvim
