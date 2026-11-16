@@ -120,6 +120,24 @@ omarchy theme set Spurs
 
 `apply-host-profile` は既存の `~/.config/hypr/monitors.conf` をバックアップし、適用後に `hyprctl reload` と `hyprctl configerrors` を実行します。
 
+## HHKB Studio (keyd)
+
+Bluetooth/USBで繋ぐHHKB Studio (日本語配列) を、keydでThinkPad X13 Gen1 (日本語配列) と同じ物理配置にします。対象はHHKBだけで、本体キーボードには影響しません。設定は `system/keyd/hhkb-studio.conf` です。
+
+| HHKBのキー | 送るキー (ThinkPadの同じ位置) |
+|---|---|
+| 左上 `Esc` | 半角/全角 |
+| Aの左 `Control` | Caps (`compose:caps` でCompose) |
+| 最下段の左から2番目 `半角/全角` | Ctrl |
+| `Fn`+`Esc` (本来は電源) | Esc (ThinkPadで半角/全角の真上) |
+
+それ以外のキー (◇・Alt・無変換・変換・かな・矢印・記号) は元々同じコードなので触りません。`Fn` はキーボード内部で処理されるため、keydでは変えられません。
+
+```bash
+./scripts/install-packages  # keyd を導入
+./scripts/install-keyd      # /etc/keyd/ へ配置して keyd を有効化・再読込
+```
+
 ## ディレクトリ方針
 
 - 設定ソース: このリポジトリ
@@ -135,5 +153,6 @@ omarchy theme set Spurs
 | ツール群 (WezTerm・zsh・mise管理ツール・git・fastfetch・nvim層・Spurs静的配色) | ✅ フル対応 | ✅ `bootstrap-ubuntu` で移植 |
 | テーマ連携パイプライン (`omarchy theme set` → colors.toml → 各ツール) | ✅ | ❌ Omarchy本体が必要 |
 | Hyprland / Waybar / `omarchy-*` ヘルパー | ✅ | ❌ 対象外 (要Omarchy) |
+| HHKB Studioのキー配置 (keyd) | ✅ `install-keyd` | ❌ 未対応 |
 | パッケージ管理 | `packages/pacman.txt` / `aur.txt` | `packages/apt.txt` |
 | 診断 | `mise run doctor` (フルチェック) | `mise run doctor` (ツール群のみ自動判定) |
