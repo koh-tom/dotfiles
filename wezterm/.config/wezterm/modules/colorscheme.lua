@@ -43,6 +43,8 @@ function module.apply_to_config(config)
             local overrides = win:get_config_overrides() or {}
             overrides.color_scheme = scheme
             win:set_config_overrides(overrides)
+            -- 背景はcheatbarのレイヤーで塗っているので、スキームの背景色に塗り直す
+            require("modules.cheatbar").refresh(win)
             win:toast_notification("Color Scheme", "Applied: " .. scheme, nil, 1500)
           end
         end),

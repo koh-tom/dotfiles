@@ -1,9 +1,13 @@
 local wezterm = require("wezterm")
 local module = {}
 local palette = require("omarchy_theme").get_palette()
+local workspace_color = require("workspace_color")
 
 -- Custom tab titles (tab_id -> string or nil)
 module.custom_title = {}
+
+-- 描画したタブの表示幅 (tab_id -> cells)。statusbar.lua が右ステータスの幅予算に使う
+module.rendered_width = {}
 
 -- =============================================================================
 -- 定数
@@ -30,17 +34,11 @@ local ICON_COLORS = {
 }
 
 local TAB_COLORS = {
-  foreground_inactive = palette.color8,
-  background_inactive = "none",
+  foreground_inactive = palette.color7,
+  background_inactive = palette.color0,
   foreground_active = palette.background,
-  background_active = palette.accent,
   background_ssh_active = palette.color1,
   foreground_ssh_active = palette.background,
-}
-
-local DECORATIONS = {
-  left_circle = wezterm.nerdfonts.ple_left_half_circle_thick,
-  right_circle = wezterm.nerdfonts.ple_right_half_circle_thick,
 }
 
 -- =============================================================================
@@ -124,14 +122,15 @@ local function get_icon_and_color(process_name, pane_title, cmdline, cwd, is_ssh
     return ICONS.docker, ICON_COLORS.docker
   end
 
-  return ICONS.fallback, TAB_COLORS.foreground_inactive
+  return ICONS.fallback, is_active and TAB_COLORS.foreground_active or TAB_COLORS.foreground_inactive
 end
 
 local function get_tab_colors(is_active, is_ssh)
   if is_active and is_ssh then
     return TAB_COLORS.background_ssh_active, TAB_COLORS.foreground_ssh_active
   elseif is_active then
-    return TAB_COLORS.background_active, TAB_COLORS.foreground_active
+    -- アクティブタブはワークスペースごとの色 (statusbar.lua の左下表示と揃える)
+    return workspace_color(wezterm.mux.get_active_workspace()), TAB_COLORS.foreground_active
   end
   return TAB_COLORS.background_inactive, TAB_COLORS.foreground_inactive
 end
@@ -205,14 +204,12 @@ function module.apply_to_config(config)
 
     -- タブの色
     local background, foreground = get_tab_colors(tab.is_active, is_ssh)
-    local edge_background = "transparent"
-    local edge_foreground = background
 
     -- タイトルテキスト
     local title_text
     local custom = module.custom_title[tab.tab_id]
       or (tab.tab_title ~= "" and tab.tab_title or nil)
-    
+
     if custom then
       title_text = custom
     elseif is_ssh then
@@ -220,6 +217,10 @@ function module.apply_to_config(config)
     elseif is_nb_process(process_name, cmdline, cached_cwd) then
       title_text = "nb"
     else
+      -- 非アクティブタブはupdate-statusが走らずキャッシュが空のことがあるので、PaneInformationのcwdで補う
+      if not title_cache[pane_id] and pane.current_working_dir then
+        title_cache[pane_id] = extract_project_name(pane.current_working_dir.file_path)
+      end
       title_text = title_cache[pane_id] or "-"
     end
 
@@ -235,28 +236,34 @@ function module.apply_to_config(config)
     -- ズームインジケーター
     local zoom_indicator = has_zoomed_pane(tab.panes) and (ICONS.zoom .. " ") or ""
 
-    -- 半円
-    local left_circle = tab.is_active and DECORATIONS.left_circle or ""
-    local right_circle = tab.is_active and DECORATIONS.right_circle or ""
+    -- ブロック: [gap][ n icon title ] 。角は付けず矩形で塗り潰す
+    local index = tostring(tab.tab_index + 1)
+    local head = " " .. index .. " "
+    -- 固定部分 (gap + head + icon + zoom + 空白 + 末尾パディング) を引いた残りをタイトルに割り当てる
+    local fixed = 1 + wezterm.column_width(head) + wezterm.column_width(icon)
+      + wezterm.column_width(zoom_indicator) + 1 + 1
+    local budget = math.max(max_width - fixed, 1)
+    local title = wezterm.truncate_right(title_text, budget)
+    local suffix = wezterm.truncate_right(claude_suffix, math.max(budget - wezterm.column_width(title), 0))
+
+    module.rendered_width[tab.tab_id] = fixed + wezterm.column_width(title) + wezterm.column_width(suffix)
 
     return {
-      { Background = { Color = edge_background } },
+      { Background = { Color = "transparent" } },
       { Text = " " },
-      { Foreground = { Color = edge_foreground } },
-      { Text = left_circle },
       { Background = { Color = background } },
+      { Foreground = { Color = foreground } },
+      { Attribute = { Intensity = tab.is_active and "Bold" or "Half" } },
+      { Text = head },
+      { Attribute = { Intensity = "Normal" } },
       { Foreground = { Color = icon_color } },
       { Text = icon },
-      { Background = { Color = background } },
       { Foreground = { Color = foreground } },
       { Text = zoom_indicator },
       { Attribute = { Intensity = "Bold" } },
-      { Text = " " .. wezterm.truncate_right(title_text, max_width) },
+      { Text = " " .. title },
       { Attribute = { Intensity = "Normal" } },
-      { Text = wezterm.truncate_right(claude_suffix, max_width) .. " " },
-      { Background = { Color = edge_background } },
-      { Foreground = { Color = edge_foreground } },
-      { Text = right_circle },
+      { Text = suffix .. " " },
     }
   end)
 end

@@ -21,6 +21,25 @@ fi
 function wezterm_precmd() {
   # OSC 133; A: プロンプト開始
   printf "\033]133;A\007"
+
+  # Nix devshell名をSetUserVarで通知 (statusbar.luaが❄表示に使う)
+  # base64のfork代を値が変わった時だけ払う
+  local nix_name=""
+  if [[ -n "$IN_NIX_SHELL" ]]; then
+    nix_name="${DEVSHELL_NAME:-${name:-devshell}}"
+  fi
+  if [[ "$nix_name" != "${_wezterm_nix_last-__unset__}" ]]; then
+    typeset -g _wezterm_nix_last="$nix_name"
+    printf "\033]1337;SetUserVar=nix_shell=%s\007" "$(print -rn -- "$nix_name" | base64)"
+  fi
+
+  # push認証を常時通知 (personal/lab)。ghpushがGH_PUSH_AS=labをexportする
+  local push_id="personal"
+  [[ "$GH_PUSH_AS" == "lab" ]] && push_id="lab"
+  if [[ "$push_id" != "${_wezterm_push_last-__unset__}" ]]; then
+    typeset -g _wezterm_push_last="$push_id"
+    printf "\033]1337;SetUserVar=gh_push=%s\007" "$(print -rn -- "$push_id" | base64)"
+  fi
 }
 
 function wezterm_preexec() {

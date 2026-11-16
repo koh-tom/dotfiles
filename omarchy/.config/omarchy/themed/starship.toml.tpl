@@ -4,6 +4,8 @@ format = """
 ${custom.directory}\
 $git_branch\
 $git_status\
+${custom.push_personal}${custom.push_lab}\
+$nix_shell\
 $python\
 $aws\
 $fill\
@@ -47,6 +49,25 @@ format = "[](fg:{{ color0 }})[ $time](fg:{{ color4 }} bg:{{ color0 }})[
 success_symbol = "[❯](bold fg:{{ accent }})"
 error_symbol = "[❯](bold fg:{{ color1 }})"
 vimcmd_symbol = "[V](bold fg:{{ color2 }}) "
+
+# push認証を常時表示 (ghpushで切替)。personal=緑 / lab=赤。値で色を変えるため2モジュール構成
+[custom.push_personal]
+when = '[ "$GH_PUSH_AS" != lab ]'
+command = "echo personal"
+format = "[](fg:{{ color2 }})[ push:$output ]($style)[](fg:{{ color2 }}) "
+style = "bold fg:{{ background }} bg:{{ color2 }}"
+
+[custom.push_lab]
+when = '[ "$GH_PUSH_AS" = lab ]'
+command = "echo lab"
+format = "[](fg:{{ color1 }})[ push:$output ]($style)[](fg:{{ color1 }}) "
+style = "bold fg:{{ background }} bg:{{ color1 }}"
+
+
+[nix_shell]
+symbol = "❄ "
+format = "[](fg:{{ color6 }})[$symbol$name ]($style)[](fg:{{ color6 }}) "
+style = "bold fg:{{ background }} bg:{{ color6 }}"
 
 [aws]
 format = "[$symbol $profile ]($style)"

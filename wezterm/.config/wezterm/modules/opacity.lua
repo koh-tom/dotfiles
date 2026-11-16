@@ -1,20 +1,12 @@
 local wezterm = require("wezterm")
+local cheatbar = require("modules.cheatbar")
 local module = {}
 
 function module.apply_to_config(config)
   wezterm.on("window-focus-changed", function(window, pane)
-    -- 現在のオーバーライド設定を取得 (存在しなければ空のテーブル)
-    local overrides = window:get_config_overrides() or {}
-    
-    -- 他のモジュールの設定 (color_scheme 等) はそのままに、透過度だけを更新
-    if window:is_focused() then
-      overrides.window_background_opacity = 0.94
-      -- Linux/Ubuntu では Acrylic 効かないためスキップ、または Blur 用
-    else
-      overrides.window_background_opacity = 0.82
-    end
-    
-    window:set_config_overrides(overrides)
+    -- config.background (cheatbar) 使用中は window_background_opacity が効かないので、
+    -- 背景レイヤーの透過度として反映する
+    cheatbar.refresh(window, { opacity = window:is_focused() and 0.94 or 0.82 })
   end)
 end
 
