@@ -5,3 +5,7 @@ stow
 lua
 chafa
 github-cli
+# Monaspace: WezTermの斜体 (コメント等) を手書き風 Radon にする (wezterm.lua の font_rules)
+otf-monaspace
+# keyd: HHKB Studio を ThinkPad と同じキー配置にする (system/keyd/, ./scripts/install-keyd)
+keyd

@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# system/keyd/*.conf を /etc/keyd/ へ配置し、keydを有効化して再読込する。
+# keyd本体は packages/pacman.txt から導入する (./scripts/install-packages)。
+# sudoパスワードを聞かれる前提の手動実行スクリプト。
+
+set -euo pipefail
+
+ROOT="${DOTFILES_ROOT:-$HOME/dotfiles}"
+
+if ! command -v keyd >/dev/null 2>&1; then
+  printf 'keyd not found; run ./scripts/install-packages first.\n' >&2
+  exit 1
+fi
+
+sudo install -d -m 0755 /etc/keyd
+for source_file in "$ROOT"/system/keyd/*.conf; do
+  target_file="/etc/keyd/$(basename "$source_file")"
+  keyd check "$source_file"
+  if cmp -s "$source_file" "$target_file"; then
+    printf 'Already installed: %s\n' "$target_file"
+    continue
+  fi
+  sudo install -m 0644 "$source_file" "$target_file"
+  printf 'Installed: %s\n' "$target_file"
+done
+
+sudo systemctl enable --now keyd
+sudo keyd reload
+printf 'keyd reloaded.\n'
