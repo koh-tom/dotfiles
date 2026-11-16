@@ -1,0 +1,39 @@
+#!/bin/bash
+# dotfiles の tips (tips/tips.tsv) を表示する。
+#
+#   dotfiles-tip            … ランダムに1件 (シェル起動時・`tip` コマンド)
+#   dotfiles-tip -l         … 全件を fzf で検索 (Enter でキー/コマンドをクリップボードへ)
+#
+# 常時表示は WezTerm 上の帯の右側 (wezterm/.config/wezterm/modules/cheatbar.lua) が担当する。
+
+set -uo pipefail
+
+TIPS_FILE="${DOTFILES_TIPS:-$HOME/dotfiles/tips/tips.tsv}"
+
+tips() { grep -v '^#' "$TIPS_FILE" | grep -v '^[[:space:]]*$'; }
+
+random_tip() {
+  local count
+  count=$(tips | wc -l)
+  ((count == 0)) && return 1
+  tips | sed -n "$((RANDOM % count + 1))p"
+}
+
+case "${1:-}" in
+  -l | --list)
+    sel=$(tips | awk -F'\t' '{ printf "\033[35m%-9s\033[0m \033[1m%-20s\033[0m %s\t%s\n", $1, $2, $3, $2 }' |
+      fzf --ansi --delimiter='\t' --with-nth=1 --prompt='tips> ' --height=80% --reverse \
+        --header='Enter: キー/コマンドをクリップボードへ') || exit 0
+    key=$(cut -f2 <<<"$sel")
+    if command -v wl-copy >/dev/null; then printf '%s' "$key" | wl-copy; fi
+    printf 'copied: %s\n' "$key"
+    ;;
+  "")
+    IFS=$'\t' read -r cat key desc < <(random_tip) || exit 0
+    printf '\033[2m󰛨 tip\033[0m \033[35m[%s]\033[0m \033[1m%s\033[0m  %s\n' "$cat" "$key" "$desc"
+    ;;
+  *)
+    sed -n '2,6p' "$0" | sed 's/^# \{0,1\}//'
+    exit 1
+    ;;
+esac

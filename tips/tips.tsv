@@ -1,0 +1,83 @@
+# dotfiles tips — WezTerm上の帯の右側 (modules/cheatbar.lua) / シェル起動時 / `tip` コマンド / cheat が読む
+# 形式: カテゴリ<TAB>キー/コマンド<TAB>説明。# で始まる行と空行は無視。
+# 機能を足したらここにも1行足すこと。
+#
+# --- WezTerm: LEADER = Ctrl+Q ---
+WezTerm	^Q g	プロジェクトを開く。zoxide の履歴から選ぶと専用ワークスペース + レシピ (nvim/shell/lazygit) で展開
+WezTerm	^Q c	Claude Code セッション切替。状態 (作業中/入力待ち/要対応) を色付きで一覧
+WezTerm	^Q l	ランチャー。Lazygit / Neovim / Yazi / Claude / gh-dash / btop をズームしたペインで起動
+WezTerm	^Q w	ワークスペース一覧から切替。Shift+C で新規作成
+WezTerm	^Super s	scratch ワークスペースを出し入れ (使い捨て作業用)
+WezTerm	^Super n / p	scratch を飛ばして次/前のワークスペースへ
+WezTerm	^Q z	直前のコマンドとその出力をまとめてクリップボードへ。エラー共有に便利
+WezTerm	^Q b	スクロールバック全体を Neovim で開く。検索・コピーし放題
+WezTerm	^Q o	Smart Open: 画面上の URL / path:line / owner/repo / コミットハッシュを選んで開く
+WezTerm	クリック	#123 → 今のリポの Issue/PR、owner/repo#45 → GitHub、file.rs:120 → Neovim の該当行
+WezTerm	^Q r / ^Q d	ペインを左右 / 上下に分割
+WezTerm	^Q f	ペインをズーム (全画面化) トグル
+WezTerm	^Q s	リサイズモード: hjkl で微調整、1-9 で高さ 10-90%、Ctrl+1-9 で幅
+WezTerm	^⇧C	ペインを1行に最小化 / 元に戻す
+WezTerm	^⇧H/J/K/L	ペイン間を移動
+WezTerm	^⇧X	コピーモード: vim キーで移動、v で選択、y でコピー、[ ] でプロンプト間ジャンプ
+WezTerm	Alt+[ / Alt+]	前/次のプロンプトへスクロール (シェル統合)
+WezTerm	⌘Space	QuickSelect: URL・パス・ハッシュ・IP にラベルが付き、キー1つでコピー
+WezTerm	^⇧P	コマンドパレット。自作操作も説明付きで並んでいる
+WezTerm	^⇧U	文字選択 (絵文字・Nerd Font アイコン) をコピー
+WezTerm	^Q ,	タブ名を変更 (空にすると自動名に戻る)
+WezTerm	^Q i	Omarchy の壁紙をうっすら背景に敷く / 外す
+WezTerm	^Q t	カラースキームを一時的に切替 (このウィンドウだけ)
+WezTerm	^Q ⇧S / ^Q ⇧D	セッション (タブ・ペイン・cwd) を手動保存 / リセット。5分ごとに自動保存もされる
+WezTerm	^Q n	上の帯の右に出ている tip を次へ進め、全文を通知で表示
+WezTerm	^Q /	全キーバインド・スニペット・タスクの統合チートシート
+WezTerm	⌘+ / ⌘- / ⌘0	フォント拡大 / 縮小 / リセット。タブバーと上の帯も連動する
+WezTerm	タブの色	Claude のタブアイコン: オレンジ=作業中 / 黄=入力待ち / 赤=許可待ち
+WezTerm	左下の色	ワークスペースごとに色が変わる。LEADER 中は赤、コピーモードは黄
+#
+# --- シェル (zsh) ---
+Shell	^R	atuin 履歴検索。もう一度 ^R で global/host/session/directory を切替
+Shell	^X ^R	zeno の履歴検索 (従来のもの)
+Shell	^T	television: 入力中のコマンドから推測して候補を出す (cd→dir, git switch→branch)
+Shell	tv	television 単体。tv files / tv git-log / tv env / tv text などチャンネル多数
+Shell	^Space	オートサジェスト (薄い灰色の補完) を確定
+Shell	Tab	fzf-tab 補完。< > でグループ切替、cd/cat/git はプレビュー付き
+Shell	z <名前>	zoxide: よく行くディレクトリへあいまいジャンプ。zi で対話選択
+Shell	y	yazi を開き、終了時にそのディレクトリへ cd する
+Shell	gs␣ gaa␣ gcm␣	zeno スニペット: キーワード + Space で git コマンドに展開
+Shell	コマンド G␣	zeno: 行末で G + Space → | rg '' 。F → | fzf、B → | bat
+Shell	ll / lt	eza の詳細表示 (git 状態付き) / ツリー表示
+Shell	cheat	統合チートシートを fzf で検索。Enter でクリップボードへ
+Shell	nd / nw	nix develop に zsh のまま入る / devshell の PATH 由来を可視化 (nixwhere)
+Shell	ghpush lab	このシェルだけ push 用 SSH 鍵を lab に切替。ghpush check で接続先確認
+Shell	tip	dotfiles の tips をランダム表示。tip -l で全件を検索
+#
+# --- Git ---
+Git	lg / dot	lazygit / dotfiles を lazygit で開く
+Git	lazygit で |	差分表示を delta ⇔ difftastic (構文差分) で切替
+Git	git dft	difftastic で作業ツリーの差分を構文単位で表示
+Git	git dlog / dshow	ログ / コミットを difftastic で表示
+Git	cz / dotcz	czg で対話式 conventional commit / dotfiles をコミット
+Git	git (設定)	rerere 有効: 一度解決したコンフリクトは次回自動で解決される
+#
+# --- Hyprland / Omarchy ---
+Hyprland	⌘`	ドロップダウン端末。上からスライドして出る使い捨て WezTerm
+Hyprland	⌘S / ⌘Alt S	スクラッチパッドの表示 / ウィンドウをスクラッチパッドへ
+Hyprland	⌘V	クリップボード履歴 (cliphist) から選んで貼り付け
+Hyprland	⌘Alt ← / →	ワークスペースを左右に移動
+Hyprland	⌘T	WezTerm を新しく開く
+Hyprland	Waybar 右上	dotfiles の未コミット数ピル。クリックで lazygit
+Hyprland	Waybar ✳	Claude セッション数。クリックで WezTerm へフォーカス
+Hyprland	Omarchy メニュー	Setup > Dotfiles から Edit / Git / Doctor / Reapply / Spurs Mode
+#
+# --- mise タスク / ツール ---
+mise	mise run doctor	dotfiles の健全性チェック (doc␣ でも展開)
+mise	mise run apply	stow を全パッケージ再適用 (mra␣)
+mise	mise run update-tools	mise 管理ツールを一括更新して lockfile 更新
+mise	mise tasks	ほかのタスク一覧 (build-theme, setup-signing, apply-profile ...)
+Tools	carapace	1000+ コマンドの補完が入っている。知らないコマンドでも Tab してみる
+Tools	dust / duf / procs	du / df / ps のモダン版。容量や プロセスが見やすい
+Tools	hyperfine 'cmd'	コマンドのベンチマーク (複数回実行して統計)
+Tools	glow README.md	Markdown をターミナルで整形表示
+#
+# --- Neovim ---
+Neovim	jj	インサートモードを抜ける (日本語入力中でも押しやすい)
+Neovim	gx	カーソル下の URL を開く
