@@ -1,0 +1,14 @@
+#!/bin/bash
+# SUPER+` : 画面上部からスライドして出るドロップダウン WezTerm (Hyprland special workspace)。
+# 初回は起動、以降は表示/非表示をトグルする。配置・アニメーションは hypr/.config/hypr/dropdown.conf (Omarchy 4 では quattro/.config/hypr/personal/dropdown.lua)。
+# 別プロセスで起動し、WEZTERM_DROPDOWN でセッション復元を無効化している (wezterm.lua)。
+
+set -euo pipefail
+
+CLASS="org.wezfurlong.wezterm.dropdown"
+
+if hyprctl clients -j | jq -e --arg c "$CLASS" 'any(.[]; .class == $c)' >/dev/null; then
+  "$(dirname "$0")/hypr-dispatch" 'hl.dsp.workspace.toggle_special("dropdown")' togglespecialworkspace dropdown
+else
+  WEZTERM_DROPDOWN=1 setsid -f uwsm-app -- wezterm start --always-new-process --class "$CLASS" --cwd "$HOME" >/dev/null 2>&1
+fi

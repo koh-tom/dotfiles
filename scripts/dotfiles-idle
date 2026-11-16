@@ -1,0 +1,73 @@
+#!/bin/bash
+# 自動ロック/スリープ (hypridle) を GUI から切り替える。Waybar の custom/idle-indicator が呼ぶ。
+#
+#   dotfiles-idle status     … Waybar 用JSON (常に表示。有効=󰒲 / 停止中=󰅶 赤)
+#   dotfiles-idle toggle     … 有効/停止を切替 (左クリック)。一時停止タイマーも解除する
+#   dotfiles-idle pause [分] … 指定分だけ止めて自動で再開 (右クリック = 60分)
+#
+# 停止/再開そのものは Omarchy 標準の omarchy-toggle-idle に任せる。
+#   Omarchy 3.x : hypridle の kill/起動 (+ 通知)。Waybar の custom/idle-indicator から呼ばれる
+#   Omarchy 4.x : stay-awake 状態ファイルの作成/削除 (omarchy-shell の idle サービスが監視)。
+#                 Quattro バーの DotfilesPill (quattro/.config/omarchy/shell.json) から呼ばれる
+
+set -uo pipefail
+
+TIMER_UNIT="dotfiles-idle-resume"
+STATE_FILE="${XDG_RUNTIME_DIR:-/tmp}/dotfiles-idle-resume-at"
+STAY_AWAKE="$HOME/.local/state/omarchy/indicators/stay-awake"
+
+# Quattro はパッケージ版 (/usr/share/omarchy) で hypridle を使わない
+if [[ -e /usr/share/omarchy/default/hypr/bootstrap.lua ]]; then
+  BACKEND=quattro
+  TOGGLE="omarchy-toggle-idle"
+  running() { [[ ! -e $STAY_AWAKE ]]; }
+  resume_cmd="rm -f '$STAY_AWAKE'"
+else
+  BACKEND=legacy
+  TOGGLE="$HOME/.local/share/omarchy/bin/omarchy-toggle-idle"
+  running() { pgrep -x hypridle >/dev/null; }
+  resume_cmd="pgrep -x hypridle >/dev/null || { '$TOGGLE'; sleep 3; }"
+fi
+
+cancel_timer() {
+  systemctl --user stop "$TIMER_UNIT.timer" "$TIMER_UNIT.service" >/dev/null 2>&1
+  rm -f "$STATE_FILE"
+}
+
+case "${1:-status}" in
+  status)
+    if running; then
+      printf '{"text":"󰒲","tooltip":"自動ロック: 有効 (放置でスクリーンセーバー → ロック)\\n左クリック: 止める / 右クリック: 1時間だけ止める","class":"enabled"}\n'
+    elif [[ -r "$STATE_FILE" ]]; then
+      printf '{"text":"󰅶","tooltip":"自動ロック: 停止中 (%s に自動で再開)\\n左クリック: 今すぐ再開","class":"active"}\n' "$(cat "$STATE_FILE")"
+    else
+      printf '{"text":"󰅶","tooltip":"自動ロック: 停止中\\n左クリック: 再開","class":"active"}\n'
+    fi
+    ;;
+  toggle)
+    cancel_timer
+    "$TOGGLE" >/dev/null
+    ;;
+  pause)
+    minutes="${2:-60}"
+    cancel_timer
+    running && "$TOGGLE" >/dev/null
+    # 再開は systemd user timer に任せる (Waybar再起動をまたいでも生きる)。
+    # toggle は hypridle をバックグラウンド起動してすぐ戻るため、ユニット終了で巻き添えに
+    # kill されないよう、uwsm-app が自前のスコープへ移すまで少し待ってから終える
+    systemd-run --user --quiet --unit="$TIMER_UNIT" --on-active="${minutes}m" \
+      --timer-property=AccuracySec=1s \
+      --setenv=PATH="$PATH" \
+      bash -c "rm -f '$STATE_FILE'; $resume_cmd"
+    date -d "+${minutes} min" +%H:%M >"$STATE_FILE"
+    notify-send -u low "󰅶    ${minutes}分間 自動ロックを止めます ($(cat "$STATE_FILE") に再開)"
+    [[ $BACKEND == legacy ]] && pkill -RTMIN+9 waybar
+    ;;
+  backend)
+    echo "$BACKEND"
+    ;;
+  *)
+    sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'
+    exit 1
+    ;;
+esac
