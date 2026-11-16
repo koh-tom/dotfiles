@@ -1,0 +1,97 @@
+#!/bin/bash
+# 現在動いている Omarchy 3.x (.conf 構成) の「実効状態」をベースラインとして保存する。
+# Quattro 移行の前に1回実行し、結果を git にコミットしておく (移行後は取り直せない)。
+#
+#   tests/quattro-parity/capture-baseline [出力先ディレクトリ]   (既定: baseline/)
+#
+# 保存するもの:
+#   binds.json         hyprctl binds -j                (既定 + 個人の実効キーバインド全部)
+#   options.json       個人設定が触っているオプションの実効値 (hyprctl getoption)
+#   monitors.json      hyprctl monitors all -j
+#   conf-intent.json   個人 .conf から抽出した意図 (windowrule/gesture/exec-once/env など)
+#   waybar.json        ~/.config/waybar/config.jsonc (コメント除去済み)
+#   waybar-style.css   ~/.config/waybar/style.css のコピー
+#   waybar-outputs.json custom/* モジュールの exec 出力 (その時点のサンプル)
+#   hypridle.conf / hyprlock.conf と、Omarchy 既定との差分有無
+#   meta.json          取得日時・各バージョン
+set -euo pipefail
+
+here=$(cd "$(dirname "$0")" && pwd)
+out=${1:-$here/baseline}
+mkdir -p "$out"
+
+command -v hyprctl >/dev/null || { echo "hyprctl がありません (Hyprland セッション内で実行してください)" >&2; exit 1; }
+if [[ -e /usr/share/omarchy/default/hypr/bootstrap.lua ]]; then
+  echo "既に Omarchy 4 (Quattro) です。ベースラインは移行前の 3.x で取る必要があります。" >&2
+  exit 1
+fi
+
+hyprctl binds -j >"$out/binds.json"
+hyprctl monitors all -j >"$out/monitors.json"
+python3 "$here/conf_intent.py" "$HOME/.config/hypr/hyprland.conf" >"$out/conf-intent.json"
+
+# 個人設定が触っているオプションの実効値
+python3 - "$out" <<'EOF'
+import json, subprocess, sys
+out = sys.argv[1]
+intent = json.load(open(f"{out}/conf-intent.json"))
+values = {}
+for name in sorted(intent["options"]):
+    r = subprocess.run(["hyprctl", "-j", "getoption", name], capture_output=True, text=True)
+    try:
+        values[name] = json.loads(r.stdout)
+    except json.JSONDecodeError:
+        values[name] = {"error": r.stdout.strip()}
+json.dump(values, open(f"{out}/options.json", "w"), ensure_ascii=False, indent=2)
+EOF
+
+# Waybar
+python3 - "$out" <<'EOF'
+import json, os, re, subprocess, sys
+out = sys.argv[1]
+src = open(os.path.expanduser("~/.config/waybar/config.jsonc")).read()
+cfg = json.loads(re.sub(r"^\s*//.*$", "", src, flags=re.M))
+json.dump(cfg, open(f"{out}/waybar.json", "w"), ensure_ascii=False, indent=2)
+outputs = {}
+for name, conf in cfg.items():
+    if name.startswith("custom/") and isinstance(conf, dict) and conf.get("exec"):
+        cmd = os.path.expandvars(conf["exec"])
+        if "voxtype" in name:   # --follow で終わらないので対象外
+            continue
+        try:
+            r = subprocess.run(["bash", "-lc", cmd], capture_output=True, text=True, timeout=20)
+            outputs[name] = {"cmd": conf["exec"], "rc": r.returncode, "stdout": r.stdout.strip()}
+        except subprocess.TimeoutExpired:
+            outputs[name] = {"cmd": conf["exec"], "rc": None, "stdout": "", "timeout": True}
+json.dump(outputs, open(f"{out}/waybar-outputs.json", "w"), ensure_ascii=False, indent=2)
+EOF
+cp "$HOME/.config/waybar/style.css" "$out/waybar-style.css"
+
+# hypridle / hyprlock (Omarchy 既定との差分も記録)
+defaults="$HOME/.local/share/omarchy/config/hypr"
+for f in hypridle.conf hyprlock.conf; do
+  cp "$HOME/.config/hypr/$f" "$out/$f"
+  if diff -q <(grep -vE '^\s*(#|$)' "$HOME/.config/hypr/$f") <(grep -vE '^\s*(#|$)' "$defaults/$f") >/dev/null; then
+    echo same >"$out/$f.vs-default"
+  else
+    diff <(grep -vE '^\s*(#|$)' "$defaults/$f") <(grep -vE '^\s*(#|$)' "$HOME/.config/hypr/$f") >"$out/$f.vs-default" || true
+  fi
+done
+
+python3 - "$out" <<EOF
+import json, subprocess, sys, datetime
+def run(*cmd):
+    try: return subprocess.run(cmd, capture_output=True, text=True).stdout.strip()
+    except FileNotFoundError: return None
+json.dump({
+  "captured_at": datetime.datetime.now().isoformat(timespec="seconds"),
+  "hyprland": run("hyprctl", "version").splitlines()[0],
+  "omarchy": open("$HOME/.local/share/omarchy/version").read().strip(),
+  "waybar": run("waybar", "--version"),
+  "kernel": run("uname", "-r"),
+  "root_is_snapshot": "/.snapshots/" in open("/proc/cmdline").read(),
+}, open(sys.argv[1] + "/meta.json", "w"), ensure_ascii=False, indent=2)
+EOF
+
+echo "ベースラインを保存しました: $out"
+ls "$out"

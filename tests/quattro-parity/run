@@ -1,0 +1,62 @@
+#!/bin/bash
+# Omarchy 3.x → 4 (Quattro) 移植の同等性検査。
+#
+#   tests/quattro-parity/run            移植版 (dotfiles/quattro) をベースラインと突き合わせる
+#   tests/quattro-parity/run -v         PASS も全部表示
+#   tests/quattro-parity/run --live     (移行後) 実際に動いている Lua 構成の hyprctl binds も比較
+#   tests/quattro-parity/run --report F 結果を Markdown 表で F に書き出す
+#
+# 事前に capture-baseline で移行前の実効状態を baseline/ に保存しておくこと。
+#
+# Omarchy 4 の既定 (default/hypr/*.lua) は、移行後は /usr/share/omarchy を、移行前は
+# 上流 v4.5.0 の参照クローン (~/.cache/omarchy-quattro-ref、無ければ取得) を使う。
+# 既定を含む Lua はサンドボックス (シェル実行・書き込み不可) 内で評価する。
+set -euo pipefail
+
+here=$(cd "$(dirname "$0")" && pwd)
+dotfiles=$(cd "$here/../.." && pwd)
+ref_tag=${OMARCHY_REF_TAG:-v4.5.0}
+
+live=0
+pass=()
+for a in "$@"; do
+  case $a in
+    --live) live=1 ;;
+    *) pass+=("$a") ;;
+  esac
+done
+
+[[ -f $here/baseline/conf-intent.json ]] || { echo "baseline/ がありません。先に capture-baseline を実行してください" >&2; exit 2; }
+
+if [[ -e /usr/share/omarchy/default/hypr/bootstrap.lua ]]; then
+  omarchy=/usr/share/omarchy
+else
+  omarchy=${OMARCHY_REF:-$HOME/.cache/omarchy-quattro-ref}
+  if [[ ! -e $omarchy/default/hypr/bootstrap.lua ]]; then
+    echo "Omarchy $ref_tag の参照クローンを取得します: $omarchy" >&2
+    git clone -q --depth 1 --branch "$ref_tag" https://github.com/omacom/omarchy.git "$omarchy"
+  fi
+fi
+
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+
+# 仮ホーム: quattro パッケージを stow 後と同じ形に並べる (実ホームには触れない)
+mkdir -p "$work/home/.config/hypr" "$work/home/.local/state/omarchy/toggles/hypr"
+for f in "$dotfiles"/quattro/.config/hypr/*; do ln -s "$f" "$work/home/.config/hypr/"; done
+ln -s "$dotfiles/quattro/seed/hypr/monitors.lua" "$work/home/.config/hypr/monitors.lua"
+
+lua "$here/lua-harness.lua" "$work/home/.config/hypr/hyprland.lua" "$work/home" "$omarchy" >"$work/lua.json"
+
+extra=()
+if ((live)); then
+  [[ -e /usr/share/omarchy/default/hypr/bootstrap.lua ]] || { echo "--live は Omarchy 4 移行後に使います" >&2; exit 2; }
+  hyprctl binds -j >"$work/live-binds.json"
+  extra+=(--live-binds "$work/live-binds.json")
+  if command -v Hyprland >/dev/null; then
+    echo "== Hyprland --verify-config (実 Hyprland によるオプション名・値の検証)"
+    Hyprland --verify-config --config "$HOME/.config/hypr/hyprland.lua" 2>&1 | tail -n 5 || true
+  fi
+fi
+
+python3 "$here/compare.py" --baseline "$here/baseline" --lua "$work/lua.json" --quattro "$dotfiles/quattro" --omarchy "$omarchy" "${extra[@]}" "${pass[@]}"

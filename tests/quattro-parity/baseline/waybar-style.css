@@ -1,0 +1,217 @@
+/*
+ * Starshipのバッジプロンプトと同じデザイン言語のピル型Waybar。
+ * テーマ互換性のため、色は全テーマが必ず定義する @foreground / @background と
+ * その alpha() のみで構成する (テーマ固有の追加変数には依存しない)。
+ */
+
+@import "../omarchy/current/theme/waybar.css";
+
+* {
+  border: none;
+  border-radius: 0;
+  min-height: 0;
+  font-family: 'JetBrainsMono Nerd Font';
+  font-size: 12px;
+}
+
+window#waybar {
+  background: transparent;
+  color: @foreground;
+}
+
+.modules-left {
+  margin-left: 6px;
+}
+
+.modules-right {
+  margin-right: 6px;
+}
+
+tooltip {
+  background: @background;
+  border: 1px solid alpha(@foreground, 0.25);
+  border-radius: 10px;
+  padding: 4px;
+}
+
+/* --- 左: Omarchyロゴ = 反転丸バッジ --- */
+#custom-omarchy {
+  background: @foreground;
+  color: @background;
+  border-radius: 99px;
+  padding: 0 8px;
+  margin: 3px 5px 3px 0;
+}
+
+/* --- 左: ワークスペース = ピル (アクティブは反転バッジ) --- */
+#workspaces {
+  background: alpha(@foreground, 0.12);
+  border-radius: 99px;
+  margin: 3px 0;
+  padding: 0 3px;
+}
+
+#workspaces button {
+  all: initial;
+  min-width: 9px;
+  padding: 0 6px;
+  margin: 2px 1px;
+  border-radius: 99px;
+  color: @foreground;
+}
+
+#workspaces button.empty {
+  opacity: 0.45;
+}
+
+#workspaces button.active {
+  background: @foreground;
+  color: @background;
+}
+
+/* --- 中央: 時計ピル --- */
+#clock {
+  background: alpha(@foreground, 0.12);
+  border-radius: 99px;
+  padding: 0 12px;
+  margin: 3px 2px;
+}
+
+/* --- 中央: Spursフィクスチャピル (試合当日はSpursイエロー) --- */
+#custom-spurs {
+  background: alpha(@foreground, 0.12);
+  border-radius: 99px;
+  padding: 0 12px;
+  margin: 3px 2px;
+}
+
+#custom-spurs.matchday {
+  background: #f9d616;
+  color: #090f24;
+}
+
+#custom-weather {
+  margin-left: 6px;
+  margin-right: 4px;
+}
+
+#custom-weather.unavailable {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+
+#custom-update {
+  font-size: 10px;
+  margin: 0 4px;
+}
+
+/* --- 右: システム情報を1本のピルに連結 --- */
+#bluetooth,
+#network,
+#pulseaudio,
+#cpu,
+#memory,
+#battery {
+  background: alpha(@foreground, 0.12);
+  padding: 0 8px;
+  margin: 3px 0;
+}
+
+#bluetooth {
+  border-radius: 99px 0 0 99px;
+  padding-left: 12px;
+}
+
+#battery {
+  border-radius: 0 99px 99px 0;
+  padding-right: 12px;
+}
+
+#battery.warning {
+  color: #f0b232;
+}
+
+#battery.critical {
+  color: #e5484d;
+}
+
+/* --- 右: dotfilesドリフトピル (dirty=黄 / 未push=水色) --- */
+#custom-dotfiles {
+  background: alpha(@foreground, 0.12);
+  border-radius: 99px;
+  padding: 0 10px;
+  margin: 3px 4px 3px 0;
+}
+
+#custom-dotfiles.dirty {
+  color: #f0b232;
+}
+
+#custom-dotfiles.ahead {
+  color: #58a6ff;
+}
+
+/* --- 右: Claude Codeセッション数ピル --- */
+#custom-claude {
+  background: alpha(@foreground, 0.12);
+  border-radius: 99px;
+  padding: 0 10px;
+  margin: 3px 4px 3px 0;
+  color: #d97757;
+}
+
+/* --- 右: トレイピル --- */
+#custom-expand-icon {
+  background: alpha(@foreground, 0.12);
+  border-radius: 99px;
+  padding: 0 9px;
+  margin: 3px 4px 3px 0;
+}
+
+#tray {
+  background: alpha(@foreground, 0.12);
+  border-radius: 99px;
+  padding: 0 10px;
+  margin: 3px 4px 3px 0;
+}
+
+#tray menu {
+  background: @background;
+  color: @foreground;
+}
+
+/* --- インジケーター類 (中央) --- */
+#custom-screenrecording-indicator,
+#custom-idle-indicator,
+#custom-notification-silencing-indicator {
+  min-width: 12px;
+  margin-left: 5px;
+  margin-right: 0;
+  font-size: 10px;
+  padding-bottom: 1px;
+}
+
+#custom-screenrecording-indicator.active,
+/* 自動ロック有効時は控えめに (停止中は下の .active で赤) */
+#custom-idle-indicator.enabled {
+  color: alpha(@foreground, 0.45);
+}
+
+#custom-idle-indicator.active,
+#custom-notification-silencing-indicator.active {
+  color: #e5484d;
+}
+
+#custom-voxtype {
+  min-width: 12px;
+  margin: 0 0 0 6px;
+}
+
+#custom-voxtype.recording {
+  color: #e5484d;
+}
+
+.hidden {
+  opacity: 0;
+}

@@ -1,0 +1,37 @@
+{
+  "gestures:workspace_swipe_create_new": {
+    "option": "gestures:workspace_swipe_create_new",
+    "int": 0,
+    "set": true
+  },
+  "input:kb_layout": {
+    "option": "input:kb_layout",
+    "str": "jp",
+    "set": true
+  },
+  "input:kb_options": {
+    "option": "input:kb_options",
+    "str": "compose:caps",
+    "set": true
+  },
+  "input:numlock_by_default": {
+    "option": "input:numlock_by_default",
+    "int": 1,
+    "set": true
+  },
+  "input:repeat_delay": {
+    "option": "input:repeat_delay",
+    "int": 250,
+    "set": true
+  },
+  "input:repeat_rate": {
+    "option": "input:repeat_rate",
+    "int": 40,
+    "set": true
+  },
+  "input:touchpad:scroll_factor": {
+    "option": "input:touchpad:scroll_factor",
+    "float": 0.4,
+    "set": true
+  }
+}

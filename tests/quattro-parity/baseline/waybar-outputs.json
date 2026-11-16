@@ -1,0 +1,42 @@
+{
+  "custom/claude": {
+    "cmd": "$HOME/dotfiles/scripts/waybar-claude-status",
+    "rc": 0,
+    "stdout": "{\"text\":\"✳ 3\",\"class\":\"active\",\"tooltip\":\"Claude Code: 3 session(s)\\nclick: focus WezTerm\"}"
+  },
+  "custom/spurs": {
+    "cmd": "$HOME/dotfiles/scripts/waybar-spurs-fixture",
+    "rc": 0,
+    "stdout": "{\"text\": \"󱟃 vs Ipswich Town 11/22 00:00\", \"class\": \"fixture\", \"tooltip\": \"Tottenham Hotspur vs Ipswich Town\\nEnglish Premier League (H)\\n2026-11-22 00:00 kickoff\"}"
+  },
+  "custom/dotfiles": {
+    "cmd": "$HOME/dotfiles/scripts/waybar-dotfiles-status",
+    "rc": 0,
+    "stdout": "{\"text\":\" 53\",\"class\":\"dirty\",\"tooltip\":\"dotfiles: 53 uncommitted change(s)\\nclick: lazygit\"}"
+  },
+  "custom/update": {
+    "cmd": "omarchy-update-available",
+    "rc": 1,
+    "stdout": "Omarchy is up to date (v4.5.0-rc3)"
+  },
+  "custom/weather": {
+    "cmd": "$OMARCHY_PATH/default/waybar/weather.sh",
+    "rc": 0,
+    "stdout": "{\"text\":\"\"}"
+  },
+  "custom/screenrecording-indicator": {
+    "cmd": "$OMARCHY_PATH/default/waybar/indicators/screen-recording.sh",
+    "rc": 0,
+    "stdout": "{\"text\": \"\"}"
+  },
+  "custom/idle-indicator": {
+    "cmd": "$HOME/dotfiles/scripts/dotfiles-idle status",
+    "rc": 0,
+    "stdout": "{\"text\":\"󰅶\",\"tooltip\":\"自動ロック: 停止中\\n左クリック: 再開\",\"class\":\"active\"}"
+  },
+  "custom/notification-silencing-indicator": {
+    "cmd": "$OMARCHY_PATH/default/waybar/indicators/notification-silencing.sh",
+    "rc": 0,
+    "stdout": "{\"text\": \"\"}"
+  }
+}

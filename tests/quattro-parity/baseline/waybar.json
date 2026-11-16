@@ -1,0 +1,257 @@
+{
+  "reload_style_on_change": true,
+  "layer": "top",
+  "position": "top",
+  "spacing": 0,
+  "height": 26,
+  "modules-left": [
+    "custom/omarchy",
+    "hyprland/workspaces"
+  ],
+  "modules-center": [
+    "clock",
+    "custom/spurs",
+    "custom/weather",
+    "custom/update",
+    "custom/voxtype",
+    "custom/screenrecording-indicator",
+    "custom/idle-indicator",
+    "custom/notification-silencing-indicator"
+  ],
+  "modules-right": [
+    "custom/dotfiles",
+    "custom/claude",
+    "group/tray-expander",
+    "bluetooth",
+    "network",
+    "pulseaudio",
+    "cpu",
+    "memory",
+    "battery"
+  ],
+  "custom/claude": {
+    "exec": "$HOME/dotfiles/scripts/waybar-claude-status",
+    "return-type": "json",
+    "interval": 10,
+    "on-click": "hyprctl dispatch focuswindow class:org.wezfurlong.wezterm"
+  },
+  "custom/spurs": {
+    "exec": "$HOME/dotfiles/scripts/waybar-spurs-fixture",
+    "return-type": "json",
+    "interval": 3600,
+    "on-click": "xdg-open 'https://www.tottenhamhotspur.com/fixtures/men/'"
+  },
+  "custom/dotfiles": {
+    "exec": "$HOME/dotfiles/scripts/waybar-dotfiles-status",
+    "return-type": "json",
+    "interval": 60,
+    "on-click": "xdg-terminal-exec bash -lc 'cd ~/dotfiles && lazygit'"
+  },
+  "hyprland/workspaces": {
+    "on-click": "activate",
+    "format": "{icon}",
+    "format-icons": {
+      "default": "",
+      "1": "1",
+      "2": "2",
+      "3": "3",
+      "4": "4",
+      "5": "5",
+      "6": "6",
+      "7": "7",
+      "8": "8",
+      "9": "9",
+      "10": "0",
+      "active": "󱓻"
+    },
+    "persistent-workspaces": {
+      "1": [],
+      "2": [],
+      "3": [],
+      "4": [],
+      "5": []
+    }
+  },
+  "custom/omarchy": {
+    "format": "<span font='omarchy'></span>",
+    "on-click": "omarchy-menu",
+    "on-click-right": "xdg-terminal-exec",
+    "tooltip-format": "Omarchy Menu\n\nSuper + Alt + Space"
+  },
+  "custom/update": {
+    "format": "",
+    "exec": "omarchy-update-available",
+    "on-click": "omarchy-launch-floating-terminal-with-presentation omarchy-update",
+    "tooltip-format": "Omarchy update available",
+    "signal": 7,
+    "interval": 21600
+  },
+  "cpu": {
+    "interval": 5,
+    "format": " {usage:>2}%",
+    "tooltip-format": "CPU load: {load}\nAverage: {avg_frequency} GHz",
+    "on-click": "omarchy-launch-or-focus-tui btop",
+    "on-click-right": "xdg-terminal-exec"
+  },
+  "memory": {
+    "interval": 5,
+    "format": " {percentage:>2}%",
+    "tooltip-format": "Memory: {used:0.1f} / {total:0.1f} GiB",
+    "on-click": "omarchy-launch-or-focus-tui btop"
+  },
+  "clock": {
+    "format": "{:L%m/%d %a  %H:%M}",
+    "format-alt": "{:L%d %B W%V %Y}",
+    "tooltip": false,
+    "on-click-right": "omarchy-launch-floating-terminal-with-presentation omarchy-tz-select"
+  },
+  "custom/weather": {
+    "exec": "$OMARCHY_PATH/default/waybar/weather.sh",
+    "return-type": "json",
+    "interval": 60,
+    "tooltip": false,
+    "on-click": "notify-send -u low \"$(omarchy-weather-status)\""
+  },
+  "network": {
+    "format-icons": [
+      "󰤯",
+      "󰤟",
+      "󰤢",
+      "󰤥",
+      "󰤨"
+    ],
+    "format": "{icon}",
+    "format-wifi": "{icon}",
+    "format-ethernet": "󰀂",
+    "format-disconnected": "󰤮",
+    "tooltip-format-wifi": "{essid} ({frequency} GHz)",
+    "tooltip-format-ethernet": "Connected",
+    "tooltip-format-disconnected": "Disconnected",
+    "interval": 3,
+    "spacing": 1,
+    "on-click": "omarchy-launch-wifi"
+  },
+  "battery": {
+    "format": "{capacity}% {icon}",
+    "format-discharging": "{capacity}% {icon}",
+    "format-charging": "{capacity}% {icon}",
+    "format-plugged": "{capacity}% ",
+    "format-icons": {
+      "charging": [
+        "󰢜",
+        "󰂆",
+        "󰂇",
+        "󰂈",
+        "󰢝",
+        "󰂉",
+        "󰢞",
+        "󰂊",
+        "󰂋",
+        "󰂅"
+      ],
+      "default": [
+        "󰁺",
+        "󰁻",
+        "󰁼",
+        "󰁽",
+        "󰁾",
+        "󰁿",
+        "󰂀",
+        "󰂁",
+        "󰂂",
+        "󰁹"
+      ]
+    },
+    "format-full": "100% 󰂅",
+    "tooltip-format-discharging": "{power:>1.0f}W↓ {capacity}%",
+    "tooltip-format-charging": "{power:>1.0f}W↑ {capacity}%",
+    "interval": 5,
+    "on-click": "omarchy-menu power",
+    "on-click-right": "notify-send -u low \"$(omarchy-battery-status)\"",
+    "states": {
+      "warning": 20,
+      "critical": 10
+    }
+  },
+  "bluetooth": {
+    "format": "",
+    "format-off": "󰂲",
+    "format-disabled": "󰂲",
+    "format-connected": "󰂱",
+    "format-no-controller": "",
+    "tooltip-format": "Devices connected: {num_connections}",
+    "on-click": "omarchy-launch-bluetooth"
+  },
+  "pulseaudio": {
+    "format": "{volume}% {icon}",
+    "on-click": "omarchy-launch-audio",
+    "on-click-right": "pamixer -t",
+    "tooltip-format": "Playing at {volume}%",
+    "scroll-step": 5,
+    "format-muted": "",
+    "format-icons": {
+      "headphone": "",
+      "headset": "",
+      "default": [
+        "",
+        "",
+        ""
+      ]
+    }
+  },
+  "group/tray-expander": {
+    "orientation": "inherit",
+    "drawer": {
+      "transition-duration": 600,
+      "children-class": "tray-group-item"
+    },
+    "modules": [
+      "custom/expand-icon",
+      "tray"
+    ]
+  },
+  "custom/expand-icon": {
+    "format": "",
+    "tooltip": false,
+    "on-scroll-up": "",
+    "on-scroll-down": "",
+    "on-scroll-left": "",
+    "on-scroll-right": ""
+  },
+  "custom/screenrecording-indicator": {
+    "on-click": "omarchy-capture-screenrecording",
+    "exec": "$OMARCHY_PATH/default/waybar/indicators/screen-recording.sh",
+    "signal": 8,
+    "return-type": "json"
+  },
+  "custom/idle-indicator": {
+    "on-click": "$HOME/dotfiles/scripts/dotfiles-idle toggle",
+    "on-click-right": "$HOME/dotfiles/scripts/dotfiles-idle pause 60",
+    "exec": "$HOME/dotfiles/scripts/dotfiles-idle status",
+    "signal": 9,
+    "return-type": "json"
+  },
+  "custom/notification-silencing-indicator": {
+    "on-click": "omarchy-toggle-notification-silencing",
+    "exec": "$OMARCHY_PATH/default/waybar/indicators/notification-silencing.sh",
+    "signal": 10,
+    "return-type": "json"
+  },
+  "custom/voxtype": {
+    "exec": "omarchy-voxtype-status",
+    "return-type": "json",
+    "format": "{icon}",
+    "format-icons": {
+      "idle": "",
+      "recording": "󰍬",
+      "transcribing": "󰔟"
+    },
+    "tooltip": true,
+    "on-click-right": "omarchy-voxtype-config",
+    "on-click": "omarchy-voxtype-model"
+  },
+  "tray": {
+    "icon-size": 12,
+    "spacing": 17
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "_comment": "Quattro 側の仕様で 1:1 に再現できない既知の差分。キーは '<区分>:<項目>'。理由を必ず書く。",
+  "バー (Waybar → Quattro):custom/weather → omarchy.weather": "Waybar 版は Omarchy 3.x 同梱の weather.sh を呼んでいた。Quattro では weather.sh 自体が無くなり、同じデータ源の標準ウィジェットに置き換わった。左クリックの通知は、標準ウィジェットではポップアップ表示になる",
+  "バー (Waybar → Quattro):custom/update → omarchy.system-update": "omarchy-update-available は Quattro で標準ウィジェットに統合された。クリックで更新する点は同じ",
+  "バー (Waybar → Quattro):custom/omarchy → omarchy.menu": "ロゴ表示とメニュー起動 (左クリック)・ターミナル (右クリック) は標準ウィジェットと同じ",
+  "バー (Waybar → Quattro):custom/screenrecording-indicator → omarchy.indicators[ScreenRecording]": "録画中だけ表示される挙動は標準インジケーターと同じ。Waybar の signal 8 による即時更新は、Quattro の内部状態監視に置き換わる",
+  "バー (Waybar → Quattro):custom/notification-silencing-indicator → omarchy.indicators[Dnd]": "通知停止中だけ表示し、クリックで切り替える挙動は標準 Dnd インジケーターと同じ"
+}
