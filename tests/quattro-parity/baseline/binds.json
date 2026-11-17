@@ -477,7 +477,7 @@
     "description": "Universal copy",
     "allow_input_capture": false,
     "dispatcher": "sendshortcut",
-    "arg": "CTRL, Insert,"
+    "arg": "CTRL, Insert, activewindow"
 },
 {
     "locked": false,
@@ -497,7 +497,7 @@
     "description": "Universal paste",
     "allow_input_capture": false,
     "dispatcher": "sendshortcut",
-    "arg": "SHIFT, Insert,"
+    "arg": "SHIFT, Insert, activewindow"
 },
 {
     "locked": false,
@@ -517,7 +517,7 @@
     "description": "Universal cut",
     "allow_input_capture": false,
     "dispatcher": "sendshortcut",
-    "arg": "CTRL, X,"
+    "arg": "CTRL, X, activewindow"
 },
 {
     "locked": false,

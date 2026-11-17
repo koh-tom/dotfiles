@@ -65,10 +65,12 @@ case $phase in
     say "4. 手動スナップショット (失敗時にこの時点へ戻れるように)"
     run sudo snapper -c root create -d "before-omarchy-quattro" --userdata important=yes
 
-    say "5. Hyprland の 0.56 固定 (IgnorePkg) を外す — Quattro は上流 Hyprland に追従する"
+    say "5. Hyprland 0.56 系の固定 (IgnorePkg) を外す — Quattro は上流 Hyprland に追従する"
     if grep -qE '^IgnorePkg *=.*\bhyprland\b' /etc/pacman.conf; then
       # 単語単位で消す (hyprland-guiutils 等の部分一致は消さない)
-      run sudo sed -i -E '/^IgnorePkg *=/{s/$/ /; s/ (xdg-desktop-portal-hyprland|hyprland)(  *)/ /g; s/ (xdg-desktop-portal-hyprland|hyprland)(  *)/ /g; s/ +$//}' /etc/pacman.conf
+      # 0.56 と一緒に据え置いた Hyprland 系ライブラリもまとめて外す
+      pin='xdg-desktop-portal-hyprland|hyprland|aquamarine|hyprgraphics|hyprlock|hyprtoolkit'
+      run sudo sed -i -E "/^IgnorePkg *=/{s/\$/ /; :a; s/ ($pin) / /; ta; s/ +\$//}" /etc/pacman.conf
       run sudo sed -i -E '/^IgnorePkg *= *$/d' /etc/pacman.conf
     else
       note "固定なし"
