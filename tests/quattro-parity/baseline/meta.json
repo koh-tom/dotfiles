@@ -1,8 +1,8 @@
 {
-  "captured_at": "2026-11-15T13:40:05",
+  "captured_at": "2026-11-18T07:34:08",
   "hyprland": "Hyprland 0.56.2 built from branch v0.56.2 at commit efb50993780079460b0cbed1363e2166a2de1d9f clean ([gha] Nix: update inputs).",
-  "omarchy": "3.8.1",
-  "waybar": "Waybar v0.15.0",
-  "kernel": "7.2.9-arch1-1",
-  "root_is_snapshot": true
+  "omarchy": "3.8.5",
+  "waybar": "[2026-11-18 07:34:08.119] [info] JOURNAL_STREAM does not point to stderr, logging to console\nWaybar v0.16.0",
+  "kernel": "7.3.4-arch1-2",
+  "root_is_snapshot": false
 }

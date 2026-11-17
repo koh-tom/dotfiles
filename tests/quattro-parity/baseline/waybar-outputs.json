@@ -2,7 +2,7 @@
   "custom/claude": {
     "cmd": "$HOME/dotfiles/scripts/waybar-claude-status",
     "rc": 0,
-    "stdout": "{\"text\":\"✳ 3\",\"class\":\"active\",\"tooltip\":\"Claude Code: 3 session(s)\\nclick: focus WezTerm\"}"
+    "stdout": "{\"text\":\"✳ 1\",\"class\":\"active\",\"tooltip\":\"Claude Code: 1 session(s)\\nclick: focus WezTerm\"}"
   },
   "custom/spurs": {
     "cmd": "$HOME/dotfiles/scripts/waybar-spurs-fixture",
@@ -12,17 +12,17 @@
   "custom/dotfiles": {
     "cmd": "$HOME/dotfiles/scripts/waybar-dotfiles-status",
     "rc": 0,
-    "stdout": "{\"text\":\" 53\",\"class\":\"dirty\",\"tooltip\":\"dotfiles: 53 uncommitted change(s)\\nclick: lazygit\"}"
+    "stdout": "{\"text\":\" 5\",\"class\":\"dirty\",\"tooltip\":\"dotfiles: 5 uncommitted change(s)\\nclick: lazygit\"}"
   },
   "custom/update": {
     "cmd": "omarchy-update-available",
-    "rc": 1,
-    "stdout": "Omarchy is up to date (v4.5.0-rc3)"
+    "rc": 0,
+    "stdout": "Omarchy update available (v4.5.0-rc3)"
   },
   "custom/weather": {
     "cmd": "$OMARCHY_PATH/default/waybar/weather.sh",
     "rc": 0,
-    "stdout": "{\"text\":\"\"}"
+    "stdout": "{\"text\":\"\"}"
   },
   "custom/screenrecording-indicator": {
     "cmd": "$OMARCHY_PATH/default/waybar/indicators/screen-recording.sh",
@@ -32,7 +32,7 @@
   "custom/idle-indicator": {
     "cmd": "$HOME/dotfiles/scripts/dotfiles-idle status",
     "rc": 0,
-    "stdout": "{\"text\":\"󰅶\",\"tooltip\":\"自動ロック: 停止中\\n左クリック: 再開\",\"class\":\"active\"}"
+    "stdout": "{\"text\":\"󰒲\",\"tooltip\":\"自動ロック: 有効 (放置でスクリーンセーバー → ロック)\\n左クリック: 止める / 右クリック: 1時間だけ止める\",\"class\":\"enabled\"}"
   },
   "custom/notification-silencing-indicator": {
     "cmd": "$OMARCHY_PATH/default/waybar/indicators/notification-silencing.sh",

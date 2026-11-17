@@ -753,7 +753,7 @@ def check_dotfiles_compat(rep: Report, omarchy: Path) -> None:
         for n, line in enumerate(code, 1):
             for tool in ("walker", "makoctl", "swayosd-client", "hyprlock", "hypridle"):
                 # コマンドとして実行している形だけ (ファイル名 hyprlock.conf や文中の単語は除く)
-                if re.search(rf"(^|[\s|;&(\"\']){tool}(\s+-|\s*$|\s*\||\s+[\"\'])", line) and "pgrep" not in line:
+                if re.search(rf"(^|[\s|;&(\"\']){tool}(\s+-|\s*$|\s+\||\s+[\"\'])", line) and "pgrep" not in line:
                     guard = "\n".join(code[max(0, n - 4):n])
                     if not re.search(rf"command -v {tool}|cmd_present\(\"{tool}\"\)|BACKEND|running\(\)", guard):
                         bad.append(f"{rel}:{n}: {line.strip()[:80]}")
