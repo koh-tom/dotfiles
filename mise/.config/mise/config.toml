@@ -6,7 +6,6 @@ uv = "latest"
 
 # --- AI Tools (Example based) ---
 "npm:@anthropic-ai/claude-code" = "latest"
-"npm:@google/gemini-cli" = "latest"
 "npm:czg" = "latest"
 
 # --- Recommended TUI Utils ---
@@ -46,6 +45,9 @@ carapace = "latest"
 experimental = true
 asdf_compat = true
 idiomatic_version_file_enable_tools = ["node"]
+
+[settings.upgrade]
+auto_prune = false
 
 [env]
 # --- Editor Settings ---
