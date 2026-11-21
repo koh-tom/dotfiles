@@ -45,3 +45,4 @@ require("hypr.personal.legacy-defaults")   -- 3.8.1 既定のうち Quattro で�
 require("hypr.personal.overview")          -- ワークスペース一覧 (Mission Control 風)
 require("hypr.personal.manual")            -- SUPER+SHIFT+K で dotfiles のマニュアル
 require("hypr.personal.presets")           -- SUPER+ALT+P でワークスペースのプリセット
+require("hypr.personal.memo")              -- SUPER+ALT+N でひらめきメモ
