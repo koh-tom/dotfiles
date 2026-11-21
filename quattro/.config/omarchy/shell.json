@@ -20,9 +20,14 @@
       "center": [
         {
           "id": "omarchy.clock",
-          "format": "MM/dd ddd  HH:mm",
+          "format": "MM/dd ddd",
           "formatAlt": "dd MMMM 'W'ww yyyy",
           "verticalFormat": "HH\n—\nmm"
+        },
+        {
+          "id": "display-clock",
+          "type": "qml",
+          "source": "~/.config/omarchy/bar/modules/DisplayClock.qml"
         },
         {
           "id": "spurs",
