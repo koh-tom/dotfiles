@@ -25,6 +25,10 @@ luac_bin=$(command -v luac || command -v luac5.4 || command -v luac5.3 || comman
 
 cd "$ROOT" || exit 1
 
+# Stow パッケージ一覧は apply-dotfiles / CI と共通 (scripts/lib/packages.sh)
+# shellcheck source=lib/packages.sh
+source "$ROOT/scripts/lib/packages.sh"
+
 printf '\nDotfiles Doctor\n\n'
 if is_arch_omarchy; then
   printf 'Platform: Arch / Omarchy\n\n'
@@ -32,21 +36,19 @@ else
   printf 'Platform: %s (tool subset only — Hyprland/Waybar/Omarchy checks skipped)\n\n' "$(uname -s)"
 fi
 
+# CI (.github/workflows/check.yml) と同じ範囲: rc 直下と pluginconfig (atuin/carapace/television 等) 全部
 run_check "Zsh syntax" zsh -n \
   zsh/.zshenv \
   zsh/.config/zsh/.zshrc \
-  zsh/.config/zsh/rc/alias.zsh \
-  zsh/.config/zsh/rc/bindkey.zsh \
-  zsh/.config/zsh/rc/option.zsh \
-  zsh/.config/zsh/rc/pluginconfig/fzf_tab.zsh \
-  zsh/.config/zsh/rc/pluginconfig/wezterm.zsh
+  zsh/.config/zsh/rc/*.zsh \
+  zsh/.config/zsh/rc/pluginconfig/*.zsh
 
 if [[ -n $luac_bin ]]; then
   lua_ok=true
   while IFS= read -r file; do
     "$luac_bin" -p "$file" >/dev/null 2>&1 || lua_ok=false
-  done < <(find wezterm -name '*.lua' -type f -print)
-  if $lua_ok; then pass "Lua syntax"; else fail "Lua syntax"; fi
+  done < <(find wezterm themes quattro profiles tests nvim -name '*.lua' -type f -print)
+  if $lua_ok; then pass "Lua syntax (wezterm/quattro/nvim/...)"; else fail "Lua syntax"; fi
 else
   fail "No luac binary found (install lua/lua5.4)"
 fi
@@ -56,13 +58,9 @@ run_check "WezTerm config load" timeout 15s wezterm \
 run_check "Fastfetch config" fastfetch \
   --config "$ROOT/fastfetch/.config/fastfetch/config.jsonc" --pipe
 
-if is_arch_omarchy; then
-  stow_pkgs=(git mise starship wezterm zsh fastfetch omarchy waybar xdg-terminal ssh nvim)
-else
-  stow_pkgs=(git mise starship wezterm zsh fastfetch ssh nvim)
-fi
-if stow -n -v "${stow_pkgs[@]}" >/dev/null 2>&1; then
-  pass "GNU Stow layout"
+dotfiles_select_packages
+if stow -n -v "${DOTFILES_STOW_OPTS[@]}" "${DOTFILES_PACKAGES[@]}" >/dev/null 2>&1; then
+  pass "GNU Stow layout ($(dotfiles_platform): ${DOTFILES_PACKAGES[*]})"
 else
   fail "GNU Stow layout has conflicts"
 fi
@@ -93,22 +91,44 @@ else
 fi
 
 # scriptsは全て実行可能であること
-non_exec=$(find scripts -type f ! -perm -u+x | tr '\n' ' ')
+# (scripts/lib/ は source 専用のライブラリなので対象外)
+non_exec=$(find scripts -path scripts/lib -prune -o -type f ! -perm -u+x -print | tr '\n' ' ')
 if [[ -z $non_exec ]]; then
   pass "All scripts are executable"
 else
   fail "Non-executable scripts: $non_exec"
 fi
 
-# Spursテーマの生成物が揃っていること
+# Spursテーマの生成物が揃っていること。一覧は build_theme.py 自身に聞く
+# (Quattro: 同梱テーマと同じ最小構成 / 3.x: 全アプリ分)
 spurs_missing=""
-for f in colors.toml btop.theme neovim.lua hyprland.conf hyprland.lua hyprlock.conf mako.ini swayosd.css waybar.css wofi.css alacritty.toml icons.theme cava_theme chromium.theme vscode.json; do
+while IFS= read -r f; do
   [[ -f themes/spurs/$f ]] || spurs_missing+="$f "
-done
+done < <(python3 -B tools/build_theme.py --list)
 if [[ -z $spurs_missing ]]; then
   pass "Spurs theme is complete"
 else
-  fail "Spurs theme missing files (run: mise run build-theme): $spurs_missing"
+  fail "Spurs theme missing files (run: mise run install-spurs): $spurs_missing"
+fi
+if dotfiles_is_quattro; then
+  # 3.x 用の生成物が残っていると omarchy-theme-set-templates がテンプレート生成を飛ばす
+  spurs_stale=""
+  while IFS= read -r f; do
+    [[ -e themes/spurs/$f ]] && spurs_stale+="$f "
+  done < <(comm -13 <(python3 -B tools/build_theme.py --list --quattro | sort) \
+                    <(python3 -B tools/build_theme.py --list --legacy | sort))
+  if [[ -z $spurs_stale ]]; then
+    pass "Spurs theme has no Omarchy 3.x leftovers"
+  else
+    fail "Spurs theme has 3.x files that block Quattro templates (run: mise run install-spurs): $spurs_stale"
+  fi
+fi
+if is_arch_omarchy && [[ -e $HOME/.config/omarchy/themes/spurs || -L $HOME/.config/omarchy/themes/spurs ]]; then
+  if [[ -L $HOME/.config/omarchy/themes/spurs && $(realpath -m "$HOME/.config/omarchy/themes/spurs") == "$(realpath themes/spurs)" ]]; then
+    pass "Spurs theme installed as a link to themes/spurs"
+  else
+    warn "$HOME/.config/omarchy/themes/spurs is a stale copy (run: mise run install-spurs)"
+  fi
 fi
 
 if is_arch_omarchy; then
@@ -194,6 +214,16 @@ if is_arch_omarchy; then
       fail "HYPRLAND_CONFIG still set (forces legacy .conf); remove ~/.config/environment.d/hyprland-config.conf and re-login"
     else
       pass "HYPRLAND_CONFIG not forced"
+    fi
+    # 3.x 時代の stow で張った Waybar / menu.sh のリンクは Quattro では使われない
+    leftover_links=""
+    for link in "$HOME/.config/waybar" "$HOME/.config/omarchy/extensions/menu.sh"; do
+      [[ -L $link && $(realpath -m "$link") == "$(realpath "$ROOT")/"* ]] && leftover_links+="$link "
+    done
+    if [[ -z $leftover_links ]]; then
+      pass "No Omarchy 3.x links (waybar, menu.sh)"
+    else
+      warn "Omarchy 3.x links still stowed (run: mise run apply): $leftover_links"
     fi
     if grep -qE '^IgnorePkg *=.*\bhyprland\b' /etc/pacman.conf 2>/dev/null; then
       warn "hyprland still in IgnorePkg; Quattro follows upstream Hyprland, remove the pin"
