@@ -1,0 +1,41 @@
+#!/bin/bash
+# ひらめきメモ。小さな入力欄に1行書くと、Obsidian の今日のデイリーノート (YYYY-MM-DD.md) の
+# 「## メモ」の下に「- HH:MM 本文」で追記する。SUPER+ALT+N から呼ぶ。
+#
+#   quick-memo            入力欄を出す
+#   quick-memo <本文...>   入力欄を出さずにそのまま追記 (シェルから)
+#
+# Vault は Obsidian の設定 (~/.config/obsidian/obsidian.json) の最初の Vault。
+# デイリーノートのフォルダは、Obsidian のデイリーノート設定があればそれに従う (無ければ Vault 直下)。
+set -euo pipefail
+
+config="$HOME/.config/obsidian/obsidian.json"
+vault=$(jq -r '[.vaults[]] | sort_by(-(.ts // 0)) | .[0].path // empty' "$config" 2>/dev/null || true)
+if [[ -z $vault || ! -d $vault ]]; then
+  notify-send -a Memo "メモを保存できません" "Obsidian の Vault が見つかりません" 2>/dev/null || true
+  exit 1
+fi
+
+if (($# > 0)); then
+  text="$*"
+else
+  text=$(omarchy-menu-input "Memo" --width 640 2>/dev/null || true)
+fi
+text=$(printf '%s' "$text" | tr '\n' ' ' | sed 's/[[:space:]]*$//')
+[[ -n $text ]] || exit 0
+
+folder=$(jq -r '.folder // empty' "$vault/.obsidian/daily-notes.json" 2>/dev/null || true)
+dir="$vault${folder:+/$folder}"
+mkdir -p "$dir"
+note="$dir/$(date +%F).md"
+
+[[ -e $note ]] || printf '# %s\n' "$(date +%F)" >"$note"
+if ! grep -qx '## メモ' "$note"; then
+  # 末尾が改行で終わっていなければ足してから見出しを付ける
+  [[ -z $(tail -c 1 "$note") ]] || printf '\n' >>"$note"
+  printf '\n## メモ\n' >>"$note"
+fi
+[[ -z $(tail -c 1 "$note") ]] || printf '\n' >>"$note"
+printf -- '- %s %s\n' "$(date +%H:%M)" "$text" >>"$note"
+
+notify-send -a Memo "メモしました" "$text" 2>/dev/null || true
