@@ -3,6 +3,7 @@ local module = {}
 local palette = require("omarchy_theme").get_palette()
 local tab = require("tab")
 local workspace_color = require("workspace_color")
+local ui = require("modules.ui")
 
 -- =============================================================================
 -- 定数 & アイコン
@@ -31,6 +32,10 @@ local ICONS = {
   mem = wezterm.nerdfonts.md_memory,
   bat_charging = wezterm.nerdfonts.md_battery_charging,
   bat_discharging = wezterm.nerdfonts.md_battery,
+  workspace = nf("md_view_dashboard", "󰕮"),
+  leader = "󱐋",
+  hint = "󱊑",
+  ssh = wezterm.nerdfonts.md_server,
 }
 
 -- キャッシュ用変数
@@ -80,7 +85,7 @@ local function get_sys_info()
   if f then
     local content = f:read("*all")
     f:close()
-    load = string.format("%s %s ", ICONS.cpu, content:match("^(%d+%.%d+)"))
+    load = content:match("^(%d+%.%d+)") or ""
   end
 
   -- Memory Usage
@@ -92,7 +97,7 @@ local function get_sys_info()
     local available = tonumber(content:match("MemAvailable:%s+(%d+)"))
     if total and available then
       local used_percent = math.floor((total - available) / total * 100)
-      mem = string.format("%s %d%% ", ICONS.mem, used_percent)
+      mem = string.format("%d%%", used_percent)
     end
   end
 
@@ -147,29 +152,41 @@ function module.apply_to_config(_)
     -- -------------------------------------------------------------------------
     -- 左側: ワークスペース表示 & LEADER 状態
     -- -------------------------------------------------------------------------
-    local leader_text = "  " .. workspace .. "  "
+    -- 左端: ワークスペース (背景なし。アイコンと名前をワークスペース色で)
+    local left_icon, left_label = ICONS.workspace, workspace
     if window:leader_is_active() then
       color = palette.color1
-      leader_text = "  󱐋 LEADER  "
+      left_icon, left_label = ICONS.leader, "LEADER"
     end
-
-    window:set_left_status(wezterm.format({
+    local left_items = {
       { Background = { Color = "transparent" } },
+      { Text = " " },
       { Foreground = { Color = color } },
-      { Text = leader_text },
-    }))
+      { Text = left_icon .. " " },
+      { Attribute = { Intensity = "Bold" } },
+      { Text = left_label },
+      { Attribute = { Intensity = "Normal" } },
+      { Foreground = { Color = ui.muted } },
+      { Text = "  " },
+    }
+    local leader_text = " " .. left_icon .. " " .. left_label .. "  " -- 幅計算用
+    window:set_left_status(wezterm.format(left_items))
 
     -- -------------------------------------------------------------------------
     -- 右側: プログレッシブ・ステータス
     -- タブが増えて幅が足りなくなったら prio の低い項目から非表示にする
     -- -------------------------------------------------------------------------
     local segments = {}
-    local function add(prio, fg, text)
-      segments[#segments + 1] = {
-        prio = prio,
-        items = { { Foreground = { Color = fg } }, { Text = text } },
-        width = wezterm.column_width(text),
+    -- 1項目 = 色付きアイコン + 淡い文字。背景なし、区切りは余白だけ
+    local function add(prio, fg, icon, text)
+      local items = {
+        { Background = { Color = "transparent" } },
+        { Foreground = { Color = fg } },
+        { Text = icon .. " " },
+        { Foreground = { Color = ui.subtext } },
+        { Text = text .. "   " },
       }
+      segments[#segments + 1] = { prio = prio, items = items, width = wezterm.column_width(icon .. " " .. text .. "   ") }
     end
 
     local branch = get_git_branch(pane)
@@ -193,47 +210,47 @@ function module.apply_to_config(_)
 
     -- prio: 大きいほど最後まで残る
     if hint_text ~= "" then
-      add(90, hint_fg, "󱊑 " .. hint_text .. " │ ")
+      add(90, hint_fg, ICONS.hint, (hint_text:gsub("^%s+", ""):gsub("%s+$", "")))
     end
 
     -- ホスト名 (SSH判定)
     local user_vars = pane:get_user_vars()
     if user_vars.ssh_host then
-      add(80, palette.color3, ICONS.server .. " " .. user_vars.ssh_host .. " │ ")
+      add(80, palette.color3, ICONS.server, user_vars.ssh_host)
     end
 
     -- CWD (短縮パス)
-    add(30, palette.color7, ICONS.dir .. " " .. cwd .. "  ")
+    add(30, palette.color4, ICONS.dir, cwd)
 
     -- Git
     if branch ~= "" then
-      add(60, palette.color2, "│ " .. ICONS.git .. " " .. branch .. " ")
+      add(60, palette.color2, ICONS.git, branch)
     end
 
     -- Nix devshell (zsh側precmdのSetUserVar連携。中身はnixwhereで確認)
     if user_vars.nix_shell and user_vars.nix_shell ~= "" then
-      add(40, palette.color6, "│ " .. ICONS.nix .. " " .. user_vars.nix_shell .. " ")
+      add(40, palette.color6, ICONS.nix, user_vars.nix_shell)
     end
 
     -- push認証 (常時表示。personal=緑 / lab=赤)。commit authorは常にpersonalなので"誰としてpushするか"
     if user_vars.gh_push and user_vars.gh_push ~= "" then
       local push_color = user_vars.gh_push == "lab" and palette.color1 or palette.color2
-      add(70, push_color, "│ " .. ICONS.push .. " push:" .. user_vars.gh_push .. " ")
+      add(70, push_color, ICONS.push, "push:" .. user_vars.gh_push)
     end
 
     -- リソース (CPU/メモリ)
     local load, mem = get_sys_info()
-    add(10, palette.color6, "│ " .. load .. mem)
+    add(10, palette.color6, ICONS.cpu, load .. "  " .. ICONS.mem .. " " .. mem)
 
     -- 時刻
-    add(50, palette.color5, "│ " .. ICONS.time .. " " .. wezterm.strftime("%H:%M") .. "  ")
+    add(50, palette.color5, ICONS.time, wezterm.strftime("%H:%M"))
 
     -- バッテリー (あれば)
     local bat_info = wezterm.battery_info()
     if #bat_info > 0 then
       local b = bat_info[1]
       local bat_icon = b.state == "Charging" and ICONS.bat_charging or ICONS.bat_discharging
-      add(20, palette.color3, string.format("│ %s %.0f%% ", bat_icon, b.state_of_charge * 100))
+      add(20, palette.color3, bat_icon, string.format("%.0f%%", b.state_of_charge * 100))
     end
 
     local right_status = fit_segments(segments, available_right_width(window, leader_text))
