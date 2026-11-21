@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "dotfiles.claude",
+  "name": "Claude Code Mission Control",
+  "version": "1.0.0",
+  "author": "koh-tom",
+  "description": "動いている Claude Code セッションを状態 (作業中 / 入力待ち / 許可待ち) つきで一覧し、選ぶとその WezTerm のタブへ移動する",
+  "kinds": [
+    "overlay"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "overlay": "ClaudeSessions.qml"
+  }
+}
