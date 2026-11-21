@@ -50,5 +50,8 @@
   "キーバインド (個人設定):CTRL+SHIFT+SUPER+t": "2026-11-21 追加: SUPER+CTRL+SHIFT+T で画像からテーマを作る (scripts/theme-from-image)",
   "キーバインド (個人キーの実効動作):ALT+SUPER+a": "2026-11-21 追加: SUPER+ALT+A で画面の一部を Claude に聞く (scripts/ask-screen)",
   "キーバインド (個人キーの実効動作):CTRL+SHIFT+SUPER+t": "2026-11-21 追加: SUPER+CTRL+SHIFT+T で画像からテーマを作る (scripts/theme-from-image)",
-  "ウィンドウルール:match={'class': 'org.omarchy.ask-screen'}": "2026-11-21 追加: ask-screen の答えを中央の浮いた窓に出す"
+  "ウィンドウルール:match={'class': 'org.omarchy.ask-screen'}": "2026-11-21 追加: ask-screen の答えを中央の浮いた窓に出す",
+  "キーバインド (個人設定):ALT+SUPER+j": "2026-11-21 追加: SUPER+ALT+J で Claude Code の管制パネル (dotfiles.claude)",
+  "キーバインド (個人キーの実効動作):ALT+SUPER+j": "2026-11-21 追加: SUPER+ALT+J で Claude Code の管制パネル (dotfiles.claude)",
+  "バー (Waybar → Quattro):custom/claude → claude (DotfilesPill)": "2026-11-21 変更: claude ピルのクリックで WezTerm に移る代わりに、Claude Code の管制パネル (dotfiles.claude) を開く"
 }
