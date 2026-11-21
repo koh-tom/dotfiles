@@ -1,0 +1,95 @@
+#!/bin/bash
+# 声で入力 (Omarchy の音声入力 = Superwhisper) を日本語向けにする。
+# 録音キーは Omarchy 標準: ALT+SPACE でトグル / 右Alt 長押しで押している間だけ録音。
+#
+#   dictation-ja           日本語化 + 推奨設定 (いまの処理モードのまま。初期値はクラウド)
+#   dictation-ja offline   オフライン (Cohere Transcribe) のモデルを落として切り替える (約 2.2 GB)
+#   dictation-ja cloud     クラウド処理に戻す (音声は Superwhisper のサーバーへ送られる)
+#   dictation-ja status    いまの言語・処理モード・モデルの状態を表示
+#
+# Superwhisper の設定ファイルは CLI 経由でしか触らない作法なので (リビジョン管理・即時反映)、
+# dotfiles には設定ファイルを置かず、このスクリプトで冪等に当てる。
+# 日本語に対応するのは「クラウド」と「オフライン」。オフライン Lite (Parakeet) は日本語非対応。
+set -euo pipefail
+
+if ! command -v superwhisper >/dev/null 2>&1; then
+  printf 'superwhisper が見つかりません。Omarchy のメニュー (Setup > Defaults > Dictation) か\n' >&2
+  printf '  omarchy-install-dictation-superwhisper\nで入れてください。\n' >&2
+  exit 1
+fi
+
+sw() { superwhisper "$@"; }
+
+apply_japanese() {
+  sw general set language '"ja"' >/dev/null
+  # 使っていない間はモデルを RAM から降ろす (16 GB 機。オフラインのモデルは 2 GB 超)
+  sw general set linux.autoUnloadModels true >/dev/null
+  sw general set voiceModelActiveDelay 300 >/dev/null
+  # 右Alt 長押しは Omarchy 側 (bindings/dictation.lua) が持つ。Superwhisper 自身にも
+  # RightAlt を持たせると二重に反応するので外し、Omarchy の installer と同じ Ctrl+Alt+Space にする
+  # (録音ショートカットが 0 個になる操作は拒否されるので toggle を先に入れる)
+  sw shortcuts set toggle "Ctrl+Alt+Space" >/dev/null
+  sw shortcuts set hold none >/dev/null
+  printf '言語を日本語 (ja) にしました。ALT+SPACE で録音開始/停止、右Alt 長押しでも録音できます。\n'
+}
+
+mode_now() { sw models show | jq -r '.processing'; }
+
+show_status() {
+  sw general show | jq -r '"言語: \(.config.language)  トーン: \(.config.tone)  自動貼り付け: \(.config.autoPasteEnabled)"'
+  sw models show | jq -r '"処理モード: \(.processing)  (ライセンス: \(.license.state), クレデンシャル: \(.credentials.source))",
+    (.models[] | "  \(.id): \(.download.state)")'
+  printf 'Omarchy のバックエンド: %s\n' "$(omarchy-default-dictation 2>/dev/null || echo '(未設定)')"
+}
+
+offline_models=(cohere-transcription cleanup vocabulary voice-detection)
+
+go_offline() {
+  local id state pending idle=0
+  for id in "${offline_models[@]}"; do
+    state=$(sw models show | jq -r --arg id "$id" '.models[] | select(.id == $id) | .download.state')
+    if [[ $state != installed ]]; then
+      sw models download "$id" >/dev/null
+    fi
+  done
+  printf 'オフライン用モデルをダウンロード中 (合計 約 2.2 GB)…\n'
+  while :; do
+    pending=$(sw models show | jq -r --argjson ids "$(printf '%s\n' "${offline_models[@]}" | jq -R . | jq -s .)" '
+      [.models[] | select(.id as $i | $ids | index($i)) | select(.download.state != "installed")
+       | "\(.id) \(.download.state) \((.partialBytes / 1048576) | floor)/\((.sizeBytes / 1048576) | floor) MiB"] | join(", ")')
+    [[ -z $pending ]] && break
+    # 何も落としていない (active も queued も空) 状態が続いたら止まったとみなす
+    if sw models show | jq -e '(.active // .queued) | length > 0' >/dev/null 2>&1; then
+      idle=0
+    else
+      idle=$((idle + 1))
+    fi
+    if ((idle >= 3)); then
+      printf '\nダウンロードが止まっています: %s\n再実行するか superwhisper models download <id> で再開してください。\n' "$pending" >&2
+      exit 1
+    fi
+    printf '\r\033[K  %s' "$pending"
+    sleep 3
+  done
+  printf '\r\033[K'
+  sw models select offline >/dev/null
+  apply_japanese
+  printf 'オフライン処理に切り替えました (初回は CPU でのモデル読み込みに数十秒かかります)。\n'
+}
+
+case ${1:-} in
+  '' | setup) apply_japanese ;;
+  offline) go_offline ;;
+  cloud)
+    sw models select cloud >/dev/null
+    apply_japanese
+    printf 'クラウド処理にしました (無料枠)。音声は Superwhisper のサーバーで文字起こしされます。\n'
+    ;;
+  status) show_status ;;
+  -h | --help) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//' ;;
+  *)
+    printf 'unknown command: %s (setup|offline|cloud|status)\n' "$1" >&2
+    exit 2
+    ;;
+esac
+[[ ${1:-} == status || ${1:-} == -h || ${1:-} == --help ]] || printf '処理モード: %s\n' "$(mode_now)"
