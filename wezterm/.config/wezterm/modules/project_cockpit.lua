@@ -1,4 +1,5 @@
 local wezterm = require("wezterm")
+local gitinfo = require("modules.gitinfo")
 local act = wezterm.action
 
 local module = {}
@@ -59,9 +60,10 @@ local function project_choices()
     local project_path = path
     local name = basename(project_path)
     if project_path ~= wezterm.home_dir and name:sub(1, 1) ~= "." and name ~= "Downloads" then
-      local git_ok, git_stdout = wezterm.run_child_process({ "git", "-C", project_path, "rev-parse", "--show-toplevel" })
-      if git_ok and git_stdout and git_stdout:match("%S") then
-        project_path = git_stdout:gsub("%s+$", "")
+      -- git を起動せず .git を探す (起動すると 178 回 × 数 ms で画面が固まっていた)
+      local root = gitinfo.root(project_path)
+      if root then
+        project_path = root
         name = basename(project_path)
       end
 
