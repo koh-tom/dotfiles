@@ -1,0 +1,8 @@
+# 試合の日は Spurs モード (テーマ切り替えと通知)。scripts/spurs-matchday
+[Unit]
+Description=Spurs matchday mode (dotfiles)
+After=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/dotfiles/scripts/spurs-matchday
