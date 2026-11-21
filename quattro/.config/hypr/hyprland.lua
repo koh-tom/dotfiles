@@ -49,3 +49,4 @@ require("hypr.personal.memo")              -- SUPER+ALT+N でひらめきメモ
 require("hypr.personal.theme-from-image")  -- SUPER+CTRL+SHIFT+T で画像からテーマ
 require("hypr.personal.ask-screen")        -- SUPER+ALT+A で画面の一部を Claude に聞く
 require("hypr.personal.claude")            -- SUPER+ALT+J で Claude Code の管制パネル
+require("hypr.personal.briefing")          -- SUPER+ALT+B で朝のブリーフィング
