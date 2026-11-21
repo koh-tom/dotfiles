@@ -111,6 +111,26 @@
           "padding": 10
         },
         {
+          "id": "labwatch",
+          "type": "qml",
+          "source": "~/.config/omarchy/bar/modules/DotfilesPill.qml",
+          "exec": "$HOME/dotfiles/scripts/labwatch bar",
+          "interval": 15,
+          "pill": true,
+          "padding": 10,
+          "hideWhenEmpty": true,
+          "onClick": "omarchy-launch-floating-terminal-with-presentation \"$HOME/dotfiles/scripts/labwatch list\"",
+          "onRightClick": "$HOME/dotfiles/scripts/labwatch ack",
+          "classColors": {
+            "running": "#58a6ff",
+            "done": "#3fb950",
+            "unreachable": "#e5484d"
+          },
+          "classOpacity": {
+            "idle": 0.45
+          }
+        },
+        {
           "id": "omarchy.agents"
         },
         {
