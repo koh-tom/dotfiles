@@ -84,6 +84,12 @@ local keys = {
   -- タブ操作
   { key = "Tab", mods = "CTRL", action = act.ActivateTabRelative(1) },
   { key = "Tab", mods = "SHIFT|CTRL", action = act.ActivateTabRelative(-1) },
+  -- ALT+←/→ で隣のタブへ、ALT+SHIFT+←/→ でタブの並びを入れ替え。
+  -- SUPER+矢印は Hyprland (ウィンドウ操作)、CTRL+SHIFT+矢印は WezTerm 既定のペイン移動なので ALT にした
+  { key = "LeftArrow", mods = "ALT", action = act.ActivateTabRelative(-1) },
+  { key = "RightArrow", mods = "ALT", action = act.ActivateTabRelative(1) },
+  { key = "LeftArrow", mods = "ALT|SHIFT", action = act.MoveTabRelative(-1) },
+  { key = "RightArrow", mods = "ALT|SHIFT", action = act.MoveTabRelative(1) },
   { key = "1", mods = "SUPER", action = act.ActivateTab(0) },
   { key = "2", mods = "SUPER", action = act.ActivateTab(1) },
   { key = "3", mods = "SUPER", action = act.ActivateTab(2) },
