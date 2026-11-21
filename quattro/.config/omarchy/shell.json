@@ -164,10 +164,18 @@
       ]
     }
   },
-  "disabledPlugins": [],
+  "disabledPlugins": [
+    "omarchy.lock"
+  ],
   "plugins": [
     {
       "id": "dotfiles.overview"
+    },
+    {
+      "id": "dotfiles.lock"
     }
+  ],
+  "cloneSourceRestores": [
+    "dotfiles.lock"
   ]
 }
