@@ -25,7 +25,7 @@ local CONTEXTS = {
       { LEADER .. " z", "copy last" }, { "^⇧HJKL", "pane" }, { "⌥←→", "tab" }, { "^R", "history" },
       { "^T", "tv" }, { "⌘`", "dropdown" }, { "^⇧Space", "quick select" }, { "^⇧F", "search" }, { LEADER .. " 1-9", "tab #" },
       { LEADER .. " ␣", "scratch" }, { LEADER .. " [ ]", "workspace ←→" },
-      { "^⇧X", "copy mode" }, { LEADER .. " ,", "rename" }, { LEADER .. " b", "scrollback" },
+      { "^⇧X", "copy mode" }, { LEADER .. " ,", "rename" }, { LEADER .. " b", "scrollback" }, { LEADER .. " h", "ssh" },
       { LEADER .. " o", "smart open" }, { "^⇧P", "palette" }, { LEADER .. " /", "cheatsheet" },
     },
   },
