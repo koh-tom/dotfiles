@@ -64,8 +64,8 @@ Hyprland	⌘S / ⌘Alt S	スクラッチパッドの表示 / ウィンドウを�
 Hyprland	⌘^V	クリップボード履歴 (Omarchy 標準パネル) から選んで貼り付け。⌘V は貼り付け
 Hyprland	⌘Alt ← / →	ワークスペースを左右に移動
 Hyprland	⌘T	WezTerm を新しく開く (新規タブは ^⇧T)
-Hyprland	Waybar 右上	dotfiles の未コミット数ピル。クリックで lazygit
-Hyprland	Waybar ✳	Claude セッション数。クリックで WezTerm へフォーカス
+Hyprland	バー右上	dotfiles の未コミット数ピル。クリックで lazygit
+Hyprland	バー ✳	Claude セッション数。クリックで WezTerm へフォーカス
 Hyprland	Omarchy メニュー	Setup > Dotfiles から Edit / Git / Doctor / Reapply / Spurs Mode
 #
 # --- mise タスク / ツール ---

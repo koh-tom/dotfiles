@@ -60,7 +60,7 @@ generate() {
   grep -hE '^alias ' "$HOME/dotfiles/zsh/.config/zsh/rc/alias.zsh" 2>/dev/null |
     sed -E $'s/^alias ([^=]+)=\'?([^\']*)\'?.*$/\033[32mALIAS\033[0m\\t\\1\\t\\2/'
 
-  # tips (tips/tips.tsv): Waybarやシェル起動時に巡回表示しているものと同じ中身
+  # tips (tips/tips.tsv): バーやシェル起動時に巡回表示しているものと同じ中身
   grep -v '^#' "$HOME/dotfiles/tips/tips.tsv" 2>/dev/null | grep -v '^[[:space:]]*$' |
     awk -F'\t' '{ printf "\033[34mTIP %s\033[0m\t%s\t%s\n", $1, $2, $3 }'
 }
