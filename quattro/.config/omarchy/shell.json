@@ -161,7 +161,8 @@
           "onClick": "omarchy-launch-or-focus-tui btop"
         },
         {
-          "id": "omarchy.power"
+          "id": "omarchy.power",
+          "showPercentage": true
         }
       ]
     }
