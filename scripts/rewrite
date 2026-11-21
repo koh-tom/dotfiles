@@ -167,9 +167,9 @@ paste_back() {
   mods=$(hyprctl activewindow -j | jq -r '
     if ((.tags // []) | map(sub("\\*$"; "")) | index("terminal")) or (.class | test("wezterm"; "i"))
     then "CTRL SHIFT" else "CTRL" end')
-  hyprctl dispatch "hl.dsp.send_key_state({ mods = \"$mods\", key = \"V\", state = \"down\" })" >/dev/null
+  "$HOME/dotfiles/scripts/hypr-dispatch" "hl.dsp.send_key_state({ mods = \"$mods\", key = \"V\", state = \"down\" })" >/dev/null
   sleep 0.05
-  hyprctl dispatch "hl.dsp.send_key_state({ mods = \"$mods\", key = \"V\", state = \"up\" })" >/dev/null
+  "$HOME/dotfiles/scripts/hypr-dispatch" "hl.dsp.send_key_state({ mods = \"$mods\", key = \"V\", state = \"up\" })" >/dev/null
 }
 
 # ---- 引数 ----
