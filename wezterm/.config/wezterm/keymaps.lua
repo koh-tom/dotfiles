@@ -1,6 +1,18 @@
 local wezterm = require("wezterm")
 local act = wezterm.action
 
+-- タブ・ペインを切り替えてから、上のキー一覧 (cheatbar) をすぐ切り替える。
+-- update-status の周期 (1.5秒) を待つと、切り替え直後に前のアプリのキーが残って見えるため
+local function switch_then_sync(action)
+  return wezterm.action_callback(function(window, pane)
+    window:perform_action(action, pane)
+    local cheatbar = require("modules.cheatbar")
+    cheatbar.sync(window)
+    -- perform_action は切り替えを予約するだけのことがあるので、少し後にもう一度合わせる
+    wezterm.time.call_after(0.05, function() cheatbar.sync(window) end)
+  end)
+end
+
 local module = {}
 
 -- ペインの比率を保存するテーブル
@@ -82,12 +94,12 @@ local keys = {
   { key = "phys:0", mods = "SUPER", action = act.ResetFontSize },
 
   -- タブ操作
-  { key = "Tab", mods = "CTRL", action = act.ActivateTabRelative(1) },
-  { key = "Tab", mods = "SHIFT|CTRL", action = act.ActivateTabRelative(-1) },
+  { key = "Tab", mods = "CTRL", action = switch_then_sync(act.ActivateTabRelative(1)) },
+  { key = "Tab", mods = "SHIFT|CTRL", action = switch_then_sync(act.ActivateTabRelative(-1)) },
   -- ALT+←/→ で隣のタブへ、ALT+SHIFT+←/→ でタブの並びを入れ替え。
   -- SUPER+矢印は Hyprland (ウィンドウ操作)、CTRL+SHIFT+矢印は WezTerm 既定のペイン移動なので ALT にした
-  { key = "LeftArrow", mods = "ALT", action = act.ActivateTabRelative(-1) },
-  { key = "RightArrow", mods = "ALT", action = act.ActivateTabRelative(1) },
+  { key = "LeftArrow", mods = "ALT", action = switch_then_sync(act.ActivateTabRelative(-1)) },
+  { key = "RightArrow", mods = "ALT", action = switch_then_sync(act.ActivateTabRelative(1)) },
   { key = "LeftArrow", mods = "ALT|SHIFT", action = act.MoveTabRelative(-1) },
   { key = "RightArrow", mods = "ALT|SHIFT", action = act.MoveTabRelative(1) },
   { key = "1", mods = "SUPER", action = act.ActivateTab(0) },
@@ -122,10 +134,10 @@ local keys = {
   },
 
   -- ペイン操作
-  { key = "h", mods = "SHIFT|CTRL", action = act.ActivatePaneDirection("Left") },
-  { key = "l", mods = "SHIFT|CTRL", action = act.ActivatePaneDirection("Right") },
-  { key = "k", mods = "SHIFT|CTRL", action = act.ActivatePaneDirection("Up") },
-  { key = "j", mods = "SHIFT|CTRL", action = act.ActivatePaneDirection("Down") },
+  { key = "h", mods = "SHIFT|CTRL", action = switch_then_sync(act.ActivatePaneDirection("Left")) },
+  { key = "l", mods = "SHIFT|CTRL", action = switch_then_sync(act.ActivatePaneDirection("Right")) },
+  { key = "k", mods = "SHIFT|CTRL", action = switch_then_sync(act.ActivatePaneDirection("Up")) },
+  { key = "j", mods = "SHIFT|CTRL", action = switch_then_sync(act.ActivatePaneDirection("Down")) },
   { key = ":", mods = "CTRL", action = act.PaneSelect },
 
   { key = "r", mods = "LEADER", action = act.SplitHorizontal({ domain = "CurrentPaneDomain" }) },
