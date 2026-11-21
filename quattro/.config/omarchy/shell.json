@@ -126,6 +126,9 @@
           "padding": 10
         },
         {
+          "id": "omarchy.media"
+        },
+        {
           "id": "omarchy.tray"
         },
         {
@@ -167,8 +170,6 @@
       ]
     }
   },
-  "disabledPlugins": [
-    "omarchy.dock"
-  ],
+  "disabledPlugins": [],
   "plugins": []
 }
