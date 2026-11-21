@@ -415,8 +415,8 @@ BarWidget {
         readonly property bool hovered: groupHover.hovered
         readonly property var shown: modelData.windows.slice(0, root.maxIcons)
         readonly property int overflow: Math.max(0, modelData.windows.length - root.maxIcons)
-        // 空のワークスペースは小さい点だけの細い枠
-        readonly property int emptyLength: Math.round(root.thickness * 0.6)
+        // 空のワークスペースは番号だけの細い枠 (標準の omarchy.workspaces と同じ見た目)
+        readonly property int emptyLength: Math.max(Math.round(root.thickness * 0.75), emptyLabel.implicitWidth + 6)
         readonly property real along: empty ? emptyLength : icons.implicitLength + root.padAlong * 2
 
         function hoveredAddress() {
@@ -443,16 +443,17 @@ BarWidget {
 
         HoverHandler { id: groupHover }
 
-        // 空: 点
-        Rectangle {
+        // 空: 番号 (モニタごとのスロット番号。標準のワークスペース表示と同じ数字)
+        Text {
+          id: emptyLabel
           visible: group.empty
           anchors.centerIn: parent
-          readonly property int size: group.active ? 6 : 4
-          width: size
-          height: size
-          radius: size / 2
+          text: String(group.modelData.slot || group.modelData.id)
           color: group.active ? root.accent : root.fg
-          opacity: group.active ? 1 : (group.hovered ? 0.8 : 0.45)
+          opacity: group.active ? 1 : (group.hovered ? 0.9 : 0.55)
+          font.family: root.fontFamily
+          font.pixelSize: Math.round(root.thickness * 0.5)
+          font.bold: group.active
         }
 
         // 窓あり: アイコンの列
