@@ -39,5 +39,7 @@
   "オプション:general:col:active_border": "2026-11-21 変更: Pond 風に縁取りを 1px のテーマ color8 にし、フォーカスは glow で示す (looknfeel.lua)",
   "オプション:general:col:inactive_border": "2026-11-21 変更: Pond 風に縁取りを 1px のテーマ color8 にし、フォーカスは glow で示す (looknfeel.lua)",
   "バー (Waybar → Quattro):center に余分なウィジェット": "2026-11-21 変更: 時計を「日付 (標準 omarchy.clock、カレンダー付き) + 時刻 (セリフ体の display-clock)」に分けた",
-  "バー (Waybar → Quattro):clock format": "2026-11-21 変更: 時計を「日付 (標準 omarchy.clock、カレンダー付き) + 時刻 (セリフ体の display-clock)」に分けた"
+  "バー (Waybar → Quattro):clock format": "2026-11-21 変更: 時計を「日付 (標準 omarchy.clock、カレンダー付き) + 時刻 (セリフ体の display-clock)」に分けた",
+  "バー (Waybar → Quattro):modules-left のモジュール": "2026-11-21 変更: ワークスペース表示を自作のミニマップ (dotfiles.minimap: 窓ありはアプリアイコン、空は番号、右ドラッグで移動) に置き換えた",
+  "バー (Waybar → Quattro):left に余分なウィジェット": "2026-11-21 変更: ワークスペース表示を自作のミニマップ (dotfiles.minimap: 窓ありはアプリアイコン、空は番号、右ドラッグで移動) に置き換えた"
 }
