@@ -1,0 +1,611 @@
+#!/usr/bin/env python3
+# 朝のブリーフィング: 今日の予定・天気・研究室ジョブ・Claude Code の使用状況・dotfiles の未コミット・締め切りを
+# 1枚の Markdown にまとめ、浮いた窓 (glow) で見せて、短い通知も出す。
+# その日最初のログイン (と朝の復帰) で1回だけ自動で出る (systemd user の briefing.service / briefing.timer)。
+#
+#   briefing           今すぐ浮いた窓で開く (何度でも)
+#   briefing --print   Markdown を標準出力へ (窓も通知も出さない。確認用)
+#   briefing --auto    今日まだ出していなければ出す (systemd から呼ぶ)。--auto --print で判定だけ確かめる
+#
+# データの出どころ
+#   予定      ICS (iCalendar)。Morgen はローカルに読める形で予定を置かない (Chromium の IndexedDB の中) ので、
+#             元のカレンダーの「iCal 形式の秘密のアドレス」(Google カレンダーなら 設定 > カレンダーの統合) か
+#             .ics ファイルを、リポジトリの外の ~/.config/dotfiles/briefing.toml に書く:
+#
+#               [calendar]
+#               ics = ["https://calendar.google.com/calendar/ical/…/basic.ics", "~/Documents/lab.ics"]
+#
+#             環境変数 BRIEFING_ICS (空白区切り) があればそちらを優先。どちらも無ければ「予定: (未設定)」。
+#             取ってきた ICS は ~/.cache/dotfiles/briefing/ に置き、取れないときはそれを使う。
+#   天気      Omarchy と同じ (omarchy-weather-location の場所で wttr.in)
+#   ジョブ    scripts/labwatch bar (ssh しない)
+#   Claude    Omarchy の agents パネルが書く ~/.local/state/omarchy/agents/usage/claude.json (読むだけ)
+#   締め切り  presets/deadlines.tsv と ~/.config/dotfiles/deadlines.tsv (公開したくないものはこちら)
+#             1行に「YYYY-MM-DD<TAB>ラベル」。# で始まる行は無視
+#
+# dotfiles は公開リポジトリなので、ICS の URL や予定の中身はここに書かないこと。
+import calendar
+import datetime as dt
+import hashlib
+import json
+import os
+import re
+import subprocess
+import sys
+import tomllib
+import urllib.parse
+import urllib.request
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+HOME = os.path.expanduser("~")
+DOTFILES = os.path.join(HOME, "dotfiles")
+CACHE_DIR = os.path.join(os.environ.get("XDG_CACHE_HOME") or os.path.join(HOME, ".cache"), "dotfiles")
+STATE_DIR = os.path.join(os.environ.get("XDG_STATE_HOME") or os.path.join(HOME, ".local", "state"), "dotfiles")
+CONFIG_DIR = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.join(HOME, ".config"), "dotfiles")
+OUT = os.path.join(CACHE_DIR, "briefing.md")
+ICS_CACHE = os.path.join(CACHE_DIR, "briefing")
+STAMP = os.path.join(STATE_DIR, "briefing-last")
+CONFIG = os.path.join(CONFIG_DIR, "briefing.toml")
+DEADLINE_FILES = [os.path.join(DOTFILES, "presets", "deadlines.tsv"), os.path.join(CONFIG_DIR, "deadlines.tsv")]
+CLAUDE_USAGE = os.path.join(HOME, ".local", "state", "omarchy", "agents", "usage", "claude.json")
+WINDOW_CLASS = "org.omarchy.dotfiles-briefing"
+UA = "dotfiles-briefing/1"
+
+WEEKDAYS = "月火水木金土日"
+LOCAL_TZ = dt.datetime.now().astimezone().tzinfo
+
+
+def run(cmd, timeout=10):
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout).stdout
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+
+def fetch(url, timeout=8):
+    req = urllib.request.Request(url, headers={"User-Agent": UA})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return r.read().decode("utf-8", "replace")
+
+
+# ---- 予定 (ICS) -------------------------------------------------------------
+
+def ics_sources():
+    env = os.environ.get("BRIEFING_ICS", "").split()
+    if env:
+        return env
+    try:
+        with open(CONFIG, "rb") as f:
+            src = tomllib.load(f).get("calendar", {}).get("ics", [])
+    except (OSError, tomllib.TOMLDecodeError):
+        return []
+    return [src] if isinstance(src, str) else [s for s in src if isinstance(s, str)]
+
+
+def load_ics(src):
+    """ICS の中身と、キャッシュを使ったかどうかを返す"""
+    if re.match(r"^(https?|webcal)://", src):
+        url = re.sub(r"^webcal://", "https://", src)
+        cache = os.path.join(ICS_CACHE, hashlib.sha1(url.encode()).hexdigest()[:16] + ".ics")
+        try:
+            text = fetch(url)
+            if "BEGIN:VCALENDAR" not in text:
+                raise ValueError("not ics")
+            os.makedirs(ICS_CACHE, mode=0o700, exist_ok=True)
+            fd = os.open(cache + ".tmp", os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, "w") as f:
+                f.write(text)
+            os.replace(cache + ".tmp", cache)
+            return text, False
+        except (OSError, ValueError):
+            with open(cache) as f:  # 無ければ OSError を呼び出し側へ
+                return f.read(), True
+    with open(os.path.expanduser(src)) as f:
+        return f.read(), False
+
+
+def parse_ics(text):
+    """VEVENT ごとに {名前: [(params, value), ...]} の dict を返す (行の折り返しを戻してから)"""
+    text = re.sub(r"\r?\n[ \t]", "", text)
+    events, cur = [], None
+    for line in text.splitlines():
+        if line == "BEGIN:VEVENT":
+            cur = {}
+        elif line == "END:VEVENT":
+            if cur is not None:
+                events.append(cur)
+            cur = None
+        elif cur is not None:
+            m = re.match(r'^([A-Za-z0-9-]+)((?:;[^:;]+=(?:"[^"]*"|[^:;"]*))*):(.*)$', line)
+            if not m:
+                continue
+            params = dict(p.split("=", 1) for p in m.group(2).split(";")[1:])
+            params = {k.upper(): v.strip('"') for k, v in params.items()}
+            cur.setdefault(m.group(1).upper(), []).append((params, m.group(3)))
+    return events
+
+
+def unescape(s):
+    return re.sub(r"\\([\\;,nN])", lambda m: "\n" if m.group(1) in "nN" else m.group(1), s)
+
+
+def parse_dt(params, value):
+    """DATE なら date、DATE-TIME ならタイムゾーン付き datetime"""
+    value = value.strip()
+    if params.get("VALUE") == "DATE" or re.fullmatch(r"\d{8}", value):
+        return dt.datetime.strptime(value[:8], "%Y%m%d").date()
+    utc = value.endswith("Z")
+    t = dt.datetime.strptime(value.rstrip("Z")[:15], "%Y%m%dT%H%M%S")
+    if utc:
+        return t.replace(tzinfo=dt.timezone.utc)
+    tzid = params.get("TZID")
+    if tzid:
+        try:
+            return t.replace(tzinfo=ZoneInfo(tzid))
+        except (ZoneInfoNotFoundError, ValueError):
+            pass
+    return t.replace(tzinfo=LOCAL_TZ)  # floating / 知らない TZID はこの PC の時刻として扱う
+
+
+def parse_rrule(value):
+    rule = dict(p.split("=", 1) for p in value.split(";") if "=" in p)
+    byday = []
+    for d in filter(None, rule.get("BYDAY", "").split(",")):
+        m = re.fullmatch(r"([+-]?\d+)?(MO|TU|WE|TH|FR|SA|SU)", d)
+        if m:
+            byday.append((int(m.group(1) or 0), ["MO", "TU", "WE", "TH", "FR", "SA", "SU"].index(m.group(2))))
+    return {
+        "freq": rule.get("FREQ", ""),
+        "interval": max(1, int(rule.get("INTERVAL", "1") or 1)),
+        "count": int(rule["COUNT"]) if rule.get("COUNT", "").isdigit() else None,
+        "until": parse_dt({}, rule["UNTIL"]) if rule.get("UNTIL") else None,
+        "byday": byday,
+        "bymonthday": [int(x) for x in rule.get("BYMONTHDAY", "").split(",") if re.fullmatch(r"-?\d+", x)],
+        "bymonth": [int(x) for x in rule.get("BYMONTH", "").split(",") if x.isdigit()],
+    }
+
+
+def month_days(year, month, rule, start_day):
+    """その月で当てはまる日 (BYDAY / BYMONTHDAY、無ければ DTSTART と同じ日)"""
+    ndays = calendar.monthrange(year, month)[1]
+    if rule["byday"]:
+        out = []
+        for ordinal, wd in rule["byday"]:
+            days = [d for d in range(1, ndays + 1) if dt.date(year, month, d).weekday() == wd]
+            if ordinal == 0:
+                out += days
+            elif -len(days) <= ordinal <= len(days) and ordinal != 0:
+                out.append(days[ordinal - 1] if ordinal > 0 else days[ordinal])
+        return sorted(set(out))
+    if rule["bymonthday"]:
+        return sorted({d if d > 0 else ndays + d + 1 for d in rule["bymonthday"] if 1 <= (d if d > 0 else ndays + d + 1) <= ndays})
+    return [start_day] if start_day <= ndays else []
+
+
+def occurrence_dates(start, rule, last):
+    """DTSTART の日付 start から last までの繰り返しの日付 (COUNT は start から数える)"""
+    freq, step = rule["freq"], rule["interval"]
+    n = 0
+    k = 0
+    while True:
+        if freq == "DAILY":
+            cands = [start + dt.timedelta(days=k * step)]
+            if rule["byday"]:
+                cands = [d for d in cands if d.weekday() in {wd for _, wd in rule["byday"]}]
+        elif freq == "WEEKLY":
+            week0 = start - dt.timedelta(days=start.weekday()) + dt.timedelta(weeks=k * step)
+            wds = sorted({wd for _, wd in rule["byday"]}) or [start.weekday()]
+            cands = [week0 + dt.timedelta(days=wd) for wd in wds]
+        elif freq == "MONTHLY":
+            y, m = divmod(start.month - 1 + k * step, 12)
+            y, m = start.year + y, m + 1
+            cands = [dt.date(y, m, d) for d in month_days(y, m, rule, start.day)]
+        elif freq == "YEARLY":
+            y = start.year + k * step
+            cands = []
+            for m in rule["bymonth"] or [start.month]:
+                if rule["byday"] or rule["bymonthday"]:
+                    cands += [dt.date(y, m, d) for d in month_days(y, m, rule, start.day)]
+                elif start.day <= calendar.monthrange(y, m)[1]:
+                    cands.append(dt.date(y, m, start.day))
+        else:
+            yield start
+            return
+        if not cands and k > 2000:
+            return
+        for d in sorted(cands):
+            if d < start:
+                continue
+            if d > last:
+                return
+            if rule["bymonth"] and freq != "YEARLY" and d.month not in rule["bymonth"]:
+                continue
+            n += 1
+            if rule["count"] is not None and n > rule["count"]:
+                return
+            yield d
+        k += 1
+        if k > 100000:
+            return
+
+
+def at_date(start, day):
+    """start の時刻のまま日付だけ day にする (タイムゾーンは元のまま。夏時間もそのまま正しく)"""
+    if isinstance(start, dt.datetime):
+        return start.replace(year=day.year, month=day.month, day=day.day)
+    return day
+
+
+def todays_events(today):
+    """(終日か, 開始, 終了, 題名) のリストと、メモ (エラーなど) を返す。ソースが無ければ None"""
+    sources = ics_sources()
+    if not sources:
+        return None, []
+    day0 = dt.datetime.combine(today, dt.time(), LOCAL_TZ)
+    day1 = day0 + dt.timedelta(days=1)
+    found, notes, loaded = {}, [], 0
+    for i, src in enumerate(sources, 1):
+        try:
+            text, cached = load_ics(src)
+        except OSError:
+            notes.append(f"カレンダー {i} を読めませんでした")
+            continue
+        loaded += 1
+        if cached:
+            notes.append(f"カレンダー {i} はネットに繋がらないので前回の分を使っています")
+        events = parse_ics(text)
+        overridden = set()
+        for ev in events:
+            if "RECURRENCE-ID" in ev and "UID" in ev:
+                p, v = ev["RECURRENCE-ID"][0]
+                overridden.add((ev["UID"][0][1], key_of(parse_dt(p, v))))
+        for ev in events:
+            if "DTSTART" not in ev:
+                continue
+            if ev.get("STATUS", [({}, "")])[0][1].upper() == "CANCELLED":
+                continue
+            try:
+                start = parse_dt(*ev["DTSTART"][0])
+                if "DTEND" in ev:
+                    end = parse_dt(*ev["DTEND"][0])
+                    length = end - start
+                elif "DURATION" in ev:
+                    length = parse_duration(ev["DURATION"][0][1])
+                else:
+                    length = dt.timedelta(days=1) if not isinstance(start, dt.datetime) else dt.timedelta(0)
+            except ValueError:
+                continue
+            title = unescape(ev.get("SUMMARY", [({}, "(無題)")])[0][1]).strip() or "(無題)"
+            uid = ev.get("UID", [({}, "")])[0][1]
+            if "RRULE" in ev and "RECURRENCE-ID" not in ev:
+                try:
+                    rule = parse_rrule(ev["RRULE"][0][1])
+                except ValueError:
+                    continue
+                exdates = set()
+                for p, v in ev.get("EXDATE", []):
+                    for x in v.split(","):
+                        try:
+                            exdates.add(key_of(parse_dt(p, x)))
+                        except ValueError:
+                            pass
+                first = start.date() if isinstance(start, dt.datetime) else start
+                span = max(0, length.days) + 1
+                starts = []
+                for d in occurrence_dates(first, rule, today):
+                    if (today - d).days > span:
+                        continue
+                    s = at_date(start, d)
+                    if rule["until"] is not None and not before_until(s, rule["until"]):
+                        break
+                    k = key_of(s)
+                    if k in exdates or (uid, k) in overridden:
+                        continue
+                    starts.append(s)
+            else:
+                starts = [start]
+            for s in starts:
+                e = s + length
+                if isinstance(s, dt.datetime):
+                    if s < day1 and (e > day0 or (e == s and s >= day0)):
+                        found[(uid, s)] = (False, s.astimezone(LOCAL_TZ), e.astimezone(LOCAL_TZ), title)
+                elif s <= today < max(e, s + dt.timedelta(days=1)):
+                    found[(uid, s)] = (True, s, e, title)
+    if not loaded:
+        return [], notes  # どれも読めなかった (「予定なし」とは出さない)
+    events = sorted(found.values(), key=lambda x: (not x[0], x[1] if not x[0] else day0, x[3]))
+    return events, notes
+
+
+def key_of(x):
+    """EXDATE / RECURRENCE-ID と突き合わせるための値 (UTC にそろえる)"""
+    if isinstance(x, dt.datetime):
+        return x.astimezone(dt.timezone.utc).replace(microsecond=0)
+    return x
+
+
+def before_until(s, until):
+    if isinstance(until, dt.datetime):
+        if isinstance(s, dt.datetime):
+            return s <= until
+        return s <= until.astimezone(LOCAL_TZ).date()
+    return (s.astimezone(LOCAL_TZ).date() if isinstance(s, dt.datetime) else s) <= until
+
+
+def parse_duration(v):
+    m = re.fullmatch(r"([+-])?P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?", v.strip())
+    if not m:
+        raise ValueError(v)
+    w, d, h, mi, s = (int(x or 0) for x in m.groups()[1:])
+    return dt.timedelta(weeks=w, days=d, hours=h, minutes=mi, seconds=s)
+
+
+# ---- 天気 (Omarchy と同じ wttr.in) ----------------------------------------
+
+WEATHER_JA = {
+    113: "晴れ", 116: "晴れ時々くもり", 119: "くもり", 122: "くもり", 143: "もや", 248: "霧", 260: "霧",
+    176: "ところにより雨", 263: "霧雨", 266: "霧雨", 293: "小雨", 296: "小雨", 299: "雨", 302: "雨",
+    305: "強い雨", 308: "強い雨", 353: "にわか雨", 356: "強いにわか雨", 359: "激しいにわか雨",
+    179: "ところにより雪", 227: "吹雪", 230: "猛吹雪", 323: "小雪", 326: "小雪", 329: "雪", 332: "雪",
+    335: "大雪", 338: "大雪", 368: "にわか雪", 371: "強いにわか雪",
+    182: "みぞれ", 185: "着氷性の霧雨", 281: "着氷性の霧雨", 284: "着氷性の霧雨", 311: "着氷性の雨",
+    314: "着氷性の雨", 317: "みぞれ", 320: "みぞれ", 350: "あられ", 362: "にわかみぞれ", 365: "にわかみぞれ",
+    374: "あられ", 377: "あられ", 200: "雷", 386: "雷雨", 389: "強い雷雨", 392: "雷雪", 395: "強い雷雪",
+}
+
+
+def weather():
+    """(1行の要約, 通知用の短い文字列) を返す"""
+    place = run(["omarchy-weather-location"], timeout=8).strip()
+    query = urllib.parse.quote(place) if place else ""
+    try:
+        data = json.loads(fetch(f"https://wttr.in/{query}?format=j1", timeout=6))
+        cur = data["current_condition"][0]
+        day = data["weather"][0]
+    except (OSError, ValueError, KeyError, IndexError):
+        return None, None
+    desc = WEATHER_JA.get(int(cur.get("weatherCode", 0) or 0)) or cur.get("weatherDesc", [{}])[0].get("value", "")
+    # 6〜21 時 (3時間ごと) の降水確率の最大
+    rain = [int(h.get("chanceofrain", 0) or 0) for h in day.get("hourly", []) if 600 <= int(h.get("time", 0) or 0) <= 2100]
+    line = f"{place or '現在地'}: **{desc}** {cur['temp_C']}°C (体感 {cur['FeelsLikeC']}°C) ・ 最高 {day['maxtempC']}°C / 最低 {day['mintempC']}°C"
+    if rain:
+        line += f" ・ 降水確率 最大 {max(rain)}%"
+    short = f"{desc} {cur['temp_C']}°C"
+    if rain and max(rain) >= 50:
+        short += " ☂"
+    return line, short
+
+
+# ---- 研究室ジョブ (labwatch) -----------------------------------------------
+
+def labjobs():
+    out = run([os.path.join(DOTFILES, "scripts", "labwatch"), "bar"])
+    try:
+        bar = json.loads(out)
+    except ValueError:
+        return ["(labwatch を読めませんでした)"], ""
+    if bar.get("class") == "idle" and not bar.get("text"):
+        return ["見張っているジョブなし (`labwatch add <host> <pattern>` で追加)"], ""
+    lines = [ln for ln in bar.get("tooltip", "").splitlines()[1:] if not ln.startswith("click:")]
+    short = bar.get("text", "").split(" ", 1)[-1]
+    return lines, short
+
+
+# ---- Claude Code (Omarchy の agents パネルの記録) --------------------------
+
+def claude_usage(now):
+    try:
+        with open(CLAUDE_USAGE) as f:
+            rec = json.load(f)
+    except (OSError, ValueError):
+        return None
+    labels = {"Session (5-hour)": "5時間枠", "Weekly (7-day)": "週間枠"}
+    parts = []
+    for lim in rec.get("limits") or []:
+        try:
+            pct = float(lim.get("percent", -1))
+        except (TypeError, ValueError):
+            continue
+        if pct < 0:
+            continue
+        reset = None
+        if lim.get("resetsAt"):
+            try:
+                reset = dt.datetime.fromisoformat(lim["resetsAt"]).astimezone(LOCAL_TZ)
+            except ValueError:
+                pass
+        if reset and reset <= now:
+            pct = 0.0  # リセット済み (パネルと同じ扱い)
+            reset = None
+        label = labels.get(lim.get("label"), lim.get("title") or lim.get("label") or "?")
+        text = f"{label} {round(pct * 100)}%"
+        if reset:
+            when = reset.strftime("%H:%M") if reset.date() == now.date() else f"{reset.month}/{reset.day}({WEEKDAYS[reset.weekday()]}) {reset:%H:%M}"
+            text += f" ({when} リセット)"
+        parts.append(text)
+    line = " ・ ".join(parts) if parts else "上限の情報なし"
+    if rec.get("tierLabel"):
+        line = f"{rec['tierLabel']}: {line}"
+    try:
+        age = now - dt.datetime.fromisoformat(rec["updatedAt"]).astimezone(LOCAL_TZ)
+        if age > dt.timedelta(hours=1):
+            line += f" _({human_age(age)}前の値)_"
+    except (KeyError, ValueError):
+        pass
+    return line
+
+
+def human_age(td):
+    s = int(td.total_seconds())
+    if s >= 86400:
+        return f"{s // 86400}日"
+    if s >= 3600:
+        return f"{s // 3600}時間"
+    return f"{s // 60}分"
+
+
+# ---- dotfiles --------------------------------------------------------------
+
+def dotfiles_status():
+    porcelain = run(["git", "-C", DOTFILES, "status", "--porcelain"])
+    dirty = len([ln for ln in porcelain.splitlines() if ln.strip()])
+    ahead = run(["git", "-C", DOTFILES, "rev-list", "--count", "@{u}..HEAD"]).strip()
+    line = f"未コミット {dirty} 件" if dirty else "未コミットなし"
+    if ahead.isdigit() and int(ahead):
+        line += f" ・ 未 push {ahead} 件"
+    return line, dirty
+
+
+# ---- 締め切り --------------------------------------------------------------
+
+def deadlines(today):
+    items = []
+    for path in DEADLINE_FILES:
+        try:
+            with open(path) as f:
+                lines = f.read().splitlines()
+        except OSError:
+            continue
+        for ln in lines:
+            if not ln.strip() or ln.lstrip().startswith("#"):
+                continue
+            date, _, label = ln.partition("\t")
+            try:
+                d = dt.date.fromisoformat(date.strip())
+            except ValueError:
+                continue
+            items.append(((d - today).days, d, label.strip() or "(無題)"))
+    # 3日以上前に過ぎたものは出さない
+    return sorted(i for i in items if i[0] >= -3)
+
+
+# ---- 組み立て --------------------------------------------------------------
+
+def build(now):
+    today = now.date()
+    md = [f"# 朝のブリーフィング — {today.month}月{today.day}日 ({WEEKDAYS[today.weekday()]})", ""]
+    summary = []
+
+    md += ["## 今日の予定", ""]
+    events, notes = todays_events(today)
+    if events is None:
+        md.append("予定: (未設定) — `~/.config/dotfiles/briefing.toml` に ICS を書くと出ます (`briefing --help`)")
+    elif not events and notes and all("読めません" in n for n in notes):
+        md.append("(取得できませんでした)")
+    elif not events:
+        md.append("予定なし")
+        summary.append("予定なし")
+    else:
+        for allday, s, e, title in events:
+            title = title.replace("\n", " ")
+            if allday:
+                md.append(f"- **終日** {title}")
+            else:
+                start = s.strftime("%H:%M") if s.date() == today else f"{s.month}/{s.day} {s:%H:%M}"
+                end = e.strftime("%H:%M") if e.date() == today else f"{e.month}/{e.day} {e:%H:%M}"
+                md.append(f"- **{start}–{end}** {title}" if e != s else f"- **{start}** {title}")
+        timed = [x for x in events if not x[0] and x[1] >= now]
+        summary.append(f"予定 {len(events)} 件" + (f" (次 {timed[0][1]:%H:%M})" if timed else ""))
+    md += [f"- _{n}_" for n in notes]
+
+    md += ["", "## 天気", ""]
+    w_line, w_short = weather()
+    md.append(w_line or "(取得できませんでした)")
+    if w_short:
+        summary.append(w_short)
+
+    md += ["", "## 研究室ジョブ", ""]
+    jobs, jobs_short = labjobs()
+    md += [f"- {j}" for j in jobs]
+    if jobs_short:
+        summary.append(f"ジョブ {jobs_short}")
+
+    usage = claude_usage(now)
+    if usage:
+        md += ["", "## Claude Code", "", usage]
+
+    md += ["", "## dotfiles", ""]
+    d_line, dirty = dotfiles_status()
+    md.append(d_line)
+    if dirty:
+        summary.append(f"未コミット {dirty}")
+
+    md += ["", "## 締め切り", ""]
+    dl = deadlines(today)
+    if not dl:
+        md.append("なし (`~/dotfiles/presets/deadlines.tsv` か `~/.config/dotfiles/deadlines.tsv` に「YYYY-MM-DD<TAB>ラベル」)")
+    for days, d, label in dl[:8]:
+        when = f"{d.month}/{d.day}({WEEKDAYS[d.weekday()]})"
+        if days < 0:
+            md.append(f"- ~~{label}~~ {when} — {-days}日過ぎた")
+        elif days == 0:
+            md.append(f"- **{label}** {when} — **今日!**")
+        elif days <= 7:
+            md.append(f"- **{label}** {when} — **あと {days} 日**")
+        else:
+            md.append(f"- {label} {when} — あと {days} 日")
+    upcoming = [x for x in dl if x[0] >= 0]
+    if upcoming:
+        days, _, label = upcoming[0]
+        summary.append(f"{label} {'今日' if days == 0 else f'あと{days}日'}")
+
+    md += ["", "---", f"_{now:%H:%M} 作成 ・ もう一度: `briefing` / 閉じる: q_", ""]
+    return "\n".join(md), " / ".join(summary)
+
+
+def presenting():
+    out = run([os.path.join(DOTFILES, "scripts", "presentation-mode"), "status"])
+    return out.strip() == "presenting"
+
+
+def main(argv):
+    if "-h" in argv or "--help" in argv:
+        with open(__file__) as f:
+            for ln in f.read().splitlines()[1:]:
+                if not ln.startswith("#"):
+                    break
+                print(ln[2:])
+        return 0
+    auto = "--auto" in argv
+    to_stdout = "--print" in argv
+    now = dt.datetime.now().astimezone()
+    today = now.date().isoformat()
+
+    if auto:
+        try:
+            with open(STAMP) as f:
+                last = f.read().strip()
+        except OSError:
+            last = ""
+        if last == today:
+            print("briefing: 今日はもう出しました", file=sys.stderr)
+            return 0
+        if presenting():
+            print("briefing: 発表中なので後で", file=sys.stderr)
+            return 0
+        if to_stdout:
+            print("briefing: 今日はまだなので出します (--print なので出さない)", file=sys.stderr)
+
+    md, summary = build(now)
+    if to_stdout:
+        sys.stdout.write(md)
+        return 0
+
+    os.makedirs(CACHE_DIR, exist_ok=True)
+    with open(OUT, "w") as f:
+        f.write(md)
+    if auto:
+        os.makedirs(STATE_DIR, exist_ok=True)
+        with open(STAMP, "w") as f:
+            f.write(today + "\n")
+    subprocess.run(["notify-send", "-a", "Briefing", "-i", "x-office-calendar", "朝のブリーフィング", summary or "今日もよろしく"],
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+    # 浮いた窓で開く (フロートのルールは hypr/personal/briefing.lua)。WEZTERM_DROPDOWN: セッション復元・自動保存を読まない
+    subprocess.Popen(["setsid", "uwsm-app", "--", "env", "WEZTERM_DROPDOWN=1", "wezterm", "start", "--always-new-process",
+                      "--class", WINDOW_CLASS, "--", "glow", "-p", OUT],
+                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
