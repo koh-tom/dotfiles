@@ -5,6 +5,9 @@ set -euo pipefail
 ROOT="${DOTFILES_ROOT:-$HOME/dotfiles}"
 stamp=$(date +%s)
 
+# shellcheck source=lib/packages.sh
+source "$ROOT/scripts/lib/packages.sh"
+
 backup_file() {
   local path=$1
   if [[ -e $path && ! -L $path ]]; then
@@ -16,10 +19,20 @@ backup_file() {
 backup_file "$HOME/.config/git/config"
 backup_file "$HOME/.config/starship.toml"
 backup_file "$HOME/.config/fastfetch/config.jsonc"
-backup_file "$HOME/.config/omarchy/extensions/menu.sh"
 backup_file "$HOME/.config/xdg-terminals.list"
-backup_file "$HOME/.config/waybar/config.jsonc"
-backup_file "$HOME/.config/waybar/style.css"
+
+if dotfiles_is_quattro; then
+  # Omarchy 4 (Quattro): 既定の Lua / shell.json / メニュー拡張が通常ファイルで置かれていて
+  # quattro パッケージの stow と衝突するので、*.quattro-default.<stamp> へ退避する
+  # shellcheck source=lib/quattro-defaults.sh
+  source "$ROOT/scripts/lib/quattro-defaults.sh"
+  backup_quattro_defaults "$stamp"
+else
+  # Omarchy 3.x: メニュー拡張 menu.sh と Waybar は dotfiles 版に差し替える
+  backup_file "$HOME/.config/omarchy/extensions/menu.sh"
+  backup_file "$HOME/.config/waybar/config.jsonc"
+  backup_file "$HOME/.config/waybar/style.css"
+fi
 
 cd "$ROOT"
 ./scripts/install-packages
