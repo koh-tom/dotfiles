@@ -9,10 +9,19 @@
 
 state="${1:-}"
 
+# hook の入力 (JSON: cwd, message など) は stdin で来る。通知の文面に使う
+hook_json=""
+[[ -t 0 ]] || hook_json=$(timeout 1 cat 2>/dev/null)
+
 {
   if [[ -w /dev/tty ]]; then
     printf '\033]1337;SetUserVar=claude_state=%s\007' "$(printf %s "$state" | base64 | tr -d '\n')" >/dev/tty
   fi
 } 2>/dev/null
+
+# 入力待ち・許可待ちは、見ていなければ通知を出す (押すとそのタブへ移動)。hook を待たせないよう切り離す
+if [[ ($state == "waiting" || $state == "attention") && -n ${WEZTERM_PANE:-} ]]; then
+  setsid -f "$HOME/dotfiles/scripts/claude-notify-jump" "$state" "$WEZTERM_PANE" "$hook_json" >/dev/null 2>&1 </dev/null
+fi
 
 exit 0
