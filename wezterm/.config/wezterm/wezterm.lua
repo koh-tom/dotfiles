@@ -135,6 +135,8 @@ if not os.getenv("WEZTERM_DROPDOWN") then
 	require("modules.resurrect").apply_to_config(config)
 end
 require("modules.notify").apply_to_config(config)
+-- LEADER + h: 研究室などのマシンを新しいタブで開く (tailscale / ~/.ssh/config から一覧)
+require("modules.ssh_domains").apply_to_config(config)
 require("modules.hyperlinks").apply_to_config(config)
 -- config.keys を参照するので最後に読む
 require("modules.palette").apply_to_config(config)
