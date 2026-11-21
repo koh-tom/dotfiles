@@ -35,28 +35,41 @@ hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 4, bezier = "e
 --   glow: フォーカス中のウィンドウの内側をテーマのアクセント色でうっすら光らせる (非フォーカスは無し)
 --   motion_blur: ウィンドウを動かす・リサイズするときだけ残像をつける (内蔵 GPU なので sample は控えめ)
 -- 色はテーマの colors.toml の accent から取る (テーマを変えると hyprctl reload で追従する)
-local function theme_accent()
+local function theme_color(name)
   local home = os.getenv("HOME") or ""
   local f = io.open(home .. "/.local/state/omarchy/current/theme/colors.toml", "r")
   if not f then return nil end
   local text = f:read("a")
   f:close()
-  return text:match('accent%s*=%s*"#(%x%x%x%x%x%x)"')
+  return text:match(name .. '%s*=%s*"#(%x%x%x%x%x%x)"')
 end
 
-local accent = theme_accent() or "89b4fa"
+local accent = theme_color("accent") or "89b4fa"
 hl.config({
   decoration = {
     glow = {
       enabled = true,
       range = 8,
       render_power = 3,
-      color = "rgba(" .. accent .. "40)",
+      color = "rgba(" .. accent .. "66)",
       color_inactive = "rgba(00000000)",
     },
     motion_blur = {
       enabled = true,
       samples = 5,
+    },
+  },
+})
+
+-- Pond 風の控えめな縁取り: 1px のグレーだけにして、フォーカスは上の glow (アクセント色) で示す。
+-- テーマの hyprland.lua (アクセント色の 2px 枠) より後に読まれるので上書きになる
+local gray = theme_color("color8") or "585b70"
+hl.config({
+  general = {
+    border_size = 1,
+    col = {
+      active_border = "rgba(" .. gray .. "ff)",
+      inactive_border = "rgba(" .. gray .. "66)",
     },
   },
 })
