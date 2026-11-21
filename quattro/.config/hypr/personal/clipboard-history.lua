@@ -3,16 +3,10 @@
 --   exec-once = wl-paste --type image --watch cliphist store
 --   bindd = SUPER, V, Clipboard, exec, cliphist list | walker --dmenu | cliphist decode | wl-copy
 --
--- 注意: Quattro では Walker が廃止される (Quickshell に統合)。walker が無い環境では
--- SUPER+V の後段が失敗するため、walker が無ければ Quattro 標準のクリップボード
--- パネル (omarchy.clipboard) を開く。walker がある間は現状と同一コマンド。
--- .conf と同じく既定の SUPER+V (Universal paste) には追加する形 (置換しない)。
-
-o.exec_on_start("wl-paste --type text --watch cliphist store")
-o.exec_on_start("wl-paste --type image --watch cliphist store")
-
-if o.cmd_present("walker") then
-  o.bind("SUPER + V", "Clipboard", "cliphist list | walker --dmenu | cliphist decode | wl-copy")
-else
-  o.bind("SUPER + V", "Clipboard", { panel = "omarchy.clipboard" })
-end
+-- 2026-11-21: Quattro 標準のクリップボード履歴 (omarchy.clipboard、capture.sh が記録) に一本化した。
+--   - cliphist は Quattro 標準と二重に記録していた (しかも期限なしで 67MB 溜まっていた) ので起動しない
+--   - SUPER+V は「貼り付け」と「履歴を開く」が同時に起きていたので、Omarchy 既定に戻す
+--       SUPER+V        = Universal paste (SUPER+C と対。端末でもそれ以外でも貼り付け)
+--       SUPER+CTRL+V   = クリップボード履歴 (Quattro 標準パネル)
+--   このファイルは意図して何も登録しない。履歴を SUPER+V に戻したくなったら次の1行:
+--   o.rebind("SUPER + V", "Clipboard", { panel = "omarchy.clipboard" })
