@@ -1,0 +1,123 @@
+#!/usr/bin/env python3
+"""試合の日は Spurs モード。systemd user timer (spurs-matchday.timer) が5分ごとに呼ぶ。
+
+- キックオフ12時間前〜試合終了 (キックオフ+3時間) の間は、テーマを Spurs に切り替える。
+  終わったら元のテーマに戻す。途中で自分でテーマを変えたら、その試合ではもう触らない。
+- キックオフ1時間前と、キックオフ時に通知する (各1回)。
+試合情報はバーのピルと同じキャッシュ (waybar-spurs-fixture が TheSportsDB から6時間ごとに取得)。
+
+  spurs-matchday                今の時刻で判定して実行
+  spurs-matchday --dry [--now 2026-11-21T23:30:00+09:00]   何をするかだけ表示 (変更しない)
+"""
+import json
+import os
+import subprocess
+import sys
+from datetime import datetime, timedelta, timezone
+
+HOME = os.path.expanduser("~")
+CACHE = os.path.join(os.environ.get("XDG_CACHE_HOME", f"{HOME}/.cache"), "dotfiles/spurs-fixture.json")
+STATE = os.path.join(os.environ.get("XDG_STATE_HOME", f"{HOME}/.local/state"), "dotfiles/spurs-matchday.json")
+THEME_NAME = f"{HOME}/.local/state/omarchy/current/theme.name"
+SPURS_THEME = "spurs"
+BEFORE = timedelta(hours=12)
+AFTER = timedelta(hours=3)
+
+dry = "--dry" in sys.argv
+now = datetime.now(timezone.utc)
+if "--now" in sys.argv:
+    now = datetime.fromisoformat(sys.argv[sys.argv.index("--now") + 1]).astimezone(timezone.utc)
+
+
+def run(cmd):
+    if dry:
+        print("[dry]", " ".join(cmd))
+        return
+    subprocess.run(cmd, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def notify(title, body, urgency="normal"):
+    run(["notify-send", "--app-name=Spurs", f"--urgency={urgency}", title, body])
+
+
+def current_theme():
+    try:
+        return open(THEME_NAME).read().strip().lower()
+    except OSError:
+        return ""
+
+
+def load(path, default):
+    try:
+        return json.load(open(path))
+    except (OSError, json.JSONDecodeError):
+        return default
+
+
+def save_state(state):
+    if dry:
+        print("[dry] state =", state)
+        return
+    os.makedirs(os.path.dirname(STATE), exist_ok=True)
+    tmp = STATE + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(state, f)
+    os.replace(tmp, STATE)
+
+
+# キャッシュの更新はピルのスクリプトに任せる
+if not dry:
+    subprocess.run([f"{HOME}/dotfiles/scripts/waybar-spurs-fixture"], check=False,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+events = load(CACHE, {}).get("events") or []
+state = load(STATE, {})
+
+# 試合中も含めて「今の試合の窓」にある試合を探す
+match = None
+for e in events:
+    ts = e.get("strTimestamp")
+    if not ts:
+        continue
+    try:
+        kickoff = datetime.fromisoformat(ts).replace(tzinfo=timezone.utc)
+    except ValueError:
+        continue
+    if kickoff - BEFORE <= now <= kickoff + AFTER:
+        match = (e, kickoff)
+        break
+
+theme = current_theme()
+
+if match:
+    e, kickoff = match
+    eid = str(e.get("idEvent") or e.get("strTimestamp"))
+    home, away = e.get("strHomeTeam", "?"), e.get("strAwayTeam", "?")
+    opponent = away if "Tottenham" in home else home
+    local = kickoff.astimezone()
+    if state.get("event") != eid:
+        state = {"event": eid}
+
+    # テーマ: まだ切り替えていなければ Spurs に。自分で変えていたらもう触らない
+    if not state.get("switched") and not state.get("override"):
+        if theme != SPURS_THEME:
+            state["previous"] = theme
+            run(["omarchy-theme-set", SPURS_THEME])
+            notify("COYS! 今日は試合の日", f"vs {opponent}  {local.strftime('%m/%d %H:%M')} キックオフ。テーマを Spurs にしました")
+        state["switched"] = True
+    elif state.get("switched") and not state.get("override") and theme != SPURS_THEME:
+        state["override"] = True
+
+    if not state.get("notified_hour") and timedelta(0) < kickoff - now <= timedelta(hours=1):
+        notify(f"あと1時間: vs {opponent}", f"{local.strftime('%H:%M')} キックオフ", "normal")
+        state["notified_hour"] = True
+    if not state.get("notified_kickoff") and timedelta(0) <= now - kickoff <= timedelta(minutes=15):
+        notify(f"キックオフ! vs {opponent}", "COYS!", "critical")
+        state["notified_kickoff"] = True
+    save_state(state)
+else:
+    # 窓の外: 自分が切り替えたままなら元のテーマに戻して片付ける
+    if state.get("switched") and not state.get("override") and theme == SPURS_THEME and state.get("previous"):
+        run(["omarchy-theme-set", state["previous"]])
+    if state:
+        save_state({})
