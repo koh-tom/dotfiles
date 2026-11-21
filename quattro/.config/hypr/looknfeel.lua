@@ -31,3 +31,32 @@ hl.animation({ leaf = "workspaces", enabled = true, speed = 4, bezier = "easeOut
 -- ドロップダウン端末などの special workspace は縦に出入り
 hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 4, bezier = "easeOutQuint", style = "slidevert" })
 
+-- Hyprland 0.56 の新機能 (プラグイン不要)
+--   glow: フォーカス中のウィンドウの内側をテーマのアクセント色でうっすら光らせる (非フォーカスは無し)
+--   motion_blur: ウィンドウを動かす・リサイズするときだけ残像をつける (内蔵 GPU なので sample は控えめ)
+-- 色はテーマの colors.toml の accent から取る (テーマを変えると hyprctl reload で追従する)
+local function theme_accent()
+  local home = os.getenv("HOME") or ""
+  local f = io.open(home .. "/.local/state/omarchy/current/theme/colors.toml", "r")
+  if not f then return nil end
+  local text = f:read("a")
+  f:close()
+  return text:match('accent%s*=%s*"#(%x%x%x%x%x%x)"')
+end
+
+local accent = theme_accent() or "89b4fa"
+hl.config({
+  decoration = {
+    glow = {
+      enabled = true,
+      range = 8,
+      render_power = 3,
+      color = "rgba(" .. accent .. "40)",
+      color_inactive = "rgba(00000000)",
+    },
+    motion_blur = {
+      enabled = true,
+      samples = 5,
+    },
+  },
+})
