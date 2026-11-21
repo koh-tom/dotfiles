@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "dotfiles.minimap",
+  "name": "Workspace Minimap",
+  "version": "1.0.0",
+  "author": "koh-tom",
+  "description": "Pond 風のワークスペース・ミニマップ。ワークスペースごとにウィンドウのアプリアイコンを並べる",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Minimap.qml"
+  },
+  "barWidget": {
+    "displayName": "Workspace Minimap",
+    "description": "ワークスペースごとのアプリアイコン。クリックで移動、右ドラッグでウィンドウを別のワークスペースへ",
+    "category": "Compositor",
+    "defaultSection": "left",
+    "allowMultiple": false
+  }
+}
