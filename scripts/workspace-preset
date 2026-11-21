@@ -2,14 +2,18 @@
 # ワークスペースのプリセット。presets/workspaces.json に書いた「どのワークスペースに何を置くか」をまとめて実行する。
 # 起動していないアプリはそのワークスペースに開き、起動済みのアプリは新しく開かずにそこへ移す。
 #
-#   workspace-preset             一覧から選ぶ (SUPER+ALT+P / Omarchy メニューの Dotfiles > Presets)
-#   workspace-preset <名前>       そのプリセットを実行
-#   workspace-preset --list      名前の一覧
-#   DRY=1 workspace-preset <名前> 実行せずに Hyprland へ送る内容だけ表示
+#   workspace-preset                メニュー (実行 / 今の配置を保存 / 削除)。SUPER+ALT+P
+#   workspace-preset <名前>          そのプリセットを実行
+#   workspace-preset save [名前]     今の配置をプリセットとして保存 (名前を省くと入力欄)
+#   workspace-preset delete [名前]   プリセットを削除 (名前を省くと一覧から選ぶ)
+#   workspace-preset --list         名前の一覧
+#   DRY=1 workspace-preset <名前>    実行せずに Hyprland へ送る内容だけ表示
+#
+# 保存すると dotfiles の presets/workspaces.json が書き換わる (git で差分として見える)。
 set -euo pipefail
 
 presets="$HOME/dotfiles/presets/workspaces.json"
-[[ -r $presets ]] || { echo "presets がありません: $presets" >&2; exit 1; }
+[[ -e $presets ]] || echo '{}' >"$presets"
 
 names() { jq -r 'to_entries[] | select(.key | startswith("_") | not) | .key' "$presets"; }
 
@@ -19,8 +23,28 @@ dispatch() {
   "$HOME/dotfiles/scripts/hypr-dispatch" "$1" >/dev/null
 }
 
+notify() { [[ -n ${DRY:-} ]] || notify-send -a "Workspace" "$@" 2>/dev/null || true; }
+
 # Lua の文字列リテラル (ダブルクォート) に入れられる形にする
 lua_str() { local s=${1//\\/\\\\}; s=${s//\"/\\\"}; printf '"%s"' "$s"; }
+
+# 正規表現の特殊文字を逃がす (class をそのまま一致させるため)
+regex_escape() { printf '%s' "$1" | sed 's/[][\.*^$+?(){}|/]/\\&/g'; }
+
+# 標準入力の JSON を検証してから presets に書く
+write_presets() {
+  local tmp
+  tmp=$(mktemp "$presets.XXXX")
+  cat >"$tmp"
+  if jq empty "$tmp" 2>/dev/null; then
+    mv "$tmp" "$presets"
+  else
+    rm -f "$tmp"
+    return 1
+  fi
+}
+
+# ------------------------------------------------------------------ 実行
 
 apply() {
   local name=$1 entries clients ws cmd class app address moved=0 started=0
@@ -51,19 +75,121 @@ apply() {
   local focus
   focus=$(jq -r --arg n "$name" '.[$n].focus // empty' "$presets")
   [[ -n $focus ]] && dispatch "hl.dsp.focus({ workspace = $(lua_str "$focus") })"
-  [[ -n ${DRY:-} ]] && return
-  notify-send -a "Workspace" "プリセット: $name" "起動 $started / 移動 $moved" 2>/dev/null || true
+  notify "プリセット: $name" "起動 $started / 移動 $moved"
+}
+
+# ------------------------------------------------------------------ 保存
+
+# ウィンドウ (class, pid) を起動するコマンド。.desktop の StartupWMClass が一致すればその Exec、
+# 無ければプロセスの実行ファイル
+launch_cmd() {
+  local class=$1 pid=$2 desktop exe
+  case $class in
+    org.wezfurlong.wezterm) echo "wezterm"; return ;;
+  esac
+  desktop=$(grep -l -i -x "StartupWMClass=$class" \
+    "$HOME"/.local/share/applications/*.desktop /usr/share/applications/*.desktop 2>/dev/null | head -n 1 || true)
+  if [[ -z $desktop ]]; then
+    for f in "$HOME/.local/share/applications/$class.desktop" "/usr/share/applications/$class.desktop"; do
+      [[ -r $f ]] && { desktop=$f; break; }
+    done
+  fi
+  if [[ -n $desktop ]]; then
+    # %U などの引数プレースホルダは外す
+    grep -m1 '^Exec=' "$desktop" | sed 's/^Exec=//; s/ *%[a-zA-Z]//g'
+    return
+  fi
+  exe=$(tr '\0' '\n' <"/proc/$pid/cmdline" 2>/dev/null | head -n 1 || true)
+  echo "${exe:-$class}"
+}
+
+save() {
+  local name=${1:-}
+  if [[ -z $name ]]; then
+    name=$(omarchy-menu-input "保存するプリセットの名前" 2>/dev/null || true)
+  fi
+  name=$(printf '%s' "$name" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+  [[ -n $name ]] || exit 0
+  if [[ $name == _* ]]; then
+    notify "保存できません" "名前は _ で始められません"
+    exit 1
+  fi
+  if [[ -z ${DRY:-} ]] && jq -e --arg n "$name" 'has($n)' "$presets" >/dev/null; then
+    local yes
+    yes=$(omarchy-menu-select "「$name」を上書きしますか" "上書きする" "やめる" 2>/dev/null || true)
+    [[ $yes == "上書きする" ]] || exit 0
+  fi
+
+  # 普通のワークスペース (special は除く) のウィンドウを、番号 → 左から順に
+  local clients workspaces='{}' row ws class pid cmd entry active
+  clients=$(hyprctl clients -j | jq -c '[.[] | select(.workspace.id > 0)] | sort_by(.workspace.id, .at[0], .at[1]) | .[] | {ws: (.workspace.id | tostring), class, pid}')
+  [[ -n $clients ]] || { notify "保存できません" "開いているウィンドウがありません"; exit 1; }
+  while IFS= read -r row; do
+    ws=$(jq -r '.ws' <<<"$row")
+    class=$(jq -r '.class' <<<"$row")
+    pid=$(jq -r '.pid' <<<"$row")
+    [[ -n $class ]] || continue
+    cmd=$(launch_cmd "$class" "$pid")
+    entry=$(jq -cn --arg name "$class" --arg cmd "$cmd" --arg class "^$(regex_escape "$class")$" '{name: $name, cmd: $cmd, class: $class}')
+    workspaces=$(jq -c --arg ws "$ws" --argjson e "$entry" '.[$ws] += [$e]' <<<"$workspaces")
+  done <<<"$clients"
+  active=$(hyprctl activeworkspace -j | jq -r '.id')
+
+  local updated
+  updated=$(jq --arg n "$name" --argjson w "$workspaces" --arg f "$active" \
+    '.[$n] = {icon: (.[$n].icon // "󰕰"), focus: $f, workspaces: $w}' "$presets")
+  if [[ -n ${DRY:-} ]]; then
+    jq --arg n "$name" '.[$n]' <<<"$updated"
+    return
+  fi
+  write_presets <<<"$updated"
+  notify "プリセットを保存: $name" "$(jq -r 'length' <<<"$workspaces") 個のワークスペース / $(jq -r '[.[]] | add | length' <<<"$workspaces") 個のウィンドウ"
+}
+
+# ------------------------------------------------------------------ 削除
+
+delete() {
+  local name=${1:-}
+  if [[ -z $name ]]; then
+    local -a options
+    mapfile -t options < <(names)
+    ((${#options[@]})) || exit 0
+    name=$(omarchy-menu-select "削除するプリセット" "${options[@]}" 2>/dev/null || true)
+  fi
+  [[ -n $name ]] || exit 0
+  jq -e --arg n "$name" 'has($n)' "$presets" >/dev/null || { echo "プリセットがありません: $name" >&2; exit 1; }
+  local yes
+  yes=$(omarchy-menu-select "「$name」を削除しますか" "削除する" "やめる" 2>/dev/null || true)
+  [[ $yes == "削除する" ]] || exit 0
+  jq --arg n "$name" 'del(.[$n])' "$presets" | write_presets
+  notify "プリセットを削除" "$name"
+}
+
+# ------------------------------------------------------------------ メニュー
+
+SAVE_LABEL="󰆓  今の配置を保存…"
+DELETE_LABEL="󰆴  プリセットを削除…"
+
+menu() {
+  local -a options
+  mapfile -t options < <(names | while read -r n; do
+    printf '%s  %s\n' "$(jq -r --arg n "$n" '.[$n].icon // "󰕰"' "$presets")" "$n"
+  done)
+  options+=("$SAVE_LABEL" "$DELETE_LABEL")
+  local choice
+  choice=$(omarchy-menu-select "Preset" "${options[@]}" 2>/dev/null) || exit 0
+  case $choice in
+    "") exit 0 ;;
+    "$SAVE_LABEL") save ;;
+    "$DELETE_LABEL") delete ;;
+    *) apply "${choice#*  }" ;;
+  esac
 }
 
 case "${1:-}" in
   --list) names ;;
-  "")
-    mapfile -t options < <(names | while read -r n; do
-      printf '%s  %s\n' "$(jq -r --arg n "$n" '.[$n].icon // "󰕰"' "$presets")" "$n"
-    done)
-    choice=$(omarchy-menu-select "Preset" "${options[@]}" 2>/dev/null) || exit 0
-    [[ -n $choice ]] || exit 0
-    apply "${choice#*  }"
-    ;;
+  "") menu ;;
+  save) shift; save "${*:-}" ;;
+  delete) shift; delete "${*:-}" ;;
   *) apply "$1" ;;
 esac
