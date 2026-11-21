@@ -15,7 +15,8 @@ names() { jq -r 'to_entries[] | select(.key | startswith("_") | not) | .key' "$p
 
 dispatch() {
   if [[ -n ${DRY:-} ]]; then echo "[dry] $1"; return; fi
-  hyprctl dispatch "$1" >/dev/null
+  # Lua 構成用の Lua 式を送る (dotfiles の決まりで hypr-dispatch 経由)
+  "$HOME/dotfiles/scripts/hypr-dispatch" "$1" >/dev/null
 }
 
 # Lua の文字列リテラル (ダブルクォート) に入れられる形にする
