@@ -7,8 +7,8 @@ WezTerm	^Q g	プロジェクトを開く。zoxide の履歴から選ぶと専用
 WezTerm	^Q c	Claude Code セッション切替。状態 (作業中/入力待ち/要対応) を色付きで一覧
 WezTerm	^Q l	ランチャー。Lazygit / Neovim / Yazi / Claude / gh-dash / btop をズームしたペインで起動
 WezTerm	^Q w	ワークスペース一覧から切替。Shift+C で新規作成
-WezTerm	^Super s	scratch ワークスペースを出し入れ (使い捨て作業用)
-WezTerm	^Super n / p	scratch を飛ばして次/前のワークスペースへ
+WezTerm	^Q Space	scratch ワークスペースを出し入れ (使い捨て作業用)
+WezTerm	^Q ] / [	scratch を飛ばして次/前のワークスペースへ
 WezTerm	^Q z	直前のコマンドとその出力をまとめてクリップボードへ。エラー共有に便利
 WezTerm	^Q b	スクロールバック全体を Neovim で開く。検索・コピーし放題
 WezTerm	^Q o	Smart Open: 画面上の URL / path:line / owner/repo / コミットハッシュを選んで開く
@@ -20,7 +20,7 @@ WezTerm	^⇧C	ペインを1行に最小化 / 元に戻す
 WezTerm	^⇧H/J/K/L	ペイン間を移動
 WezTerm	^⇧X	コピーモード: vim キーで移動、v で選択、y でコピー、[ ] でプロンプト間ジャンプ
 WezTerm	Alt+[ / Alt+]	前/次のプロンプトへスクロール (シェル統合)
-WezTerm	⌘Space	QuickSelect: URL・パス・ハッシュ・IP にラベルが付き、キー1つでコピー
+WezTerm	^⇧Space	QuickSelect: URL・パス・ハッシュ・IP にラベルが付き、キー1つでコピー
 WezTerm	^⇧P	コマンドパレット。自作操作も説明付きで並んでいる
 WezTerm	^⇧U	文字選択 (絵文字・Nerd Font アイコン) をコピー
 WezTerm	^Q ,	タブ名を変更 (空にすると自動名に戻る)
@@ -61,9 +61,9 @@ Git	git (設定)	rerere 有効: 一度解決したコンフリクトは次回自
 # --- Hyprland / Omarchy ---
 Hyprland	⌘`	ドロップダウン端末。上からスライドして出る使い捨て WezTerm
 Hyprland	⌘S / ⌘Alt S	スクラッチパッドの表示 / ウィンドウをスクラッチパッドへ
-Hyprland	⌘V	クリップボード履歴 (cliphist) から選んで貼り付け
+Hyprland	⌘^V	クリップボード履歴 (Omarchy 標準パネル) から選んで貼り付け。⌘V は貼り付け
 Hyprland	⌘Alt ← / →	ワークスペースを左右に移動
-Hyprland	⌘T	WezTerm を新しく開く
+Hyprland	⌘T	WezTerm を新しく開く (新規タブは ^⇧T)
 Hyprland	Waybar 右上	dotfiles の未コミット数ピル。クリックで lazygit
 Hyprland	Waybar ✳	Claude セッション数。クリックで WezTerm へフォーカス
 Hyprland	Omarchy メニュー	Setup > Dotfiles から Edit / Git / Doctor / Reapply / Spurs Mode

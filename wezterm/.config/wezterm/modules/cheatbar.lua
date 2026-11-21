@@ -21,9 +21,10 @@ local CONTEXTS = {
     name = "wezterm", icon = "", color = palette.accent, scale = 0.82,
     keys = {
       { LEADER .. " g", "project" }, { LEADER .. " l", "launch" }, { LEADER .. " c", "claude" },
-      { LEADER .. " r/d", "split" }, { LEADER .. " f", "zoom" }, { LEADER .. " w", "workspace" },
+      { LEADER .. " r/d", "split" }, { LEADER .. " x", "close pane" }, { LEADER .. " q", "close tab" }, { LEADER .. " f", "zoom" }, { LEADER .. " w", "workspace" },
       { LEADER .. " z", "copy last" }, { "^⇧HJKL", "pane" }, { "⌥←→", "tab" }, { "^R", "history" },
-      { "^T", "tv" }, { "⌘`", "dropdown" }, { "⌘Space", "quick select" }, { "⌘F", "search" },
+      { "^T", "tv" }, { "⌘`", "dropdown" }, { "^⇧Space", "quick select" }, { "^⇧F", "search" }, { LEADER .. " 1-9", "tab #" },
+      { LEADER .. " ␣", "scratch" }, { LEADER .. " [ ]", "workspace ←→" },
       { "^⇧X", "copy mode" }, { LEADER .. " ,", "rename" }, { LEADER .. " b", "scrollback" },
       { LEADER .. " o", "smart open" }, { "^⇧P", "palette" }, { LEADER .. " /", "cheatsheet" },
     },

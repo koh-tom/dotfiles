@@ -84,13 +84,12 @@ local keys = {
   { key = "r", mods = "SUPER", action = act.ReloadConfiguration },
   { key = "R", mods = "CTRL|SHIFT", action = act.ReloadConfiguration },
 
-  -- フォントサイズ変更
+  -- フォントサイズ変更 (SUPER+I / SUPER+O は Hyprland の入力言語切替・pop out に取られるので外した。
+  -- CTRL+= / CTRL+- / CTRL+0 は WezTerm 既定でも使える)
   { key = "phys:Equal", mods = "SUPER", action = act.IncreaseFontSize },
   { key = "phys:Equal", mods = "SHIFT|SUPER", action = act.IncreaseFontSize },
   { key = "phys:Semicolon", mods = "SHIFT|SUPER", action = act.IncreaseFontSize },
-  { key = "i", mods = "SUPER", action = act.IncreaseFontSize },
   { key = "phys:Minus", mods = "SUPER", action = act.DecreaseFontSize },
-  { key = "o", mods = "SUPER", action = act.DecreaseFontSize },
   { key = "phys:0", mods = "SUPER", action = act.ResetFontSize },
 
   -- タブ操作
@@ -102,20 +101,17 @@ local keys = {
   { key = "RightArrow", mods = "ALT", action = switch_then_sync(act.ActivateTabRelative(1)) },
   { key = "LeftArrow", mods = "ALT|SHIFT", action = act.MoveTabRelative(-1) },
   { key = "RightArrow", mods = "ALT|SHIFT", action = act.MoveTabRelative(1) },
-  { key = "1", mods = "SUPER", action = act.ActivateTab(0) },
-  { key = "2", mods = "SUPER", action = act.ActivateTab(1) },
-  { key = "3", mods = "SUPER", action = act.ActivateTab(2) },
-  { key = "4", mods = "SUPER", action = act.ActivateTab(3) },
-  { key = "5", mods = "SUPER", action = act.ActivateTab(4) },
-  { key = "6", mods = "SUPER", action = act.ActivateTab(5) },
-  { key = "7", mods = "SUPER", action = act.ActivateTab(6) },
-  { key = "8", mods = "SUPER", action = act.ActivateTab(7) },
-  { key = "9", mods = "SUPER", action = act.ActivateTab(-1) },
-  { key = "t", mods = "SUPER", action = act.SpawnTab("CurrentPaneDomain") },
-  -- SUPER+W は Omarchy(Hyprland) が「Close window」で先に奪うため WezTerm には届かず、
-  -- ウィンドウごと落ちる。Omarchy 上では LEADER + q (quit tab) でタブだけ閉じる。
-  -- (LEADER + w は workspace.lua のワークスペース切替で使用中)
-  { key = "w", mods = "SUPER", action = act.CloseCurrentTab({ confirm = true }) },
+  -- 番号のタブへ: LEADER + 1〜9 (SUPER+数字は Hyprland のワークスペース切替に取られる)
+  { key = "1", mods = "LEADER", action = switch_then_sync(act.ActivateTab(0)) },
+  { key = "2", mods = "LEADER", action = switch_then_sync(act.ActivateTab(1)) },
+  { key = "3", mods = "LEADER", action = switch_then_sync(act.ActivateTab(2)) },
+  { key = "4", mods = "LEADER", action = switch_then_sync(act.ActivateTab(3)) },
+  { key = "5", mods = "LEADER", action = switch_then_sync(act.ActivateTab(4)) },
+  { key = "6", mods = "LEADER", action = switch_then_sync(act.ActivateTab(5)) },
+  { key = "7", mods = "LEADER", action = switch_then_sync(act.ActivateTab(6)) },
+  { key = "8", mods = "LEADER", action = switch_then_sync(act.ActivateTab(7)) },
+  { key = "9", mods = "LEADER", action = switch_then_sync(act.ActivateTab(-1)) },
+  -- 新規タブは WezTerm 既定の CTRL+SHIFT+T。タブを閉じるのは LEADER + q (SUPER+T / SUPER+W は Hyprland が使う)
   { key = "q", mods = "LEADER", action = act.CloseCurrentTab({ confirm = true }) },
   
   -- タブリネーム (LEADER + ,)
@@ -174,12 +170,12 @@ local keys = {
   { key = "[", mods = "ALT", action = act.ScrollToPrompt(-1) },
   { key = "]", mods = "ALT", action = act.ScrollToPrompt(1) },
   
-  { key = "c", mods = "SUPER", action = act.CopyTo("Clipboard") },
-  { key = "v", mods = "SUPER", action = act.PasteFrom("Clipboard") },
+  -- コピー/貼り付けは Omarchy の Universal copy/paste (SUPER+C/V) が CTRL+SHIFT+C/V を送ってくる
   { key = "P", mods = "CTRL", action = act.ActivateCommandPalette },
   { key = "U", mods = "CTRL", action = act.CharSelect({ copy_on_select = true }) },
-  { key = " ", mods = "SUPER", action = act.QuickSelect },
-  { key = "f", mods = "SUPER", action = act.Search("CurrentSelectionOrEmptyString") },
+  -- QuickSelect は WezTerm 既定の CTRL+SHIFT+Space、検索は CTRL+SHIFT+F
+  -- (SUPER+Space は Omarchy メニュー、SUPER+F はフルスクリーンに取られる)
+  { key = "f", mods = "SHIFT|CTRL", action = act.Search("CurrentSelectionOrEmptyString") },
   { key = "Enter", mods = "SHIFT", action = wezterm.action.SendString("\n") },
 
   -- 直前コマンドと出力をコピー (LEADER + z)

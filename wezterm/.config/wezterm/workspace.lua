@@ -60,9 +60,10 @@ end
 
 function module.apply_to_config(config)
   local workspace_keys = {
-    { key = "s", mods = "CTRL|SUPER", action = toggle_scratch_workspace() },
-    { key = "n", mods = "CTRL|SUPER", action = switch_to_next_workspace_skip_scratch() },
-    { key = "p", mods = "CTRL|SUPER", action = switch_to_prev_workspace_skip_scratch() },
+    -- CTRL+SUPER+S/N/P は Quattro の Share / Network / Power に取られるので LEADER へ移した
+    { key = "Space", mods = "LEADER", action = toggle_scratch_workspace() },
+    { key = "]", mods = "LEADER", action = switch_to_next_workspace_skip_scratch() },
+    { key = "[", mods = "LEADER", action = switch_to_prev_workspace_skip_scratch() },
     
     {
       key = "w",
