@@ -131,6 +131,8 @@ require("modules.background").apply_to_config(config)
 -- セッション復元でタブが全部開いたり、メインのセッションを上書きしたりしないよう外す
 if not os.getenv("WEZTERM_DROPDOWN") then
 	require("modules.session").apply_to_config(config)
+	-- 15分ごとの自動保存と、保存済み状態の選択復元 (LEADER + Shift+R)
+	require("modules.resurrect").apply_to_config(config)
 end
 require("modules.notify").apply_to_config(config)
 require("modules.hyperlinks").apply_to_config(config)

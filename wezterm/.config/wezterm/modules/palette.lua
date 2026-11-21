@@ -19,6 +19,7 @@ local ENTRIES = {
   { key = "t", brief = "Color scheme: 一時的に切替", icon = "md_palette" },
   { key = "p", brief = "AWS: プロファイル選択", icon = "md_aws" },
   { key = "S", mods = "LEADER|SHIFT", brief = "Session: 手動保存", icon = "md_content_save" },
+  { key = "R", mods = "LEADER|SHIFT", brief = "Session: 自動保存した状態から選んで復元", icon = "md_history" },
   { key = "n", brief = "Tip: 次の tip を表示", icon = "md_lightbulb_on" },
   { key = "/", brief = "Cheatsheet: キー・スニペット一覧", icon = "md_help_circle" },
   { key = "s", brief = "Resize mode: ペインサイズ調整", icon = "md_resize" },
