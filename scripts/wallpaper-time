@@ -1,0 +1,97 @@
+#!/bin/bash
+# 時刻で壁紙を変える (Pond の "Dynamic" 壁紙風)。
+# 今のテーマの backgrounds/ を明るさ順に並べ、夜は暗い絵・昼は明るい絵・朝夕はその間を選ぶ。
+# systemd user timer (wallpaper-time.timer) が15分ごとに呼ぶ。切り替えは Omarchy 標準の omarchy-theme-bg-set。
+#
+#   wallpaper-time            今の時刻に合わせる (変わらなければ何もしない)
+#   wallpaper-time dynamic    時刻連動を有効にして、すぐ合わせる
+#   wallpaper-time custom     時刻連動を止める (自分で選んだ壁紙をそのまま使う)
+#   wallpaper-time status     今のモードと、時間帯ごとに選ばれる壁紙を表示
+set -euo pipefail
+
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles"
+mode_file="$state_dir/wallpaper-mode"
+cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/dotfiles"
+theme_dir="$HOME/.local/state/omarchy/current/theme"
+bg_dir="$theme_dir/backgrounds"
+current_link="$HOME/.local/state/omarchy/current/background"
+
+mode() { [[ -r $mode_file ]] && cat "$mode_file" || echo dynamic; }
+
+# 画像の平均の明るさ (0..1)。重いので画像ごとに cache する
+brightness() {
+  local file=$1 key out
+  key=$(stat -c '%s-%Y' "$file")-$(basename "$file")
+  out="$cache_dir/wallpaper-brightness/$key"
+  if [[ ! -r $out ]]; then
+    mkdir -p "$(dirname "$out")"
+    magick "$file" -resize 64x64! -colorspace Gray -format '%[fx:mean]' info: >"$out" 2>/dev/null || echo 0.5 >"$out"
+  fi
+  cat "$out"
+}
+
+# 明るさの昇順に並べた背景一覧
+sorted_backgrounds() {
+  local f
+  shopt -s nullglob
+  for f in "$bg_dir"/*.{png,jpg,jpeg,webp}; do
+    printf '%s\t%s\n' "$(brightness "$f")" "$f"
+  done | sort -n | cut -f2
+}
+
+# 時間帯 → 明るさの位置 (0 = いちばん暗い, 1 = いちばん明るい)
+slot_for_hour() {
+  local h=$((10#$1))
+  if ((h >= 20 || h < 5)); then echo night
+  elif ((h < 8)); then echo dawn
+  elif ((h < 17)); then echo day
+  else echo dusk
+  fi
+}
+
+pick() {
+  local slot=$1
+  local -a list
+  mapfile -t list < <(sorted_backgrounds)
+  local n=${#list[@]}
+  ((n > 0)) || return 1
+  local i
+  case $slot in
+    night) i=0 ;;
+    day) i=$((n - 1)) ;;
+    dawn) i=$(((n - 1) / 3)) ;;
+    dusk) i=$(((n - 1) * 2 / 3)) ;;
+  esac
+  echo "${list[$i]}"
+}
+
+apply() {
+  [[ $(mode) == dynamic ]] || return 0
+  [[ -d $bg_dir ]] || return 0
+  local target
+  target=$(pick "$(slot_for_hour "$(date +%H)")") || return 0
+  if [[ $(readlink -f "$current_link" 2>/dev/null) != "$(readlink -f "$target")" ]]; then
+    omarchy-theme-bg-set "$target"
+  fi
+}
+
+case "${1:-}" in
+  "") apply ;;
+  dynamic)
+    mkdir -p "$state_dir" && echo dynamic >"$mode_file"
+    apply
+    notify-send -a Wallpaper "壁紙: 時刻連動" "朝・昼・夕・夜で切り替えます" 2>/dev/null || true
+    ;;
+  custom)
+    mkdir -p "$state_dir" && echo custom >"$mode_file"
+    notify-send -a Wallpaper "壁紙: 固定" "今の壁紙をそのまま使います" 2>/dev/null || true
+    ;;
+  status)
+    echo "mode: $(mode)"
+    for s in dawn day dusk night; do printf '%-6s %s\n' "$s" "$(pick "$s" 2>/dev/null || echo -)"; done
+    ;;
+  *)
+    echo "usage: wallpaper-time [dynamic|custom|status]" >&2
+    exit 1
+    ;;
+esac
