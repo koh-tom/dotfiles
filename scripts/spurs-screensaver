@@ -1,0 +1,92 @@
+#!/bin/bash
+# Omarchy のスクリーンセーバー (ttfx がこのテキストにランダムなエフェクトをかける) を Spurs 仕様にする。
+# 雄鶏と COYS の文字に、次の試合とキックオフまでの残り時間を添えて
+# ~/.config/omarchy/branding/screensaver.txt に書く。スクリーンセーバーはループのたびに読み直すので、
+# systemd user timer (spurs-screensaver.timer) で10分ごとに作り直せばカウントダウンが進む。
+#
+#   spurs-screensaver          作り直す
+#   spurs-screensaver restore  Omarchy の元のテキストに戻す (タイマーは別途 disable)
+set -euo pipefail
+
+target="$HOME/.config/omarchy/branding/screensaver.txt"
+backup="$target.omarchy-default"
+cache="${XDG_CACHE_HOME:-$HOME/.cache}/dotfiles/spurs-fixture.json"
+
+if [[ ${1:-} == restore ]]; then
+  [[ -r $backup ]] && cp "$backup" "$target"
+  exit 0
+fi
+
+mkdir -p "$(dirname "$target")"
+# Omarchy の元のテキストは一度だけ取っておく
+[[ -e $backup || ! -e $target ]] || cp "$target" "$backup"
+
+# キャッシュ (6時間) の更新はバーのピルと同じスクリプトに任せる
+"$HOME/dotfiles/scripts/waybar-spurs-fixture" >/dev/null 2>&1 || true
+
+next_line=$(python3 - "$cache" <<'PY' 2>/dev/null || true
+import json, sys
+from datetime import datetime, timezone
+try:
+    events = json.load(open(sys.argv[1])).get("events") or []
+except Exception:
+    events = []
+now = datetime.now(timezone.utc)
+for e in events:
+    ts = e.get("strTimestamp")
+    if not ts:
+        continue
+    try:
+        kickoff = datetime.fromisoformat(ts).replace(tzinfo=timezone.utc)
+    except ValueError:
+        continue
+    if kickoff <= now:
+        continue
+    home, away = e.get("strHomeTeam", "?"), e.get("strAwayTeam", "?")
+    spurs_home = "Tottenham" in home
+    opponent = away if spurs_home else home
+    left = kickoff - now
+    days, rem = divmod(int(left.total_seconds()), 86400)
+    hours, rem = divmod(rem, 3600)
+    minutes = rem // 60
+    if days:
+        until = f"{days}d {hours}h"
+    elif hours:
+        until = f"{hours}h {minutes:02d}m"
+    else:
+        until = f"{minutes}m"
+    local = kickoff.astimezone()
+    matchday = local.date() == datetime.now().date()
+    head = "MATCHDAY" if matchday else "NEXT"
+    print(f"{head}  ·  vs {opponent} ({'H' if spurs_home else 'A'})  ·  {local.strftime('%a %d %b %H:%M').upper()}  ·  KICK-OFF IN {until}")
+    break
+PY
+)
+
+{
+  cat <<'ART'
+                 ▄█▄
+                ████▀▄
+           ▄▄   ▀███▀
+          ████▄▄████▄
+           ▀█████████
+              ▀██▀█▀
+               █  █
+             ▄▄█▄▄█▄▄
+             ▄██████▄
+            ██████████
+             ▀██████▀
+
+ ▄█████▄   ▄█████▄   ██     ██   ▄██████▄
+██     ▀  ██     ██   ██   ██   ██
+██        ██     ██    ██ ██     ▀█████▄
+██     ▄  ██     ██     ███            ██
+ ▀█████▀   ▀█████▀      ███      ▀██████▀
+
+       T O T T E N H A M   H O T S P U R
+ART
+  if [[ -n $next_line ]]; then
+    printf '\n%s\n' "$next_line"
+  fi
+} >"$target.tmp"
+mv "$target.tmp" "$target"
