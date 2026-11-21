@@ -1,0 +1,9 @@
+# GitHub Actions の結果を取得して、終わったら通知する (scripts/ci-status)
+[Unit]
+Description=GitHub Actions status (dotfiles)
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/dotfiles/scripts/ci-status poll
+TimeoutStartSec=90
