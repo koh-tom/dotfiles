@@ -58,7 +58,11 @@ end
 
 -- JSON デコーダ (Wezterm 内蔵優先)
 local function parse_json(s)
-  if wezterm.json_decode then return wezterm.json_decode(s) end
+  -- WezTerm 内蔵は json_parse (json_decode という API は無い)
+  if wezterm.json_parse then
+    local ok, v = pcall(wezterm.json_parse, s)
+    if ok then return v end
+  end
   -- 簡易デコード
   local pos = 1
   local function skip_ws() while pos <= #s and s:sub(pos, pos):match("%s") do pos = pos + 1 end end
