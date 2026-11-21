@@ -42,3 +42,4 @@ require("hypr.personal.clip-presets")      -- clip-presets.conf
 require("hypr.personal.windows")           -- windows.conf
 require("hypr.personal.gestures")          -- gestures.conf
 require("hypr.personal.legacy-defaults")   -- 3.8.1 既定のうち Quattro で消えるキーの復元
+require("hypr.personal.overview")          -- ワークスペース一覧 (Mission Control 風)

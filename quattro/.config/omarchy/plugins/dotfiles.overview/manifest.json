@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "dotfiles.overview",
+  "name": "Workspace Overview",
+  "version": "1.0.0",
+  "author": "koh-tom",
+  "description": "Mac の Mission Control 風に、全ワークスペースをライブサムネイルで並べて選ぶ",
+  "kinds": [
+    "overlay"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "overlay": "Overview.qml"
+  }
+}
