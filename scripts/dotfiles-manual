@@ -17,7 +17,7 @@ generate() {
 
 困ったら **SUPER+SHIFT+K** でいつでもここに戻れます。Omarchy 標準のキー一覧は **SUPER+K**。
 
-## まず覚える 10 個
+## まず覚える 13 個
 
 | キー | できること |
 |---|---|
@@ -31,6 +31,9 @@ generate() {
 | `ALT+←/→` | WezTerm: タブを移動 |
 | `CTRL+SHIFT+H/J/K/L` | WezTerm: ペインを移動 |
 | `CTRL+Q` → `/` | WezTerm: 全キーと全スニペットのチートシート |
+| `SUPER+ALT+P` | ワークスペースのプリセット (研究・開発・連絡) |
+| `SUPER+ALT+N` | ひらめきメモ (Obsidian の今日のノートに1行追記) |
+| `CTRL+Q` → `h` | WezTerm: 研究室などのマシンを新しいタブで開く |
 
 WezTerm の上の帯には、今開いているアプリ (シェル・Claude・nvim・lazygit・yazi) のキーが出ています。
 
@@ -39,6 +42,8 @@ WezTerm の上の帯には、今開いているアプリ (シェル・Claude・n
 - **Claude Code**: 入力待ち・許可待ちになると通知が出て、「開く」でそのタブへ移動します。
 - **壁紙**: 時刻で切り替わります (朝・昼・夕・夜)。固定・戻すは Omarchy メニューの Setup > Config > Dotfiles > Wallpaper (または `~/dotfiles/scripts/wallpaper-time custom` / `dynamic`)。
 - **WezTerm のセッション**: 15分ごとに自動保存。`CTRL+Q` → `Shift+R` で選んで戻せます。
+- **発表モード**: pdfpc や画面共有の間は自動で通知が止まり、終わると戻ります。
+- **プリセット**: 中身は `~/dotfiles/presets/workspaces.json`。起動済みのアプリは新しく開かずに移動します。
 - **バックアップ**: Backrest の画面 <http://127.0.0.1:9898>。
 - **困ったとき**: `mise run doctor` (dotfiles の自己点検)、`tests/quattro-parity/run` (移行前との比較)。
 EOF
