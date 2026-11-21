@@ -1,7 +1,0 @@
-# スクリーンセーバーのテキスト (雄鶏 + COYS + 次の試合までの残り時間) を作り直す (scripts/spurs-screensaver)
-[Unit]
-Description=Spurs screensaver text (dotfiles)
-
-[Service]
-Type=oneshot
-ExecStart=%h/dotfiles/scripts/spurs-screensaver
