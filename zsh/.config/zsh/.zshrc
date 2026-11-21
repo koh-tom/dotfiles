@@ -127,7 +127,15 @@ zstyle ':completion:*' format '%B%F{blue}%d%f%b'
 zstyle ':completion:*' group-name ""
 zstyle ':completion:*:default' menu select=2
 autoload -Uz compinit
-compinit -d "$_zsh_cache_dir/zcompdump-$ZSH_VERSION"
+# dump が24時間以内なら compaudit (権限チェック、約18ms) を省く。古ければ通常どおり作り直す
+_zcompdump="$_zsh_cache_dir/zcompdump-$ZSH_VERSION"
+_zcompdump_fresh=( $_zcompdump(N.mh-24) )
+if (( ${#_zcompdump_fresh} )); then
+  compinit -C -d "$_zcompdump"
+else
+  compinit -d "$_zcompdump"
+fi
+unset _zcompdump _zcompdump_fresh
 
 # ----------------------------------------------------
 # 10.5. Modern shell tools (compinit / zeno の後に読む)
