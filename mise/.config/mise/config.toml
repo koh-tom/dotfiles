@@ -5,7 +5,6 @@ python = "3.13.3"
 uv = "latest"
 
 # --- AI Tools (Example based) ---
-"npm:@anthropic-ai/claude-code" = "latest"
 "npm:czg" = "latest"
 
 # --- Recommended TUI Utils ---
