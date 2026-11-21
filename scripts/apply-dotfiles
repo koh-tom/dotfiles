@@ -66,8 +66,6 @@ if dotfiles_is_quattro; then
   # --ignore はディレクトリ畳み込み (フォルダごとのリンク) を防げないので、
   # 無視するファイルの親ディレクトリは実ディレクトリとして先に作っておく
   run mkdir -p "$HOME/.config/environment.d" "$HOME/.config/omarchy/extensions"
-  # systemd はリンクになった drop-in ディレクトリ (*.service.d) を読まないので、これも実ディレクトリにする
-  run mkdir -p "$HOME/.config/systemd/user/superwhisper.service.d"
 fi
 
 if ((dry_run)); then
