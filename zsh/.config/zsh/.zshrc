@@ -33,6 +33,8 @@ sheldon_toml="$HOME/.config/sheldon/plugins.toml"
 # Zeno needs this before Sheldon loads the plugin.
 # スニペット定義 (config.yml) はdotfilesで管理する
 export ZENO_HOME="${XDG_CONFIG_HOME:-$HOME/.config}/zeno"
+# 起動のたびに走る `deno cache` (約11ms) を省く。zeno 更新後に補完が壊れたら一度 unset して起動すれば作り直される
+export ZENO_DISABLE_EXECUTE_CACHE_COMMAND=1
 
 if [[ ! -r "$sheldon_cache" || "$sheldon_toml" -nt "$sheldon_cache" ]]; then
   mkdir -p "$cache_dir"
