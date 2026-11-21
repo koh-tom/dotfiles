@@ -95,13 +95,9 @@ case $phase in
 
     say "2. Omarchy が生成した既定 Lua / shell.json を退避 (dotfiles 版に差し替えるため)"
     stamp=$(date +%Y%m%d%H%M%S)
-    for f in hypr/hyprland.lua hypr/bindings.lua hypr/input.lua hypr/looknfeel.lua hypr/autostart.lua \
-             omarchy/shell.json omarchy/extensions/omarchy-menu.jsonc; do
-      target="$HOME/.config/$f"
-      if [[ -f $target && ! -L $target ]]; then
-        run mv "$target" "$target.quattro-default.$stamp"
-      fi
-    done
+    # shellcheck source=lib/quattro-defaults.sh
+    source "$root/scripts/lib/quattro-defaults.sh"
+    backup_quattro_defaults "$stamp" run
 
     say "3. モニタ設定 (ホスト固有なので stow せず通常ファイルとしてコピー)"
     monitors="$HOME/.config/hypr/monitors.lua"
