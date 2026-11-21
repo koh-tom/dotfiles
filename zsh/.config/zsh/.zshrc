@@ -1,3 +1,6 @@
+# 起動時間の内訳を見るとき: ZSH_PROFILE=1 zsh -i -c exit
+if [[ -n $ZSH_PROFILE ]]; then zmodload zsh/zprof; fi
+
 # Runtime state belongs outside the Stow-managed source tree.
 _zsh_cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/zsh"
 _zsh_state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/zsh"
@@ -161,3 +164,5 @@ if [[ "$TERM_PROGRAM" == "WezTerm" ]] && (( $+commands[fastfetch] )); then
     "$HOME/dotfiles/scripts/dotfiles-tip"
   fi
 fi
+
+if [[ -n $ZSH_PROFILE ]]; then zprof | head -20; fi
