@@ -1,0 +1,68 @@
+#!/bin/bash
+# ワークスペースのプリセット。presets/workspaces.json に書いた「どのワークスペースに何を置くか」をまとめて実行する。
+# 起動していないアプリはそのワークスペースに開き、起動済みのアプリは新しく開かずにそこへ移す。
+#
+#   workspace-preset             一覧から選ぶ (SUPER+ALT+P / Omarchy メニューの Dotfiles > Presets)
+#   workspace-preset <名前>       そのプリセットを実行
+#   workspace-preset --list      名前の一覧
+#   DRY=1 workspace-preset <名前> 実行せずに Hyprland へ送る内容だけ表示
+set -euo pipefail
+
+presets="$HOME/dotfiles/presets/workspaces.json"
+[[ -r $presets ]] || { echo "presets がありません: $presets" >&2; exit 1; }
+
+names() { jq -r 'to_entries[] | select(.key | startswith("_") | not) | .key' "$presets"; }
+
+dispatch() {
+  if [[ -n ${DRY:-} ]]; then echo "[dry] $1"; return; fi
+  hyprctl dispatch "$1" >/dev/null
+}
+
+# Lua の文字列リテラル (ダブルクォート) に入れられる形にする
+lua_str() { local s=${1//\\/\\\\}; s=${s//\"/\\\"}; printf '"%s"' "$s"; }
+
+apply() {
+  local name=$1 entries clients ws cmd class app address moved=0 started=0
+  jq -e --arg n "$name" 'has($n)' "$presets" >/dev/null || { echo "プリセットがありません: $name" >&2; exit 1; }
+  entries=$(jq -c --arg n "$name" '.[$n].workspaces | to_entries[] | .key as $ws | .value[] | {ws: $ws} + .' "$presets")
+  clients=$(hyprctl clients -j)
+
+  while IFS= read -r app; do
+    [[ -n $app ]] || continue
+    ws=$(jq -r '.ws' <<<"$app")
+    cmd=$(jq -r '.cmd' <<<"$app")
+    class=$(jq -r '.class // ""' <<<"$app")
+    address=""
+    if [[ -n $class ]]; then
+      address=$(jq -r --arg re "$class" 'map(select(.class | test($re; "i"))) | .[0].address // ""' <<<"$clients")
+    fi
+    if [[ -n $address ]]; then
+      dispatch "hl.dsp.window.move({ workspace = $(lua_str "$ws"), follow = false, window = $(lua_str "address:$address") })"
+      moved=$((moved + 1))
+      # 同じアプリを2回目以降の指定で使い回さないよう、移したウィンドウは候補から外す
+      clients=$(jq --arg a "$address" 'map(select(.address != $a))' <<<"$clients")
+    else
+      dispatch "hl.dsp.exec_cmd($(lua_str "$cmd"), { workspace = $(lua_str "$ws silent") })"
+      started=$((started + 1))
+    fi
+  done <<<"$entries"
+
+  local focus
+  focus=$(jq -r --arg n "$name" '.[$n].focus // empty' "$presets")
+  [[ -n $focus ]] && dispatch "hl.dsp.focus({ workspace = $(lua_str "$focus") })"
+  [[ -n ${DRY:-} ]] && return
+  notify-send -a "Workspace" "プリセット: $name" "起動 $started / 移動 $moved" 2>/dev/null || true
+}
+
+case "${1:-}" in
+  --list) names ;;
+  "")
+    mapfile -t options < <(names | while read -r n; do
+      printf '%s  %s\n' "$(jq -r --arg n "$n" '.[$n].icon // "󰕰"' "$presets")" "$n"
+    done)
+    choice=$(omarchy-menu-select "Preset" "${options[@]}" 2>/dev/null) || exit 0
+    [[ -n $choice ]] || exit 0
+    apply "${choice#*  }"
+    ;;
+  *) apply "$1" ;;
+esac
