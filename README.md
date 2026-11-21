@@ -8,26 +8,32 @@ Omarchyを母艦にした、ターミナル中心の個人用dotfilesです。GN
 - `colors.toml` 1枚からOmarchyテーマ一式を生成する `tools/build_theme.py`
 - WezTermのworkspace、Project Cockpit (Dev Layout / `.cockpit.lua`)、Smart Open
 - Claude Code連携: タブ色が状態(working/waiting/attention)に追従、fzfセッション切替、Waybarセッション数
-- Starshipバッジと統一したピル型Waybar (+ dotfilesドリフト表示)
+- Starshipバッジと統一したピル型Waybar (+ dotfilesドリフト表示。Omarchy 3.x、Quattroでは `quattro/` のomarchy-shellバー)
 - zenoスニペット、czgコミットフロー、XDG準拠のZsh履歴・キャッシュ管理
 - セッション自動保存とペイン分割復元、ホスト別モニタープロファイル
 - `mise run doctor` による一括診断とGitHub Actionsの静的チェック
 
 ## Stowパッケージ
 
-| パッケージ | 対象 |
-|---|---|
-| `git` | Git / delta |
-| `mise` | CLIツール、環境変数、タスク、lockfile |
-| `starship` | フォールバック用プロンプト設定 |
-| `wezterm` | ターミナル、workspace、各種モジュール |
-| `zsh` | Zsh、Sheldon、補完、エイリアス |
-| `fastfetch` | Spursロゴ付きシステム表示 |
-| `omarchy` | テーマテンプレート、フック、メニュー拡張 |
-| `waybar` | ピル型上部バー (Claudeセッション数、dotfilesドリフト、Spurs次戦付き) |
-| `xdg-terminal` | WezTermを既定端末にする設定 |
-| `ssh` | 1Password SSH agent優先のSSH設定 |
-| `nvim` | Omarchy LazyVimに重ねる自分用プラグイン層 |
+一覧の定義は `scripts/lib/packages.sh` の1か所だけで、`apply-dotfiles`・`dotfiles-doctor`・CIが同じものを使います。Omarchy 4 (Quattro) か 3.x かは `/usr/share/omarchy/default/hypr/bootstrap.lua` の有無で自動判定します。
+
+| パッケージ | 対象 | 適用先 |
+|---|---|---|
+| `atuin` | シェル履歴 (Atuin) | 全環境 |
+| `git` | Git / delta | 全環境 |
+| `mise` | CLIツール、環境変数、タスク、lockfile | 全環境 |
+| `starship` | フォールバック用プロンプト設定 | 全環境 |
+| `wezterm` | ターミナル、workspace、各種モジュール | 全環境 |
+| `zsh` | Zsh、Sheldon、補完、エイリアス | 全環境 |
+| `fastfetch` | Spursロゴ付きシステム表示 | 全環境 |
+| `ssh` | 1Password SSH agent優先のSSH設定 | 全環境 |
+| `nvim` | Omarchy LazyVimに重ねる自分用プラグイン層 | 全環境 |
+| `chrome` | Chromeの起動フラグ | Omarchy |
+| `hypr` | Hyprlandの追加設定 (.conf。Quattroでは移植元として残し、`HYPRLAND_CONFIG` は張らない) | Omarchy |
+| `omarchy` | テーマテンプレート、フック、メニュー拡張 (`menu.sh` は3.xのみ) | Omarchy |
+| `xdg-terminal` | WezTermを既定端末にする設定 | Omarchy |
+| `quattro` | Hyprland Lua構成、omarchy-shell設定 (`shell.json`)、メニュー拡張 (`omarchy-menu.jsonc`)、shellプラグイン | Omarchy 4 (Quattro) のみ |
+| `waybar` | ピル型上部バー (Claudeセッション数、dotfilesドリフト、Spurs次戦付き) | Omarchy 3.x のみ (Quattroのバーはomarchy-shell) |
 
 ## Omarchyでの初回セットアップ
 
@@ -37,7 +43,7 @@ cd ~/dotfiles
 ./scripts/bootstrap-omarchy
 ```
 
-既存のOmarchy設定と競合するファイルは、同じディレクトリへタイムスタンプ付きでバックアップしてからStowします。`~/.local/share/omarchy/` は変更しません。
+既存のOmarchy設定と競合するファイルは、同じディレクトリへタイムスタンプ付きでバックアップしてからStowします。Quattroでは Omarchy が置く既定の `~/.config/hypr/{hyprland,bindings,input,looknfeel,autostart}.lua`・`~/.config/omarchy/shell.json`・`omarchy-menu.jsonc` を `*.quattro-default.<stamp>` へ退避します (`scripts/lib/quattro-defaults.sh`、`migrate-to-quattro post` と共通)。Omarchy本体 (Quattro: `/usr/share/omarchy/`、3.x: `~/.local/share/omarchy/`) は変更しません。
 
 セットアップ後に診断します。
 
@@ -50,12 +56,12 @@ mise run doctor
 
 ```bash
 mise run doctor          # 全設定の診断
-mise run apply           # 全Stowパッケージを再適用
+mise run apply           # 全Stowパッケージを再適用 (./scripts/apply-dotfiles --dry-run で予定だけ表示)
 mise run update          # Omarchyとシステムを更新
 mise run update-tools    # mise管理ツールを更新
 mise run apply-profile   # 現在ホストのモニター設定を適用
 mise run build-theme     # Spursテーマをcolors.tomlから再生成
-mise run install-spurs   # Spursテーマを生成して実体ディレクトリへ配置
+mise run install-spurs   # Spursテーマを生成して ~/.config/omarchy/themes/spurs へリンク
 mise run commit          # czgで対話式conventional commit
 mise run setup-signing   # 1Password SSH agentでコミット署名を有効化
 ./scripts/install-packages  # packages/*.txt のpacman/AURパッケージを導入
@@ -99,7 +105,7 @@ cd ~/dotfiles
 
 ## テーマ連携
 
-WezTermは `~/.config/omarchy/current/theme/colors.toml` と `omarchy font current` を直接参照します。Starshipは `omarchy/.config/omarchy/themed/starship.toml.tpl` からテーマ変更時に生成されます。
+WezTermは現在テーマの `colors.toml` (Quattro: `~/.local/state/omarchy/current/theme/`、3.x: `~/.config/omarchy/current/theme/`) と `omarchy font current` を直接参照します。Starshipは `omarchy/.config/omarchy/themed/starship.toml.tpl` からテーマ変更時に生成されます。
 
 さらに `scripts/generate-cli-theme` がテーマ変更のたびに fzf / zsh-autosuggestions の配色を再生成し、bat / delta は `ansi` テーマで端末パレットに自動追従します。テーマを替えるとプロンプト・ターミナル・CLIツールが一斉に染まります。
 
@@ -108,7 +114,12 @@ omarchy theme set Rainynight
 omarchy theme set Spurs
 ```
 
-テーマ／フォント変更フックはWezTerm設定を自動リロードします。Spursテーマは `themes/spurs/colors.toml` が唯一のソースで、残りのファイルは `mise run build-theme` (`tools/build_theme.py`) が生成します。インストール先は `~/.config/omarchy/themes/spurs/` です。
+テーマ／フォント変更フックはWezTerm設定を自動リロードします。Spursテーマは `themes/spurs/colors.toml` が唯一のソースで、残りのファイルは `mise run build-theme` (`tools/build_theme.py`) が生成します。`mise run install-spurs` は `~/.config/omarchy/themes/spurs` を `themes/spurs` へのシンボリックリンクにするので、再生成がそのまま反映されます。
+
+生成物はOmarchyの版で変わります (`build_theme.py` が自動判定、`--legacy` / `--quattro` で明示も可)。
+
+- **Quattro**: 同梱テーマと同じく `icons.theme`・`neovim.lua`・`preview.png` だけ。Quattroはテーマが同名ファイルを持っていないときだけテンプレートから各アプリ設定を生成するので、alacritty・btop・hyprland・chromium等はOmarchyのテンプレートに任せ、3.x用の生成物は消します。
+- **3.x** (`--legacy`): btop・hyprland.conf・hyprlock・mako・swayosd・waybar・wofi・alacritty・cava・chromium・vscode等を全部生成します。
 
 ## Claude Code連携
 
@@ -116,9 +127,9 @@ omarchy theme set Spurs
 
 ## ホスト固有設定
 
-共有しにくいモニター配置は `profiles/<hostname>/hypr/monitors.conf` に分離します。現在は `profiles/omarchy/` が登録されています。
+共有しにくいモニター配置は `profiles/<hostname>/hypr/monitors.lua` (Quattro) / `monitors.conf` (3.x) に分離します。現在は `profiles/omarchy/` が登録されています。
 
-`apply-host-profile` は既存の `~/.config/hypr/monitors.conf` をバックアップし、適用後に `hyprctl reload` と `hyprctl configerrors` を実行します。
+`apply-host-profile` は既存の `~/.config/hypr/monitors.{lua,conf}` があればバックアップし、適用後に `hyprctl reload` と `hyprctl configerrors` を実行します。
 
 ## HHKB Studio (keyd)
 
@@ -144,7 +155,8 @@ Bluetooth/USBで繋ぐHHKB Studio (日本語配列) を、keydでThinkPad X13 Ge
 - キャッシュ: `$XDG_CACHE_HOME`
 - 履歴・診断ログ: `$XDG_STATE_HOME`
 - Omarchyカスタムテーマ: `~/.config/omarchy/themes/`
-- Omarchy本体: `~/.local/share/omarchy/`。読み取りのみで編集禁止
+- Omarchyの現在テーマ: `~/.local/state/omarchy/current/` (Quattro。3.xは `~/.config/omarchy/current/`)
+- Omarchy本体: `/usr/share/omarchy/` (Quattro。3.xは `~/.local/share/omarchy/`)。読み取りのみで編集禁止
 
 ## OS依存の切り分け
 
@@ -152,7 +164,7 @@ Bluetooth/USBで繋ぐHHKB Studio (日本語配列) を、keydでThinkPad X13 Ge
 |---|---|---|
 | ツール群 (WezTerm・zsh・mise管理ツール・git・fastfetch・nvim層・Spurs静的配色) | ✅ フル対応 | ✅ `bootstrap-ubuntu` で移植 |
 | テーマ連携パイプライン (`omarchy theme set` → colors.toml → 各ツール) | ✅ | ❌ Omarchy本体が必要 |
-| Hyprland / Waybar / `omarchy-*` ヘルパー | ✅ | ❌ 対象外 (要Omarchy) |
+| Hyprland (Quattro: Lua / 3.x: .conf) / omarchy-shell・Waybar (3.xのみ) / `omarchy-*` ヘルパー | ✅ | ❌ 対象外 (要Omarchy) |
 | HHKB Studioのキー配置 (keyd) | ✅ `install-keyd` | ❌ 未対応 |
 | パッケージ管理 | `packages/pacman.txt` / `aur.txt` | `packages/apt.txt` |
 | 診断 | `mise run doctor` (フルチェック) | `mise run doctor` (ツール群のみ自動判定) |
