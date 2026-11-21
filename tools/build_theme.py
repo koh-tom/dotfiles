@@ -2,19 +2,45 @@
 """Omarchyテーマビルダー: colors.toml 1枚から各アプリのテーマファイルを生成する。
 
 使い方:
-    python3 tools/build_theme.py [themes/spurs]
+    python3 -B tools/build_theme.py [themes/spurs]            # 実機の Omarchy に合わせて自動判定
+    python3 -B tools/build_theme.py --legacy [themes/spurs]   # Omarchy 3.x 用の全ファイル
+    python3 -B tools/build_theme.py --quattro [themes/spurs]  # Omarchy 4 (Quattro) 用
+    python3 -B tools/build_theme.py --list [--legacy|--quattro]  # 生成されるべきファイル名を表示
 
-colors.toml (と backgrounds/) だけ手で書けば、btop / neovim / hyprland /
-hyprland.lua / hyprlock / mako / swayosd / waybar / alacritty / wofi / icons / preview.png
-を機械生成する。生成物はテーマディレクトリ直下に置かれ、
-`mise run install-spurs` でOmarchyへ配置される。
+colors.toml (と backgrounds/) だけ手で書けば、残りを機械生成する。
+
+- Omarchy 4 (Quattro): omarchy-theme-set-templates は「テーマが同名ファイルを同梱していない
+  ときだけ」テンプレートから各アプリ設定を生成する。同梱テーマ (/usr/share/omarchy/themes/*)
+  と同じく icons.theme / neovim.lua / preview.png だけを出し、alacritty・btop・hyprland・
+  chromium 等はテンプレート生成に任せる。3.x 用の生成物が残っていると生成を塞ぐので消す。
+  vscode.json も出さない (あると拡張指定とみなされ、テンプレート生成の VS Code テーマが使われない)。
+- Omarchy 3.x (--legacy): btop / neovim / hyprland.conf / hyprland.lua / hyprlock / mako /
+  swayosd / waybar / alacritty / wofi / cava / chromium / vscode / icons / preview.png を全部出す。
+
+生成物はテーマディレクトリ直下に置かれ、`mise run install-spurs` で Omarchy へリンクされる。
 """
 
+import argparse
 import re
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+QUATTRO_MARKER = Path("/usr/share/omarchy/default/hypr/bootstrap.lua")
+
+# Quattro の同梱テーマに倣って生成するファイル (colors.toml と backgrounds/ は手書きのソース)
+QUATTRO_FILES = ["icons.theme", "neovim.lua", "preview.png"]
+# 3.x でだけ生成するファイル。Quattro ではテンプレート生成を塞ぐので消す対象
+LEGACY_ONLY_FILES = [
+    "alacritty.toml", "btop.theme", "hyprland.conf", "hyprland.lua", "hyprlock.conf",
+    "mako.ini", "swayosd.css", "waybar.css", "wofi.css", "cava_theme", "chromium.theme",
+    "vscode.json",
+]
+LEGACY_FILES = QUATTRO_FILES + LEGACY_ONLY_FILES
+
+
+def is_quattro() -> bool:
+    return QUATTRO_MARKER.exists()
 
 
 def parse_colors(path: Path) -> dict:
@@ -36,7 +62,7 @@ def rgba(hex_color: str, alpha: float = 1.0) -> str:
     return f"rgba({r}, {g}, {b}, {alpha})"
 
 
-def build(theme_dir: Path) -> None:
+def build(theme_dir: Path, quattro: bool) -> None:
     p = parse_colors(theme_dir / "colors.toml")
     sel_bg = p.get("selection_background", p["color0"])
     name = theme_dir.name
@@ -288,6 +314,14 @@ gradient_count = {len(grad_colors)}
     # vscode.json: 専用テーマ拡張が無いため空定義 (存在だけ期待される)
     files["vscode.json"] = "{}\n"
 
+    if quattro:
+        files = {k: v for k, v in files.items() if k in QUATTRO_FILES}
+        for filename in LEGACY_ONLY_FILES:
+            stale = theme_dir / filename
+            if stale.is_file():
+                stale.unlink()
+                print(f"  removed {filename} (Quattro ではテンプレート生成に任せる)")
+
     for filename, content in files.items():
         (theme_dir / filename).write_text(content)
         print(f"  wrote {filename}")
@@ -330,10 +364,28 @@ def generate_preview(theme_dir: Path, p: dict) -> None:
     img.save(theme_dir / "preview.png")
 
 
-if __name__ == "__main__":
-    target = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "themes/spurs"
+def main() -> None:
+    parser = argparse.ArgumentParser(description="colors.toml から Omarchy テーマファイルを生成する")
+    parser.add_argument("theme_dir", nargs="?", default="themes/spurs")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--legacy", action="store_true", help="Omarchy 3.x 用の全ファイルを生成")
+    mode.add_argument("--quattro", action="store_true", help="Omarchy 4 (Quattro) 用だけを生成")
+    parser.add_argument("--list", action="store_true", help="生成されるべきファイル名を表示して終了")
+    args = parser.parse_args()
+
+    quattro = args.quattro or (not args.legacy and is_quattro())
+    expected = ["colors.toml"] + (QUATTRO_FILES if quattro else LEGACY_FILES)
+    if args.list:
+        print("\n".join(expected))
+        return
+
+    target = Path(args.theme_dir)
     if not target.is_absolute():
         target = ROOT / target
-    print(f"Building theme: {target}")
-    build(target)
+    print(f"Building theme: {target} ({'Omarchy 4 / Quattro' if quattro else 'Omarchy 3.x'})")
+    build(target, quattro)
     print("Done. `mise run install-spurs` で配置できます。")
+
+
+if __name__ == "__main__":
+    main()

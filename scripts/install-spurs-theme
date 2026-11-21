@@ -7,8 +7,25 @@ source_dir="$ROOT/themes/spurs"
 target_dir="$HOME/.config/omarchy/themes/spurs"
 
 # colors.tomlから全テーマファイルを再生成してから配置
-python3 "$ROOT/tools/build_theme.py" "$source_dir"
+# (Omarchy 4 / 3.x は build_theme.py が自動判定。-B は追跡中の __pycache__ を汚さないため)
+python3 -B "$ROOT/tools/build_theme.py" "$source_dir"
 
-mkdir -p "$target_dir"
-cp -a "$source_dir/." "$target_dir/"
-printf 'Installed Omarchy theme: Spurs\n'
+# コピーではなくシンボリックリンクで配置し、再生成や git pull がそのまま反映されるようにする
+# (omarchy-theme-set は「自分の作業コピーへのリンク」を利用者自身のテーマとして扱う)
+mkdir -p "$(dirname "$target_dir")"
+if [[ -L $target_dir ]]; then
+  if [[ $(realpath -m "$target_dir") == "$(realpath "$source_dir")" ]]; then
+    printf 'Omarchy theme already linked: %s -> %s\n' "$target_dir" "$source_dir"
+    exit 0
+  fi
+  rm "$target_dir"
+elif [[ -e $target_dir ]]; then
+  # 以前 cp -a で置いた実体ディレクトリ。themes/ 配下に残すとテーマ一覧に出るので外へ退避する
+  backup_dir="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/spurs-theme.bak.$(date +%s)"
+  mkdir -p "$(dirname "$backup_dir")"
+  mv "$target_dir" "$backup_dir"
+  printf 'Backed up %s -> %s\n' "$target_dir" "$backup_dir"
+fi
+
+ln -s "$source_dir" "$target_dir"
+printf 'Installed Omarchy theme: Spurs (%s -> %s)\n' "$target_dir" "$source_dir"

@@ -77,7 +77,7 @@ apply-ubuntu = { run = "cd ~/dotfiles && ./scripts/apply-dotfiles-ubuntu", descr
 apply-profile = { run = "cd ~/dotfiles && ./scripts/apply-host-profile", description = "Apply this host's monitor profile" }
 install-spurs = { run = "cd ~/dotfiles && ./scripts/install-spurs-theme", description = "Install the custom Spurs Omarchy theme" }
 setup-signing = { run = "cd ~/dotfiles && ./scripts/setup-git-signing", description = "Enable git commit signing via 1Password SSH agent" }
-build-theme = { run = "cd ~/dotfiles && python3 tools/build_theme.py themes/spurs", description = "Regenerate Spurs theme files from colors.toml" }
+build-theme = { run = "cd ~/dotfiles && python3 -B tools/build_theme.py themes/spurs", description = "Regenerate Spurs theme files from colors.toml" }
 
 # --- Shortcut Commands ---
 # 対話式conventional commits (カレントリポジトリで実行)
