@@ -81,6 +81,7 @@ local keys = {
   { key = "Enter", mods = "ALT", action = act.ToggleFullScreen },
   { key = "n", mods = "SUPER", action = act.SpawnWindow },
   { key = ".", mods = "LEADER", action = act.ShowDebugOverlay },
+  { key = "r", mods = "SUPER", action = act.ReloadConfiguration },
   { key = "R", mods = "CTRL|SHIFT", action = act.ReloadConfiguration },
 
   -- フォントサイズ変更 (SUPER+I / SUPER+O は Hyprland の入力言語切替・pop out に取られるので外した。
