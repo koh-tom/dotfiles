@@ -9,3 +9,5 @@ github-cli
 otf-monaspace
 # keyd: HHKB Studio を ThinkPad と同じキー配置にする (system/keyd/, ./scripts/install-keyd)
 keyd
+# KDE Connect: Pixel の通知を PC に出す・ファイル/文字列/クリップボードの送受信 (scripts/phone)
+kdeconnect

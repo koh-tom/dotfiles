@@ -1,0 +1,132 @@
+#!/bin/bash
+# スマホ (Pixel) 連携。KDE Connect (kdeconnect-cli) の薄いラッパー。
+#
+#   phone                 端末の一覧と接続状態 (= phone status)
+#   phone send [FILE|URL...]  ファイル/URL を送る。引数なしならファイル選択ダイアログ
+#   phone text [TEXT...]  文字列を送る (引数なしなら標準入力)。スマホ側でクリップボードに入る
+#   phone clip            PC のクリップボードをスマホへ送る
+#   phone ring            スマホを鳴らす (見つからないとき)
+#   phone ping [MSG]      スマホに通知を出す (疎通確認)
+#   phone notifs          スマホの通知一覧
+#   phone pair            見えている未ペア端末にペアリングを要求 (スマホ側で承認)
+#
+# 対象端末: $PHONE_DEVICE (名前か ID)。未指定なら、ペア済みで今つながっている最初の端末。
+# スマホ → PC のファイルは KDE Connect の既定で ~/Downloads に入る。通知は omarchy-shell に出る。
+set -euo pipefail
+
+# メニューやキーから呼ばれたとき (端末なし) は通知で知らせる
+say() {
+  printf '%s\n' "$*"
+  [[ -t 1 ]] || notify-send -a Phone "スマホ連携" "$*" 2>/dev/null || true
+}
+die() {
+  printf 'phone: %s\n' "$*" >&2
+  [[ -t 2 ]] || notify-send -u critical -a Phone "スマホ連携" "$*" 2>/dev/null || true
+  exit 1
+}
+
+case ${1:-} in
+  -h | --help | help)
+    sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'
+    exit 0
+    ;;
+esac
+
+command -v kdeconnect-cli >/dev/null 2>&1 ||
+  die "KDE Connect が入っていません: sudo pacman -S --needed kdeconnect"
+
+kc() { kdeconnect-cli "$@"; }
+
+# ペア済みで到達可能な端末の ID を 1 つ決める
+device_id() {
+  local line
+  if [[ -n ${PHONE_DEVICE:-} ]]; then
+    while IFS= read -r line; do
+      if [[ ${line%% *} == "$PHONE_DEVICE" || ${line#* } == "$PHONE_DEVICE" ]]; then
+        printf '%s\n' "${line%% *}"
+        return 0
+      fi
+    done < <(kc -a --id-name-only 2>/dev/null)
+    die "端末「$PHONE_DEVICE」がつながっていません (phone status で確認)"
+  fi
+  kc --refresh >/dev/null 2>&1 || true
+  line=$(kc -a --id-only 2>/dev/null | head -n 1)
+  if [[ -z $line ]]; then
+    if [[ -z $(kc -l --id-only 2>/dev/null) ]]; then
+      die "ペア済みの端末がありません。スマホで KDE Connect を開き、同じ Wi-Fi (または Tailscale) で phone pair してください"
+    fi
+    die "ペア済みのスマホに届きません。スマホの KDE Connect が起動しているか、同じネットワーク (Tailscale なら IP 登録) か確認してください"
+  fi
+  printf '%s\n' "$line"
+}
+
+cmd=${1:-status}
+(($# > 0)) && shift
+
+case $cmd in
+  status | list)
+    kc --refresh >/dev/null 2>&1 || true
+    kc -l
+    ;;
+  send | share)
+    id=$(device_id)
+    targets=("$@")
+    if ((${#targets[@]} == 0)); then
+      mapfile -t targets < <(omarchy-file-select --title "スマホへ送る" --multiple 2>/dev/null || true)
+      ((${#targets[@]} > 0)) || exit 0
+    fi
+    for t in "${targets[@]}"; do
+      if [[ $t =~ ^[a-z]+:// ]]; then
+        kc -d "$id" --share "$t" >/dev/null
+      else
+        [[ -e $t ]] || die "ファイルがありません: $t"
+        kc -d "$id" --share "$(realpath -- "$t")" >/dev/null
+      fi
+    done
+    say "${#targets[@]} 件をスマホへ送りました"
+    ;;
+  text)
+    id=$(device_id)
+    if (($# > 0)); then text="$*"; else text=$(cat); fi
+    [[ -n $text ]] || die "送る文字列が空です"
+    kc -d "$id" --share-text "$text" >/dev/null
+    say "文字列をスマホへ送りました"
+    ;;
+  clip | clipboard)
+    id=$(device_id)
+    kc -d "$id" --send-clipboard >/dev/null
+    say "クリップボードをスマホへ送りました"
+    ;;
+  ring | find)
+    id=$(device_id)
+    kc -d "$id" --ring >/dev/null
+    say "スマホを鳴らしています"
+    ;;
+  ping)
+    id=$(device_id)
+    if (($# > 0)); then
+      kc -d "$id" --ping-msg "$*" >/dev/null
+    else
+      kc -d "$id" --ping >/dev/null
+    fi
+    say "ping を送りました"
+    ;;
+  notifs | notifications)
+    id=$(device_id)
+    kc -d "$id" --list-notifications
+    ;;
+  pair)
+    kc --refresh >/dev/null 2>&1 || true
+    sleep 2
+    mapfile -t cands < <(kc -l --id-name-only 2>/dev/null)
+    ((${#cands[@]} > 0)) || die "端末が見えません。スマホの KDE Connect を開き、同じ Wi-Fi か確認してください (Tailscale ならスマホ側で PC の IP を追加)"
+    for line in "${cands[@]}"; do
+      id=${line%% *}
+      if [[ -n ${PHONE_DEVICE:-} && $id != "$PHONE_DEVICE" && ${line#* } != "$PHONE_DEVICE" ]]; then
+        continue
+      fi
+      kc -d "$id" --pair 2>/dev/null && say "「${line#* }」にペアリングを要求しました。スマホ側で承認してください"
+    done
+    ;;
+  *) die "不明なコマンド: $cmd (status|send|text|clip|ring|ping|notifs|pair)" ;;
+esac
