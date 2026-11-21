@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "dotfiles.lock",
+  "name": "Pond Lock Screen",
+  "version": "1.0.0",
+  "author": "koh-tom",
+  "description": "omarchy.lock のクローン。パスワード入力欄の伏せ字を葉っぱアイコンにする (見た目だけの変更)",
+  "omarchy": {
+    "capabilities": [
+      "authentication"
+    ],
+    "clonedFrom": "omarchy.lock"
+  },
+  "kinds": [
+    "service"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "service": "Service.qml"
+  }
+}
