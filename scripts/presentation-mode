@@ -1,0 +1,45 @@
+#!/bin/bash
+# 発表モード: pdfpc を開いているか、画面共有 (xdg-desktop-portal-hyprland の配信) をしている間は
+# 通知を止める (Omarchy の「通知を止める」= Do Not Disturb)。終わったら元に戻す。
+# 自分で DND を入れていた場合は、終わっても勝手に切らない。
+# systemd user service (presentation-mode.service) が常駐して数秒ごとに確認する。
+#
+#   presentation-mode          常駐して監視
+#   presentation-mode status   今「発表中」と判定されるか表示
+set -uo pipefail
+
+interval=4
+state_file="${XDG_RUNTIME_DIR:-/tmp}/dotfiles-presentation-mode"
+
+presenting() {
+  pgrep -x pdfpc >/dev/null && return 0
+  # 画面共有中は xdph が PipeWire に映像のノードを出している
+  pw-dump 2>/dev/null | jq -e '
+    any(.[]; .type == "PipeWire:Interface:Node"
+      and ((.info.props["media.class"] // "") == "Video/Source")
+      and (((.info.props["node.name"] // "") + " " + (.info.props["media.name"] // "")) | test("xdph|screencast|portal"; "i")))
+  ' >/dev/null 2>&1
+}
+
+dnd() { omarchy-shell notifications "$@" 2>/dev/null; }
+
+if [[ ${1:-} == status ]]; then
+  if presenting; then echo presenting; else echo idle; fi
+  exit 0
+fi
+
+while true; do
+  if presenting; then
+    if [[ ! -e $state_file && $(dnd isDnd) == off ]]; then
+      notify-send -a Presentation "発表モード" "発表が終わるまで通知を止めます" 2>/dev/null || true
+      sleep 1
+      dnd setDnd on >/dev/null && : >"$state_file"
+    fi
+  elif [[ -e $state_file ]]; then
+    # 自分 (このスクリプト) が止めた場合だけ戻す
+    dnd setDnd off >/dev/null
+    rm -f "$state_file"
+    notify-send -a Presentation "発表モード終了" "通知を戻しました" 2>/dev/null || true
+  fi
+  sleep "$interval"
+done
