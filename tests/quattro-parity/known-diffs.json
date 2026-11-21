@@ -53,5 +53,8 @@
   "ウィンドウルール:match={'class': 'org.omarchy.ask-screen'}": "2026-11-21 追加: ask-screen の答えを中央の浮いた窓に出す",
   "キーバインド (個人設定):ALT+SUPER+j": "2026-11-21 追加: SUPER+ALT+J で Claude Code の管制パネル (dotfiles.claude)",
   "キーバインド (個人キーの実効動作):ALT+SUPER+j": "2026-11-21 追加: SUPER+ALT+J で Claude Code の管制パネル (dotfiles.claude)",
-  "バー (Waybar → Quattro):custom/claude → claude (DotfilesPill)": "2026-11-21 変更: claude ピルのクリックで WezTerm に移る代わりに、Claude Code の管制パネル (dotfiles.claude) を開く"
+  "バー (Waybar → Quattro):custom/claude → claude (DotfilesPill)": "2026-11-21 変更: claude ピルのクリックで WezTerm に移る代わりに、Claude Code の管制パネル (dotfiles.claude) を開く",
+  "キーバインド (個人設定):ALT+SUPER+b": "2026-11-21 追加: SUPER+ALT+B で朝のブリーフィング (scripts/briefing)",
+  "キーバインド (個人キーの実効動作):ALT+SUPER+b": "2026-11-21 追加: SUPER+ALT+B で朝のブリーフィング (scripts/briefing)",
+  "ウィンドウルール:match={'class': 'org.omarchy.dotfiles-briefing'}": "2026-11-21 追加: ブリーフィングを中央の浮いた窓に出す"
 }
