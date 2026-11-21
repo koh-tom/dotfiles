@@ -58,5 +58,10 @@
   "キーバインド (個人キーの実効動作):ALT+SUPER+b": "2026-11-21 追加: SUPER+ALT+B で朝のブリーフィング (scripts/briefing)",
   "ウィンドウルール:match={'class': 'org.omarchy.dotfiles-briefing'}": "2026-11-21 追加: ブリーフィングを中央の浮いた窓に出す",
   "キーバインド (個人設定):ALT+SUPER+w": "2026-11-21 追加: SUPER+ALT+W でプロジェクトの作業一式を開く (scripts/project-open)",
-  "キーバインド (個人キーの実効動作):ALT+SUPER+w": "2026-11-21 追加: SUPER+ALT+W でプロジェクトの作業一式を開く (scripts/project-open)"
+  "キーバインド (個人キーの実効動作):ALT+SUPER+w": "2026-11-21 追加: SUPER+ALT+W でプロジェクトの作業一式を開く (scripts/project-open)",
+  "キーバインド (個人設定):ALT+SUPER+r": "2026-11-21 追加: SUPER+ALT+R で選んだ文を Claude に校正・書き換えしてもらう (scripts/rewrite)",
+  "キーバインド (個人キーの実効動作):ALT+SUPER+r": "2026-11-21 追加: SUPER+ALT+R で選んだ文を Claude に校正・書き換えしてもらう (scripts/rewrite)",
+  "キーバインド (個人設定):ALT+SHIFT+SUPER+r": "2026-11-21 追加: SUPER+ALT+SHIFT+R で書き換えて元のウィンドウに貼り付ける (scripts/rewrite --paste)",
+  "キーバインド (個人キーの実効動作):ALT+SHIFT+SUPER+r": "2026-11-21 追加: SUPER+ALT+SHIFT+R で書き換えて元のウィンドウに貼り付ける (scripts/rewrite --paste)",
+  "ウィンドウルール:match={'class': 'org.omarchy.rewrite'}": "2026-11-21 追加: scripts/rewrite の結果を中央の浮いた窓に出す"
 }
