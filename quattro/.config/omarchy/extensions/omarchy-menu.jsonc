@@ -12,6 +12,7 @@
   "setup.config.dotfiles.doctor": {"icon":"󰒓","label":"Doctor","action":"uwsm-app -- xdg-terminal-exec --dir=\"$HOME/dotfiles\" bash -lc 'mise run doctor; printf \"\\nPress Enter to close\"; read -r'"},
   "setup.config.dotfiles.reapply": {"icon":"󰑐","label":"Reapply","action":"uwsm-app -- xdg-terminal-exec --dir=\"$HOME/dotfiles\" bash -lc 'mise run apply; printf \"\\nPress Enter to close\"; read -r'"},
   "setup.config.dotfiles.spurs": {"icon":"","label":"Spurs Mode","action":"omarchy-theme-set Spurs"},
+  "setup.config.dotfiles.project": {"icon":"","label":"Open project…","action":"$HOME/dotfiles/scripts/project-open"},
   "setup.config.dotfiles.presets": {"icon":"󰕰","label":"Workspace Presets"},
   "setup.config.dotfiles.presets.run": {"icon":"󰐊","label":"Run…","action":"$HOME/dotfiles/scripts/workspace-preset"},
   "setup.config.dotfiles.presets.save": {"icon":"󰆓","label":"Save current layout…","action":"$HOME/dotfiles/scripts/workspace-preset save"},
