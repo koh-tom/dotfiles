@@ -16,6 +16,7 @@
   "setup.config.dotfiles.presets.run": {"icon":"󰐊","label":"Run…","action":"$HOME/dotfiles/scripts/workspace-preset"},
   "setup.config.dotfiles.presets.save": {"icon":"󰆓","label":"Save current layout…","action":"$HOME/dotfiles/scripts/workspace-preset save"},
   "setup.config.dotfiles.presets.delete": {"icon":"󰆴","label":"Delete…","action":"$HOME/dotfiles/scripts/workspace-preset delete"},
+  "setup.config.dotfiles.theme-from-image": {"icon":"󰸌","label":"Theme from image…","action":"$HOME/dotfiles/scripts/theme-from-image"},
   "setup.config.dotfiles.manual": {"icon":"󰗚","label":"Manual","action":"$HOME/dotfiles/scripts/dotfiles-manual"},
   "setup.config.dotfiles.wallpaper": {"icon":"󰸉","label":"Wallpaper"},
   "setup.config.dotfiles.wallpaper.dynamic": {"icon":"󰖨","label":"Time of day","checked":"[[ $($HOME/dotfiles/scripts/wallpaper-time status | head -1) == \"mode: dynamic\" ]]","action":"$HOME/dotfiles/scripts/wallpaper-time dynamic"},
