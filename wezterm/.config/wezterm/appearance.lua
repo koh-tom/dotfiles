@@ -2,8 +2,6 @@ local wezterm = require("wezterm")
 local module = {}
 
 local appearance = {
-  color_scheme = "Catppuccin Mocha",
-
   window_decorations = "RESIZE",
   window_close_confirmation = "NeverPrompt",
 
@@ -40,9 +38,7 @@ local appearance = {
       background = "none",
       inactive_tab_edge = "none",
     },
-    -- 背景色や ANSI カラーを固定しないことで、カラースキームの切替を有効化
-    selection_bg = "#585b70",
-    selection_fg = "#cdd6f4",
+    -- 背景色・ANSI・選択色は固定しない (omarchy_theme.lua がテーマの colors.toml から入れる)
   },
 }
 
