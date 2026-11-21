@@ -46,3 +46,4 @@ require("hypr.personal.overview")          -- ワークスペース一覧 (Missi
 require("hypr.personal.manual")            -- SUPER+SHIFT+K で dotfiles のマニュアル
 require("hypr.personal.presets")           -- SUPER+ALT+P でワークスペースのプリセット
 require("hypr.personal.memo")              -- SUPER+ALT+N でひらめきメモ
+require("hypr.personal.theme-from-image")  -- SUPER+CTRL+SHIFT+T で画像からテーマ
