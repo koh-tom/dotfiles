@@ -133,7 +133,8 @@ Item {
 
   Process {
     id: proc
-    command: ["bash", "-lc", String(root.setting("exec", ""))]
+    // ログインシェル (-l) にすると /etc/profile 等を毎回読み 18ms かかる。PATH は Quickshell の環境から引き継がれるので -c で足りる (2ms)
+    command: ["bash", "-c", String(root.setting("exec", ""))]
     stdout: StdioCollector {
       waitForEnd: true
       onStreamFinished: root.update(text)

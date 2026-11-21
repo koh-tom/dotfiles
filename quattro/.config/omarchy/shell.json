@@ -48,26 +48,6 @@
           "id": "omarchy.system-update"
         },
         {
-          "id": "voxtype",
-          "type": "qml",
-          "source": "~/.config/omarchy/bar/modules/DotfilesPill.qml",
-          "exec": "command -v voxtype >/dev/null && voxtype status --extended --format json",
-          "interval": 2,
-          "hideWhenEmpty": true,
-          "padding": 0,
-          "margin": 0,
-          "altText": {
-            "idle": "",
-            "recording": "󰍬",
-            "transcribing": "󰔟"
-          },
-          "classColors": {
-            "recording": "#e5484d"
-          },
-          "onClick": "omarchy-voxtype-model",
-          "onRightClick": "omarchy-voxtype-config"
-        },
-        {
           "id": "omarchy.indicators",
           "items": [
             "ScreenRecording"
