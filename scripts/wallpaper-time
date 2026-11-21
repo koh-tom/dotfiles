@@ -72,6 +72,8 @@ apply() {
   target=$(pick "$(slot_for_hour "$(date +%H)")") || return 0
   if [[ $(readlink -f "$current_link" 2>/dev/null) != "$(readlink -f "$target")" ]]; then
     omarchy-theme-bg-set "$target"
+    # WezTerm は背景に壁紙を薄く敷いているので、設定を再読み込みさせて新しい壁紙に合わせる
+    [[ -e $HOME/.config/wezterm/wezterm.lua ]] && touch "$HOME/.config/wezterm/wezterm.lua"
   fi
 }
 
