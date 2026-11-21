@@ -51,3 +51,4 @@ require("hypr.personal.ask-screen")        -- SUPER+ALT+A で画面の一部を 
 require("hypr.personal.claude")            -- SUPER+ALT+J で Claude Code の管制パネル
 require("hypr.personal.briefing")          -- SUPER+ALT+B で朝のブリーフィング
 require("hypr.personal.project")           -- SUPER+ALT+W でプロジェクトの作業一式
+require("hypr.personal.rewrite")           -- SUPER+ALT+R で選んだ文を校正・書き換え (SHIFT 付きは貼り付けまで)
