@@ -14,6 +14,12 @@ mode_file="$state_dir/wallpaper-mode"
 cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/dotfiles"
 theme_dir="$HOME/.local/state/omarchy/current/theme"
 bg_dir="$theme_dir/backgrounds"
+# current/theme の下はテーマが替わっても同じパスなので、Omarchy の背景が画像を読み直さない。
+# テーマの元のディレクトリ (パスがテーマごとに違う) の壁紙を使う
+theme_name=$(cat "$HOME/.local/state/omarchy/current/theme.name" 2>/dev/null || true)
+for src in "$HOME/.config/omarchy/themes/$theme_name/backgrounds" "/usr/share/omarchy/themes/$theme_name/backgrounds"; do
+  if [[ -n $theme_name && -d $src ]]; then bg_dir=$(readlink -f "$src"); break; fi
+done
 current_link="$HOME/.local/state/omarchy/current/background"
 
 mode() { [[ -r $mode_file ]] && cat "$mode_file" || echo dynamic; }
