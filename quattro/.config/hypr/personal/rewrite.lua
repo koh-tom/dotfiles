@@ -7,6 +7,6 @@ hl.window_rule({
   name = "rewrite",
   match = { class = "org.omarchy.rewrite" },
   float = true,
-  size = { "(monitor_w*0.5)", "(monitor_h*0.7)" },
-  move = { "(monitor_w*0.25)", "(monitor_h*0.15)" },
+  size = { "(monitor_w*0.6)", "(monitor_h*0.8)" },
+  move = { "(monitor_w*0.2)", "(monitor_h*0.1)" },
 })
