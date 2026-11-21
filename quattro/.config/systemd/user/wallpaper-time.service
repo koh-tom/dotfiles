@@ -1,0 +1,8 @@
+# 時刻で壁紙を変える (scripts/wallpaper-time)。止めるときは `wallpaper-time custom`
+[Unit]
+Description=Time-of-day wallpaper (dotfiles)
+After=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/dotfiles/scripts/wallpaper-time
