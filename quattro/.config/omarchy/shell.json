@@ -100,6 +100,21 @@
           "padding": 10
         },
         {
+          "id": "ci",
+          "type": "qml",
+          "source": "~/.config/omarchy/bar/modules/DotfilesPill.qml",
+          "exec": "$HOME/dotfiles/scripts/ci-status bar",
+          "interval": 20,
+          "pill": true,
+          "padding": 10,
+          "hideWhenEmpty": true,
+          "onClick": "$HOME/dotfiles/scripts/ci-status open",
+          "classColors": {
+            "failed": "#e5484d",
+            "running": "#f0b232"
+          }
+        },
+        {
           "id": "claude",
           "type": "qml",
           "source": "~/.config/omarchy/bar/modules/DotfilesPill.qml",
@@ -181,7 +196,8 @@
           "id": "omarchy.power",
           "showPercentage": true
         }
-      ]
+      ],
+      "tray": []
     }
   },
   "disabledPlugins": [
