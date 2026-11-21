@@ -767,6 +767,10 @@ def check_dotfiles_compat(rep: Report, omarchy: Path) -> None:
         for cmd in set(re.findall(r"\bomarchy-[a-z0-9-]+", strip_comments(text))):
             if cmd in ("omarchy-quattro", "omarchy-quattro-ref", "omarchy-upgrade-to-quattro", "omarchy-default-dictation", "omarchy-dictation"):
                 continue
+            # lock プラグインのクローンが stock と同じく参照する名前で、コマンドではない
+            # (PAM サービス名 omarchy-lock-password / -fingerprint、レイヤー名 omarchy-lock-preview)
+            if cmd in ("omarchy-lock-password", "omarchy-lock-fingerprint", "omarchy-lock-preview"):
+                continue
             if bin_dir.is_dir() and not (bin_dir / cmd).exists():
                 missing.setdefault(cmd, []).append(rel)
     rep.add("FAIL" if missing else "PASS", area, f"呼んでいる omarchy-* コマンドが 4.x ({omarchy}) に存在する",
