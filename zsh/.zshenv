@@ -25,7 +25,8 @@ fi
 # ZDOTDIR
 export ZDOTDIR=$XDG_CONFIG_HOME/zsh
 
-# Path
+# Path (入れ子のシェルで同じディレクトリが何度も先頭に足されないよう重複を除く)
+typeset -U path PATH
 export PATH=$HOME/.local/bin:$PATH
 export PATH=/usr/local/sbin:$PATH
 
