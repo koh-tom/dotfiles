@@ -157,6 +157,8 @@ local function hash(s)
 end
 
 local CACHE_DIR = wezterm.home_dir .. "/.cache/wezterm"
+-- アプリ別・寸法別・tip別に画像が増えていくので、読み込み時に2日以上使われていないものを消す
+os.execute("find " .. wezterm.shell_quote_arg(CACHE_DIR) .. " -maxdepth 1 -name 'cheatbar-*.png' -atime +2 -delete 2>/dev/null")
 
 -- run_child_process はconfig overrides再評価時に "yield across a C-call boundary" で落ちるので os.execute を使う
 local function svg_to_png(svg, width, cell_h)
