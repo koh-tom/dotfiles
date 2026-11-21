@@ -42,6 +42,7 @@ WezTerm の上の帯には、今開いているアプリ (シェル・Claude・n
 - **Claude Code**: 入力待ち・許可待ちになると通知が出て、「開く」でそのタブへ移動します。
 - **壁紙**: 時刻で切り替わります (朝・昼・夕・夜)。固定・戻すは Omarchy メニューの Setup > Config > Dotfiles > Wallpaper (または `~/dotfiles/scripts/wallpaper-time custom` / `dynamic`)。
 - **WezTerm のセッション**: 15分ごとに自動保存。`CTRL+Q` → `Shift+R` で選んで戻せます。
+- **朝のブリーフィング**: その日最初のログインで、予定・天気・研究室ジョブ・Claude の使用量・締め切りを1枚で出します。もう一度見るときは `~/dotfiles/scripts/briefing`。締め切りは `~/dotfiles/presets/deadlines.tsv`、予定の ICS は `~/.config/dotfiles/briefing.toml` (`briefing --help`)。
 - **発表モード**: pdfpc や画面共有の間は自動で通知が止まり、終わると戻ります。
 - **プリセット**: 中身は `~/dotfiles/presets/workspaces.json`。起動済みのアプリは新しく開かずに移動します。
 - **バックアップ**: Backrest の画面 <http://127.0.0.1:9898>。
