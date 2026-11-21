@@ -267,10 +267,6 @@ url = "https://nodejs.org/dist/v26.13.1/node-v26.13.1-linux-x64.tar.gz"
 checksum = "sha256:04bf9ed3e32ea139c9af52f6dd06879ff6f8880555a0aa1183ef2d156c0e02d3"
 url = "https://unofficial-builds.nodejs.org/download/release/v26.13.1/node-v26.13.1-linux-x64-musl.tar.gz"
 
-[[tools."npm:@anthropic-ai/claude-code"]]
-version = "2.1.326"
-backend = "npm:@anthropic-ai/claude-code"
-
 [[tools."npm:czg"]]
 version = "1.14.0"
 backend = "npm:czg"
