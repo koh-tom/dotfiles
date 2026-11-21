@@ -14,7 +14,7 @@ dirty=$(git -C "$repo" status --porcelain 2>/dev/null | wc -l)
 ahead=$(git -C "$repo" rev-list --count '@{upstream}..HEAD' 2>/dev/null || echo 0)
 
 if (( dirty == 0 && ahead == 0 )); then
-  printf '{"text":"","tooltip":"dotfiles: clean"}\n'
+  printf '{"text":"","class":"clean","tooltip":"dotfiles: clean"}\n'
 elif (( dirty > 0 )); then
   printf '{"text":" %s","class":"dirty","tooltip":"dotfiles: %s uncommitted change(s)\\nclick: lazygit"}\n' "$dirty" "$dirty"
 else
