@@ -20,17 +20,19 @@ jobs:
             zsh/.config/zsh/rc/*.zsh zsh/.config/zsh/rc/pluginconfig/*.zsh
 
       - name: Lua syntax
-        run: find wezterm themes quattro profiles tests -name '*.lua' -print0 | xargs -0 -n1 luac5.4 -p
+        run: find wezterm themes quattro profiles tests nvim -name '*.lua' -print0 | xargs -0 -n1 luac5.4 -p
 
       - name: Bash syntax
         run: |
-          for f in scripts/* omarchy/.config/omarchy/hooks/* omarchy/.config/omarchy/extensions/*.sh; do
+          for f in $(find scripts -type f) omarchy/.config/omarchy/hooks/* omarchy/.config/omarchy/extensions/*.sh; do
             bash -n "$f"
           done
 
       - name: ShellCheck
         run: |
-          shellcheck -S warning scripts/* omarchy/.config/omarchy/hooks/*
+          # scripts/lib/*.sh は source 専用。-x で source 先も追う (パッケージ一覧の変数を解決するため)
+          find scripts -type f -print0 | xargs -0 shellcheck -S warning -x -P SCRIPTDIR
+          shellcheck -S warning omarchy/.config/omarchy/hooks/*
           shellcheck -S warning tests/quattro-parity/run tests/quattro-parity/capture-baseline
           shellcheck -S warning --shell=bash omarchy/.config/omarchy/extensions/menu.sh
 
@@ -39,18 +41,52 @@ jobs:
 
       - name: JSON validity
         run: |
+          shopt -s nullglob  # plugins/ が空でも落ちないように
           python3 -m json.tool claude/hooks.example.json >/dev/null
           python3 -m json.tool quattro/.config/omarchy/shell.json >/dev/null
-          for f in tests/quattro-parity/known-diffs.json tests/quattro-parity/baseline/*.json; do python3 -m json.tool "$f" >/dev/null; done
+          for f in tests/quattro-parity/known-diffs.json tests/quattro-parity/baseline/*.json \
+                   quattro/.config/omarchy/plugins/*/manifest.json; do
+            python3 -m json.tool "$f" >/dev/null
+          done
 
-      - name: Stow dry-run (Arch/Omarchy full set)
-        run: stow -n -v git mise starship wezterm zsh fastfetch omarchy waybar xdg-terminal ssh nvim
+      - name: Omarchy menu extension JSONC validity
+        run: |
+          python3 - quattro/.config/omarchy/extensions/omarchy-menu.jsonc <<'EOF'
+          import json, sys
+          # 文字列の外にある // コメントと /* */ コメントだけを落として JSON として読む
+          text = open(sys.argv[1], encoding='utf-8').read()
+          out, i, in_str = [], 0, False
+          while i < len(text):
+              c = text[i]
+              if in_str:
+                  out.append(c)
+                  if c == '\\':
+                      out.append(text[i + 1]); i += 1
+                  elif c == '"':
+                      in_str = False
+              elif c == '"':
+                  in_str = True; out.append(c)
+              elif text.startswith('//', i):
+                  i = text.find('\n', i)
+                  if i < 0: break
+                  continue
+              elif text.startswith('/*', i):
+                  i = text.index('*/', i) + 2
+                  continue
+              else:
+                  out.append(c)
+              i += 1
+          json.loads(''.join(out))
+          EOF
 
-      - name: Stow dry-run (Omarchy 4 port)
-        run: stow -n -v quattro
-
-      - name: Stow dry-run (Ubuntu tool subset)
-        run: stow -n -v git mise starship wezterm zsh fastfetch ssh nvim
+      - name: "Stow dry-run (scripts/lib/packages.sh の一覧 — Omarchy 3.x / Quattro / Ubuntu)"
+        run: |
+          source scripts/lib/packages.sh
+          for platform in omarchy3 quattro tools; do
+            dotfiles_select_packages "$platform"
+            echo "== $platform: ${DOTFILES_PACKAGES[*]}"
+            stow -n -v -t "$(mktemp -d)" "${DOTFILES_STOW_OPTS[@]}" "${DOTFILES_PACKAGES[@]}"
+          done
 
       - name: Fastfetch config JSONC validity
         run: |
