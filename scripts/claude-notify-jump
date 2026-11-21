@@ -39,12 +39,6 @@ action=$(notify-send --app-name="Claude Code" --urgency="$urgency" --expire-time
   --action=open="開く" "$title" "$message" 2>/dev/null)
 [[ $action == "open" ]] || exit 0
 
-# タブ・ペインを切り替え、そのペインを持つ WezTerm ウィンドウを Hyprland で前に出す。
-# ウィンドウのタイトルは表示中のペインのタイトルになるので、それで見分ける。
-wezterm cli activate-pane --pane-id "$pane" 2>/dev/null
-title_of_pane=$(wezterm cli list --format json 2>/dev/null | jq -r --argjson p "$pane" '.[] | select(.pane_id == $p) | .title' | head -n 1)
-address=$(hyprctl clients -j 2>/dev/null | jq -r --arg t "$title_of_pane" \
-  '[.[] | select(.class == "org.wezfurlong.wezterm")] | (map(select(.title == $t)) + .)[0].address // empty')
-if [[ -n $address ]]; then
-  "$HOME/dotfiles/scripts/hypr-dispatch" "hl.dsp.focus({ window = \"address:$address\" })" focuswindow "address:$address" >/dev/null 2>&1
-fi
+# タブ・ペインを切り替え、そのペインを持つ WezTerm ウィンドウを Hyprland で前に出す
+# (管制パネルと同じ処理。ウィンドウのタイトルに付く "[n/m] " やスピナー記号も考慮して探す)
+exec "$HOME/dotfiles/scripts/claude-sessions" --jump "$pane"
