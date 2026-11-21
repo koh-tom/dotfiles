@@ -1,0 +1,117 @@
+#!/bin/bash
+# 動いている Claude Code セッションの一覧を JSON 配列で出す (omarchy-shell の dotfiles.claude パネル用)。
+#
+#   claude-sessions              一覧を出す
+#   claude-sessions --jump N     WezTerm のペイン N へ移動し、その WezTerm ウィンドウを前に出す
+#
+# 材料:
+#   - `wezterm cli list` のペイン一覧 (pane_id, tab_id, title, cwd, tty_name)
+#   - claude プロセスが居る tty (ps) … これで「Claude が動いているペイン」を決める
+#   - hook (claude-wezterm-state) が書く ~/.local/state/dotfiles/claude-sessions/<pane_id>.json
+#     … 状態 (working / waiting / attention)、変化した時刻、最後の入力
+# 状態ファイルが無い (キャッシュ導入前から動いている) セッションは、Claude が付けるタブタイトル
+# 先頭の記号 (✳ = 待ち、それ以外 = 作業中) から推測する。
+# もう存在しないペイン・Claude の居なくなったペインの状態ファイルはここで消す。
+set -u
+
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/claude-sessions"
+
+jump() {
+  local pane=$1 window_id window_title address
+  wezterm cli activate-pane --pane-id "$pane" 2>/dev/null || return 1
+  # 切り替え後のウィンドウタイトル (= 表示中ペインのタイトル) で Hyprland のウィンドウを探す。
+  # Hyprland 側は "[2/3] タイトル" のようにタブ番号が前に付くので末尾一致で比べる
+  window_id=$(wezterm cli list --format json 2>/dev/null |
+    jq -r --argjson p "$pane" '.[] | select(.pane_id == $p) | .window_id' | head -n 1)
+  window_title=$(wezterm cli list --format json 2>/dev/null |
+    jq -r --argjson w "${window_id:-0}" '[.[] | select(.window_id == $w)][0].window_title // ""')
+  # Claude のスピナー記号 (◐◑…) は刻々と変わるので、先頭の記号を外した残りで比べる
+  address=$(hyprctl clients -j 2>/dev/null | jq -r --arg t "$window_title" '
+    def body: sub("^\\[[0-9]+/[0-9]+\\] "; "") | sub("^[^\\p{L}\\p{N}\\s]{1,2}\\s+"; "");
+    ($t | body) as $want
+    | [.[] | select(.class == "org.wezfurlong.wezterm")]
+    | (map(select($want != "" and (.title | body) == $want)) + .)[0].address // empty')
+  [[ -n $address ]] || return 0
+  "$HOME/dotfiles/scripts/hypr-dispatch" "hl.dsp.focus({ window = \"address:$address\" })" \
+    focuswindow "address:$address" >/dev/null 2>&1
+}
+
+if [[ ${1:-} == "--jump" ]]; then
+  [[ ${2:-} =~ ^[0-9]+$ ]] || { echo "usage: claude-sessions --jump <pane_id>" >&2; exit 2; }
+  jump "$2"
+  exit
+fi
+
+if ! command -v wezterm >/dev/null || ! command -v jq >/dev/null; then
+  echo '[]'
+  exit 0
+fi
+
+# WezTerm が動いていない・応答しないときは空。状態ファイルも消さない
+panes=$(timeout 3 wezterm cli list --format json 2>/dev/null) || { echo '[]'; exit 0; }
+[[ -n $panes ]] || { echo '[]'; exit 0; }
+focused=$(timeout 2 wezterm cli list-clients --format json 2>/dev/null | jq -r '.[0].focused_pane_id // -1' 2>/dev/null)
+[[ $focused =~ ^-?[0-9]+$ ]] || focused=-1
+
+# claude が動いている tty ("/dev/pts/3")
+claude_ttys=$(ps -eo tty=,comm= 2>/dev/null | awk '$2 == "claude" && $1 != "?" { print "/dev/" $1 }' | sort -u |
+  jq -R . | jq -s .)
+
+states='[]'
+shopt -s nullglob
+files=("$state_dir"/*.json)
+shopt -u nullglob
+if (( ${#files[@]} > 0 )); then
+  states=$(jq -s '[.[] | objects | select(.pane_id != null)]' "${files[@]}" 2>/dev/null) || states='[]'
+fi
+
+result=$(jq -n --argjson panes "$panes" --argjson ttys "$claude_ttys" --argjson states "$states" \
+  --argjson focused "$focused" --argjson now "$(date +%s)" '
+  def path_of_url: sub("^file://[^/]*"; "") | sub("(?<=.)/$"; "");
+  def rank: {attention: 0, waiting: 1, working: 2}[.] // 3;
+  ($states | map({key: (.pane_id | tostring), value: .}) | from_entries) as $by_pane
+  | [ $panes[]
+      | select(.tty_name as $t | $ttys | index($t))
+      | . as $p
+      | ($by_pane[($p.pane_id | tostring)]
+         | if . != null and ((.tty // "") == "" or .tty == $p.tty_name) then . else null end) as $s
+      # Claude はタイトル先頭に状態の記号を付ける (✳ = 待ち、◐ などのスピナー = 作業中)
+      | ($p.title | capture("^(?<mark>[^\\p{L}\\p{N}\\s]{1,2})\\s+(?<rest>.*)$") // {mark: "", rest: $p.title}) as $t
+      | (if $s != null and ($s.cwd // "") != "" then $s.cwd else ($p.cwd | path_of_url) end) as $cwd
+      | {
+          pane_id: $p.pane_id,
+          tab_id: $p.tab_id,
+          window_id: $p.window_id,
+          workspace: $p.workspace,
+          tty: $p.tty_name,
+          title: (if ($p.tab_title // "") != "" then $p.tab_title else $t.rest end),
+          cwd: $cwd,
+          project: ($cwd | split("/") | map(select(. != "")) | last // "~"),
+          state: (if $s != null then $s.state
+                  elif $t.mark == "✳" then "waiting"
+                  elif $t.mark != "" then "working"
+                  else "unknown" end),
+          state_source: (if $s != null then "hook" else "title" end),
+          since: (if $s != null then $s.ts else null end),
+          elapsed: (if $s != null then ($now - $s.ts) else null end),
+          prompt: (if $s != null then ($s.prompt // "") else "" end),
+          message: (if $s != null then ($s.message // "") else "" end),
+          focused: ($p.pane_id == $focused)
+        }
+    ]
+  | sort_by((.state | rank), .pane_id)')
+
+if [[ -z $result ]]; then
+  echo '[]'
+  exit 0
+fi
+
+# 使われなかった状態ファイル (ペインが無い・Claude が居ない・tty が別物 = ペイン番号の使い回し) は消す
+live=$(jq -r '.[] | select(.state_source == "hook") | .pane_id' <<<"$result")
+for f in "${files[@]}"; do
+  id=${f##*/}
+  id=${id%.json}
+  grep -qx -- "$id" <<<"$live" || rm -f -- "$f"
+done
+
+printf '%s\n' "$result"
