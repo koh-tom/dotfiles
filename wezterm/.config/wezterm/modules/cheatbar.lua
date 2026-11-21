@@ -213,7 +213,7 @@ local default_image = render(DEFAULT_CELL_W, DEFAULT_CELL_H, 1800)
 -- 背景レイヤー
 -- =============================================================================
 
-local DEFAULT_OPACITY = 0.94
+local DEFAULT_OPACITY = 0.82 -- modules/opacity.lua の FOCUSED と揃える
 local WALLPAPER = require("omarchy_theme").current_dir() .. "/background"
 
 -- window_id -> { opacity, wallpaper, image, tip, win_w, win_h, cell_h, metrics }

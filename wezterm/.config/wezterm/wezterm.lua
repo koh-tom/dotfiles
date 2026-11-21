@@ -58,7 +58,7 @@ config.use_ime = true
 
 -- 透明度 (設定モードで後で可変にするがデフォルトは0.9前後を目標)
 -- 非フォーカス時の透過度
-config.window_background_opacity = 0.94
+config.window_background_opacity = 0.82 -- 実際は modules/opacity.lua (背景レイヤー) が決める
 
 -- ステータスバー更新間隔 (1500msに変更して効率化)
 config.status_update_interval = 1500
