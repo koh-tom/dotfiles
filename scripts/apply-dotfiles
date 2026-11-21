@@ -1,24 +1,75 @@
 #!/bin/bash
+# 全 Stow パッケージを再適用する。パッケージ一覧は scripts/lib/packages.sh が唯一の定義。
+#
+#   scripts/apply-dotfiles            実機 (Quattro / 3.x) を判定して適用
+#   scripts/apply-dotfiles --dry-run  何も変更せず stow -n の結果と後片付けの予定だけ表示
 
 set -euo pipefail
 
-cd "${DOTFILES_ROOT:-$HOME/dotfiles}"
+root="${DOTFILES_ROOT:-$HOME/dotfiles}"
+dry_run=0
+case ${1:-} in
+  -n | --dry-run) dry_run=1 ;;
+  -h | --help)
+    sed -n '2,5p' "$0" | sed 's/^# \{0,1\}//'
+    exit 0
+    ;;
+  '') ;;
+  *)
+    printf 'unknown option: %s\n' "$1" >&2
+    exit 2
+    ;;
+esac
 
-packages=(atuin chrome git mise starship wezterm zsh fastfetch hypr omarchy waybar xdg-terminal ssh nvim)
+# shellcheck source=lib/packages.sh
+source "$root/scripts/lib/packages.sh"
+cd "$root"
+root_real=$(realpath "$root")
 
-if [[ -e /usr/share/omarchy/default/hypr/bootstrap.lua ]]; then
-  # Omarchy 4 (Quattro): Hyprland は Lua 構成。quattro パッケージを足し、
-  # .conf 構成を強制する HYPRLAND_CONFIG (hypr/.config/environment.d) は張らない。
-  # hypr パッケージの .conf 群は移植元として残す (Lua 構成からは読まれない)。
-  link="$HOME/.config/environment.d/hyprland-config.conf"
-  if [[ -L $link && $(readlink "$link") == *dotfiles/hypr/* ]]; then
-    rm "$link"
-    echo "removed $link (Quattro では不要)"
+run() {
+  if ((dry_run)); then
+    printf '(dry-run) %s\n' "$*"
+  else
+    "$@"
   fi
-  stow -R -v --ignore='hyprland-config\.conf' hypr
-  others=()
-  for p in "${packages[@]}"; do [[ $p == hypr ]] || others+=("$p"); done
-  stow -R -v "${others[@]}" quattro
+}
+
+# 以前の stow で張られた、dotfiles の <pkg> を指すリンクだけを消す (実ファイルや他所へのリンクは触らない)
+remove_dotfiles_link() {
+  local path=$1 pkg=$2
+  [[ -L $path ]] || return 0
+  if [[ $(realpath -m "$path") == "$root_real/$pkg/"* ]]; then
+    run rm "$path"
+    ((dry_run)) || printf 'removed %s (Quattro では不要)\n' "$path"
+  fi
+}
+
+dotfiles_select_packages
+
+if dotfiles_is_quattro; then
+  # Omarchy 4 (Quattro): Hyprland は Lua 構成、バーは omarchy-shell。
+  # .conf 構成を強制する HYPRLAND_CONFIG・3.x のメニュー拡張 menu.sh・Waybar は張らない。
+  # hypr パッケージの .conf 群は移植元として残す (Lua 構成からは読まれない)。
+  remove_dotfiles_link "$HOME/.config/environment.d/hyprland-config.conf" hypr
+  remove_dotfiles_link "$HOME/.config/omarchy/extensions/menu.sh" omarchy
+  if [[ -L $HOME/.config/waybar ]]; then
+    # 3.x 時代の stow はディレクトリごと畳んで張っている
+    remove_dotfiles_link "$HOME/.config/waybar" waybar
+  elif [[ -d $HOME/.config/waybar ]]; then
+    # ファイル単位で張られている場合は stow に dotfiles のリンクだけ外させる
+    if ((dry_run)); then
+      stow -n -v -D waybar
+    else
+      stow -v -D waybar
+    fi
+  fi
+  # --ignore はディレクトリ畳み込み (フォルダごとのリンク) を防げないので、
+  # 無視するファイルの親ディレクトリは実ディレクトリとして先に作っておく
+  run mkdir -p "$HOME/.config/environment.d" "$HOME/.config/omarchy/extensions"
+fi
+
+if ((dry_run)); then
+  stow -n -v -R "${DOTFILES_STOW_OPTS[@]}" "${DOTFILES_PACKAGES[@]}"
 else
-  stow -R -v "${packages[@]}"
+  stow -R -v "${DOTFILES_STOW_OPTS[@]}" "${DOTFILES_PACKAGES[@]}"
 fi
