@@ -24,20 +24,28 @@ jobs:
 
       - name: Bash syntax
         run: |
+          # scripts/ には Python のスクリプト (briefing, labwatch など) もあるので、シェルのものだけ見る
           for f in $(find scripts -type f) omarchy/.config/omarchy/hooks/* omarchy/.config/omarchy/extensions/*.sh; do
+            case $f in *.sh) ;; *) head -n 1 "$f" | grep -qE '^#!.*\b(ba)?sh\b' || continue ;; esac
             bash -n "$f"
           done
 
       - name: ShellCheck
         run: |
           # scripts/lib/*.sh は source 専用。-x で source 先も追う (パッケージ一覧の変数を解決するため)
-          find scripts -type f -print0 | xargs -0 shellcheck -S warning -x -P SCRIPTDIR
+          find scripts -type f \( -name '*.sh' -o -exec sh -c 'head -n 1 "$1" | grep -qE "^#!.*\\b(ba)?sh\\b"' _ {} \; \) -print0 \
+            | xargs -0 shellcheck -S warning -x -P SCRIPTDIR
           shellcheck -S warning omarchy/.config/omarchy/hooks/*
           shellcheck -S warning tests/quattro-parity/run tests/quattro-parity/capture-baseline
           shellcheck -S warning --shell=bash omarchy/.config/omarchy/extensions/menu.sh
 
       - name: Python compile
-        run: python3 -m py_compile tools/*.py tests/quattro-parity/*.py
+        run: |
+          python3 -m py_compile tools/*.py tests/quattro-parity/*.py
+          # 拡張子の無い Python スクリプト (scripts/briefing など) も構文だけ確かめる
+          for f in $(grep -lE '^#!.*python' -r scripts); do
+            python3 -c 'import ast, sys; ast.parse(open(sys.argv[1]).read(), sys.argv[1])' "$f"
+          done
 
       - name: JSON validity
         run: |
