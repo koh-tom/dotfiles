@@ -1,0 +1,380 @@
+#!/usr/bin/env python3
+# 研究室マシンで回している長いジョブ (Vivado の合成/配置配線、シミュレーション、Python の実験など) を
+# 手元から見張り、終わったらデスクトップ通知を出す。バーのピルにも実行中の数を出す。
+#
+#   labwatch add <host> <pattern> [label]   host 上で `pgrep -f <pattern>` に当たるプロセスを見張る
+#   labwatch list                           見張っているジョブの一覧 (最後の poll の結果)
+#   labwatch rm <id>...                     ジョブを外す
+#   labwatch ack                            終わったジョブを一覧から片付ける
+#   labwatch clear                          全部外す
+#   labwatch poll                           各ホストへ ssh して状態を更新する (systemd timer が1分ごとに呼ぶ)
+#   labwatch bar                            バー用の Waybar 形式 JSON (ssh しない。state ファイルを読むだけ)
+#
+# 例: labwatch add <host> vivado "impl run"
+#
+# ホスト名・パターンなどは state ファイル (~/.local/state/dotfiles/labwatch/jobs.json) にだけ置く。
+# dotfiles は公開リポジトリなので、ここに研究室のホスト名などを書かないこと。
+#
+# 状態: waiting (まだ一度も見えていない) → running (見えた) → done (見えなくなった。通知は1回だけ)
+#       ホストに届かないときは unreachable を付けるだけで、done にはしない (通知もしない)。
+#       done は 6 時間たつと poll が消す。
+# pattern は pgrep -f の正規表現 (コマンドライン全体に対する ERE)。
+import fcntl
+import json
+import os
+import shlex
+import subprocess
+import sys
+import time
+from concurrent.futures import ThreadPoolExecutor
+
+STATE_DIR = os.path.join(os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state"), "dotfiles", "labwatch")
+JOBS_FILE = os.path.join(STATE_DIR, "jobs.json")
+LOCK_FILE = os.path.join(STATE_DIR, "lock")
+
+DONE_TTL = 6 * 3600  # done を一覧に残す時間
+HOST_TIMEOUT = 25  # 1ホストあたりの ssh 全体の上限 (秒)。poll が詰まらないように
+STALE_AFTER = 5 * 60  # これより古い poll 結果はバーで「古い」と出す (timer が止まっている)
+ICON = "\U000f048b"  # 󰒋 (nf-md-server)
+
+SSH_OPTS = [
+    "-o", "BatchMode=yes",
+    "-o", "ConnectTimeout=5",
+    "-o", "ServerAliveInterval=5",
+    "-o", "ServerAliveCountMax=2",
+    "-o", "ControlMaster=auto",
+    "-o", "ControlPath=~/.ssh/cm-%r@%h:%p",
+    "-o", "ControlPersist=10m",
+]
+
+
+# ---- state ファイル -------------------------------------------------------
+
+class Locked:
+    """state の読み書きを flock で直列化する (poll と add/rm が同時に走っても壊れないように)"""
+
+    def __enter__(self):
+        os.makedirs(STATE_DIR, exist_ok=True)
+        self.fd = open(LOCK_FILE, "w")
+        fcntl.flock(self.fd, fcntl.LOCK_EX)
+        return self
+
+    def __exit__(self, *exc):
+        fcntl.flock(self.fd, fcntl.LOCK_UN)
+        self.fd.close()
+
+
+def load():
+    try:
+        with open(JOBS_FILE) as f:
+            data = json.load(f)
+        if isinstance(data, dict) and isinstance(data.get("jobs"), list):
+            return data
+    except (OSError, ValueError):
+        pass
+    return {"jobs": [], "last_poll": 0}
+
+
+def save(data):
+    os.makedirs(STATE_DIR, exist_ok=True)
+    tmp = JOBS_FILE + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(data, f, ensure_ascii=False, indent=1)
+    os.replace(tmp, JOBS_FILE)  # 途中で落ちても半端なファイルを残さない
+
+
+# ---- 表示まわり -----------------------------------------------------------
+
+def human(sec):
+    sec = max(0, int(sec))
+    if sec < 60:
+        return f"{sec}秒"
+    if sec < 3600:
+        return f"{sec // 60}分"
+    if sec < 86400:
+        return f"{sec // 3600}時間{sec % 3600 // 60}分"
+    return f"{sec // 86400}日{sec % 86400 // 3600}時間"
+
+
+STATE_LABEL = {"waiting": "未検出", "running": "実行中", "done": "終了"}
+
+
+def describe(job, now):
+    """一覧・ツールチップ用の1行 (状態と経過時間)"""
+    state = job.get("state", "waiting")
+    text = STATE_LABEL.get(state, state)
+    started = job.get("started")
+    if state == "running" and started:
+        text += f" {human(now - started)}"
+        if job.get("count", 0) > 1:
+            text += f" ({job['count']}プロセス)"
+    elif state == "done":
+        finished = job.get("finished") or now
+        if started:
+            text += f" ({human(finished - started)}かかった)"
+        text += f" {human(now - finished)}前"
+    if job.get("unreachable"):
+        text += " / 届かない"
+        if job.get("error"):
+            text += f": {job['error']}"
+    return text
+
+
+# ---- ssh で状態を見る -----------------------------------------------------
+
+def remote_script(jobs):
+    """1ホスト分のジョブをまとめて調べるシェルスクリプト。
+    ssh の引数ではなく標準入力で渡すので、pattern を含むコマンドラインのシェルが
+    リモートに生まれず、pgrep が自分たちを数えてしまうことがない。
+    出力は1ジョブ1行: <id> <プロセス数> <いちばん古いプロセスの経過秒>"""
+    lines = []
+    for job in jobs:
+        jid = int(job["id"])
+        pat = shlex.quote(job["pattern"])
+        lines.append(
+            f"p=$(pgrep -d, -f -- {pat} 2>/dev/null); "
+            f'if [ -n "$p" ]; then '
+            f'echo "{jid} $(echo "$p" | tr , "\\n" | wc -l) $(ps -o etimes= -p "$p" 2>/dev/null | sort -n | tail -n 1)"; '
+            f'else echo "{jid} 0 0"; fi'
+        )
+    return "\n".join(lines) + "\n"
+
+
+def check_host(host, jobs):
+    """host 上の jobs を調べて ({id: (count, etimes)}, エラー文字列 or None) を返す"""
+    try:
+        proc = subprocess.run(
+            ["ssh", *SSH_OPTS, "--", host, "sh -s"],
+            input=remote_script(jobs), capture_output=True, text=True, timeout=HOST_TIMEOUT,
+        )
+    except subprocess.TimeoutExpired:
+        return {}, f"{HOST_TIMEOUT}秒で応答なし"
+    except OSError as e:
+        return {}, str(e)
+    result = {}
+    for line in proc.stdout.splitlines():
+        parts = line.split()
+        if len(parts) >= 2 and parts[0].isdigit() and parts[1].isdigit():
+            etimes = int(parts[2]) if len(parts) >= 3 and parts[2].isdigit() else 0
+            result[int(parts[0])] = (int(parts[1]), etimes)
+    if proc.returncode == 255 or not result:
+        err = (proc.stderr.strip().splitlines() or [f"ssh 終了コード {proc.returncode}"])[-1]
+        return {}, err[:120]
+    return result, None
+
+
+def notify(job, now):
+    body = job["host"]
+    if job.get("started"):
+        body += f" ・ {human(now - job['started'])}"
+    try:
+        subprocess.run(
+            ["notify-send", "--app-name=Lab", f"{job['label']} が終わりました", body],
+            timeout=10, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+
+
+def poll(only_host=None):
+    with Locked():
+        snapshot = load()
+    by_host = {}
+    for job in snapshot["jobs"]:
+        if job.get("state") == "done":
+            continue  # 終わったものはもう見ない
+        if only_host and job["host"] != only_host:
+            continue
+        by_host.setdefault(job["host"], []).append(job)
+
+    # ホストごとに並列で ssh (ssh は数十秒で必ず切り上げる)。lock は持たない
+    results = {}
+    if by_host:
+        with ThreadPoolExecutor(max_workers=min(8, len(by_host))) as pool:
+            futures = {h: pool.submit(check_host, h, js) for h, js in by_host.items()}
+            results = {h: f.result() for h, f in futures.items()}
+
+    now = int(time.time())
+    finished = []
+    with Locked():
+        data = load()  # ssh の間に add/rm されたかもしれないので読み直してから反映
+        for job in data["jobs"]:
+            host = job["host"]
+            if job.get("state") == "done" or host not in results:
+                continue
+            if job["id"] not in {j["id"] for j in by_host[host]}:
+                continue  # ssh の後に足されたジョブ。次の poll で見る
+            seen, err = results[host]
+            job["checked"] = now
+            if err is not None:
+                job["unreachable"] = True
+                job["error"] = err
+                continue
+            job.pop("unreachable", None)
+            job.pop("error", None)
+            count, etimes = seen.get(job["id"], (0, 0))
+            job["count"] = count
+            if count > 0:
+                if job.get("state") != "running":
+                    job["state"] = "running"
+                    job["started"] = now - etimes if etimes else now
+            elif job.get("state") == "running":
+                job["state"] = "done"
+                job["finished"] = now
+                finished.append(dict(job))
+        # 古い done を捨てる
+        data["jobs"] = [j for j in data["jobs"]
+                        if not (j.get("state") == "done" and now - j.get("finished", now) > DONE_TTL)]
+        data["last_poll"] = now
+        save(data)
+
+    for job in finished:
+        notify(job, now)
+    return data
+
+
+# ---- サブコマンド ---------------------------------------------------------
+
+def cmd_add(args):
+    if len(args) < 2:
+        die("使い方: labwatch add <host> <pattern> [label]")
+    host, pattern = args[0], args[1]
+    label = " ".join(args[2:]) or pattern
+    if not host or host.startswith("-") or any(c.isspace() for c in host):
+        die(f"ホスト名がおかしい: {host!r}")
+    if not pattern:
+        die("pattern が空です")
+    with Locked():
+        data = load()
+        jid = max((j["id"] for j in data["jobs"]), default=0) + 1
+        data["jobs"].append({
+            "id": jid, "host": host, "pattern": pattern, "label": label,
+            "added": int(time.time()), "state": "waiting", "count": 0,
+        })
+        save(data)
+    # すぐ1回見て、パターンが当たっているか確かめる
+    data = poll(only_host=host)
+    job = next((j for j in data["jobs"] if j["id"] == jid), None)
+    if job is None:
+        return
+    print(f"[{jid}] {label} @ {host}: {describe(job, int(time.time()))}")
+    if job.get("state") == "waiting" and not job.get("unreachable"):
+        print(f"  注意: いま '{pattern}' に当たるプロセスがありません (見えたら running になります)", file=sys.stderr)
+
+
+def cmd_list(_args):
+    data = load()
+    now = int(time.time())
+    if not data["jobs"]:
+        print("見張っているジョブはありません")
+        return
+    for job in data["jobs"]:
+        print(f"[{job['id']}] {job['label']}  @{job['host']}  {describe(job, now)}")
+        print(f"     pattern: {job['pattern']}")
+    if data.get("last_poll"):
+        print(f"(最後の poll: {human(now - data['last_poll'])}前)")
+
+
+def cmd_rm(args):
+    if not args:
+        die("使い方: labwatch rm <id>...")
+    ids = set()
+    for a in args:
+        if not a.isdigit():
+            die(f"id は数字です: {a!r}")
+        ids.add(int(a))
+    with Locked():
+        data = load()
+        before = len(data["jobs"])
+        data["jobs"] = [j for j in data["jobs"] if j["id"] not in ids]
+        save(data)
+    print(f"{before - len(data['jobs'])} 件外しました")
+
+
+def cmd_ack(_args):
+    with Locked():
+        data = load()
+        data["jobs"] = [j for j in data["jobs"] if j.get("state") != "done"]
+        save(data)
+
+
+def cmd_clear(_args):
+    with Locked():
+        data = load()
+        data["jobs"] = []
+        save(data)
+
+
+def cmd_poll(_args):
+    data = poll()
+    now = int(time.time())
+    for job in data["jobs"]:
+        print(f"[{job['id']}] {job['label']} @{job['host']}: {describe(job, now)}")
+
+
+def cmd_bar(_args):
+    data = load()
+    now = int(time.time())
+    jobs = [j for j in data["jobs"]
+            if not (j.get("state") == "done" and now - j.get("finished", now) > DONE_TTL)]
+    if not jobs:
+        out = {"text": "", "class": "idle", "tooltip": "labwatch: 見張っているジョブなし"}
+        print(json.dumps(out, ensure_ascii=False))
+        return
+    running = sum(1 for j in jobs if j.get("state") == "running")
+    done = sum(1 for j in jobs if j.get("state") == "done")
+    unreachable = sum(1 for j in jobs if j.get("unreachable") and j.get("state") != "done")
+    stale = now - data.get("last_poll", 0) > STALE_AFTER
+
+    parts = []
+    if running or not done:
+        parts.append(str(running))
+    if done:
+        parts.append(f"✓{done}")
+    if unreachable or stale:
+        parts.append("!")
+    if done:
+        cls = "done"
+    elif unreachable or stale:
+        cls = "unreachable"
+    elif running:
+        cls = "running"
+    else:
+        cls = "idle"
+
+    tip = ["labwatch"]
+    for j in jobs:
+        tip.append(f"{j['label']} @{j['host']}: {describe(j, now)}")
+    if stale:
+        tip.append(f"poll が {human(now - data.get('last_poll', 0))}止まっています (labwatch.timer)")
+    tip.append("click: 一覧 / 右クリック: 終わったものを片付ける")
+    out = {"text": f"{ICON} " + " ".join(parts), "class": cls, "tooltip": "\n".join(tip)}
+    print(json.dumps(out, ensure_ascii=False))
+
+
+def die(msg):
+    print(msg, file=sys.stderr)
+    sys.exit(2)
+
+
+COMMANDS = {
+    "add": cmd_add, "list": cmd_list, "ls": cmd_list, "rm": cmd_rm, "ack": cmd_ack,
+    "clear": cmd_clear, "poll": cmd_poll, "bar": cmd_bar,
+}
+
+
+def main():
+    args = sys.argv[1:]
+    if not args or args[0] not in COMMANDS:
+        # 冒頭のコメントをそのまま使い方として出す
+        with open(__file__) as f:
+            for line in f.readlines()[1:]:
+                if not line.startswith("#"):
+                    break
+                print(line[2:].rstrip())
+        sys.exit(0 if args and args[0] in ("-h", "--help", "help") else 2)
+    COMMANDS[args[0]](args[1:])
+
+
+if __name__ == "__main__":
+    main()
