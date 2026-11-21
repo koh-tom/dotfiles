@@ -40,6 +40,7 @@ WezTerm の上の帯には、今開いているアプリ (シェル・Claude・n
 - **壁紙**: 時刻で切り替わります (朝・昼・夕・夜)。固定・戻すは Omarchy メニューの Setup > Config > Dotfiles > Wallpaper (または `~/dotfiles/scripts/wallpaper-time custom` / `dynamic`)。
 - **WezTerm のセッション**: 15分ごとに自動保存。`CTRL+Q` → `Shift+R` で選んで戻せます。
 - **バックアップ**: Backrest の画面 <http://127.0.0.1:9898>。
+- **Spurs**: 試合の日 (キックオフ12時間前から) は自動でテーマが Spurs になり、1時間前とキックオフで通知。試合が終わると元のテーマに戻ります。スクリーンセーバーは雄鶏と COYS、次の試合までの残り時間。
 - **困ったとき**: `mise run doctor` (dotfiles の自己点検)、`tests/quattro-parity/run` (移行前との比較)。
 EOF
 
