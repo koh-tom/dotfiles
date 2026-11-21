@@ -41,5 +41,9 @@
   "バー (Waybar → Quattro):center に余分なウィジェット": "2026-11-21 変更: 時計を「日付 (標準 omarchy.clock、カレンダー付き) + 時刻 (セリフ体の display-clock)」に分けた",
   "バー (Waybar → Quattro):clock format": "2026-11-21 変更: 時計を「日付 (標準 omarchy.clock、カレンダー付き) + 時刻 (セリフ体の display-clock)」に分けた",
   "バー (Waybar → Quattro):modules-left のモジュール": "2026-11-21 変更: ワークスペース表示を自作のミニマップ (dotfiles.minimap: 窓ありはアプリアイコン、空は番号、右ドラッグで移動) に置き換えた",
-  "バー (Waybar → Quattro):left に余分なウィジェット": "2026-11-21 変更: ワークスペース表示を自作のミニマップ (dotfiles.minimap: 窓ありはアプリアイコン、空は番号、右ドラッグで移動) に置き換えた"
+  "バー (Waybar → Quattro):left に余分なウィジェット": "2026-11-21 変更: ワークスペース表示を自作のミニマップ (dotfiles.minimap: 窓ありはアプリアイコン、空は番号、右ドラッグで移動) に置き換えた",
+  "キーバインド (個人設定):ALT+SUPER+p": "2026-11-21 追加: SUPER+ALT+P でワークスペースのプリセット (scripts/workspace-preset)",
+  "キーバインド (個人設定):ALT+SUPER+n": "2026-11-21 追加: SUPER+ALT+N でひらめきメモ (scripts/quick-memo、Obsidian の今日のノートに追記)",
+  "キーバインド (個人キーの実効動作):ALT+SUPER+p": "2026-11-21 追加: SUPER+ALT+P でワークスペースのプリセット (scripts/workspace-preset)",
+  "キーバインド (個人キーの実効動作):ALT+SUPER+n": "2026-11-21 追加: SUPER+ALT+N でひらめきメモ (scripts/quick-memo、Obsidian の今日のノートに追記)"
 }
