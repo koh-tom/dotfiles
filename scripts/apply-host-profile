@@ -23,7 +23,10 @@ if cmp -s "$source_file" "$target_file"; then
   exit 0
 fi
 
-cp -p "$target_file" "$target_file.bak.$(date +%s)"
+# 初回 (ターゲット未作成) はバックアップするものが無い。set -e で落ちないよう存在時だけ
+if [[ -e $target_file ]]; then
+  cp -p "$target_file" "$target_file.bak.$(date +%s)"
+fi
 install -m 0644 "$source_file" "$target_file"
 hyprctl reload
 
