@@ -1,0 +1,155 @@
+#!/bin/bash
+# 画面の一部を Claude に聞く。範囲を選ぶ → 質問を入力 (空なら「これは何?」) → 答えを Markdown で浮いた窓に出す。
+# Hyprland のキー (SUPER+ALT+A) から呼ぶ。
+#
+#   ask-screen                        範囲選択から全部 (対話)
+#   ask-screen --ask <画像> [質問]     画像について聞いて答えを標準出力へ (確認用・対話なし)
+#   ask-screen --last                 最後の答えをもう一度開く
+#
+# 裏側は Claude Code の CLI (~/.local/bin/claude) の print モード。画像は stream-json で
+# base64 のまま渡すので、ツールは一切与えない (--tools "")。設定・フック・MCP も読まない。
+# モデルは ASK_SCREEN_MODEL で変えられる (既定 sonnet)。
+# スクリーンショットは $XDG_RUNTIME_DIR に置いて終わったら消す。最後の答えは ~/.cache/dotfiles/ask-screen/last.md。
+set -euo pipefail
+
+claude="$HOME/.local/bin/claude"
+model="${ASK_SCREEN_MODEL:-sonnet}"
+default_question="これは何? 要点を日本語で簡潔に"
+cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/dotfiles/ask-screen"
+last="$cache_dir/last.md"
+runtime="${XDG_RUNTIME_DIR:-/tmp}"
+app="Ask Claude"
+
+system_prompt="あなたはユーザーのデスクトップのスクリーンショットについて質問に答えるアシスタントです。\
+画像に写っている内容だけを根拠に、日本語の Markdown で簡潔に答えてください。\
+見出しは使わず、必要なら短い箇条書きやコードブロックを使ってください。\
+読み取れない・分からないことは推測せず、そう書いてください。"
+
+# 答えを出す窓 (class org.omarchy.ask-screen。Hyprland 側のルールで中央に浮かせる)
+show() {
+  # WezTerm は xdg-terminal-exec の --app-id を使わないので、--class を直接渡す
+  # WEZTERM_DROPDOWN: セッション復元・自動保存を読まない (ドロップダウン端末と同じ扱い)
+  setsid uwsm-app -- env WEZTERM_DROPDOWN=1 wezterm start --always-new-process \
+    --class org.omarchy.ask-screen -- glow -p "$last" >/dev/null 2>&1 &
+}
+
+# 画像 ($1) と質問 ($2) を Claude に渡し、答えの Markdown を標準出力へ
+ask() {
+  local image=$1 question=$2 work send media out
+
+  work=$(mktemp -d "$runtime/ask-screen.XXXXXX")
+  # shellcheck disable=SC2064 # work はここで確定させたい
+  trap "rm -rf '$work'; trap - RETURN" RETURN
+
+  # API は長辺 1568px を超えると縮めるので、先に縮めて送る量を減らす。
+  # それでも大きければ JPEG にする (base64 で 5MB を超えると受け付けない)
+  send="$work/send.png"
+  media=image/png
+  if command -v magick >/dev/null; then
+    magick "$image" -resize '1568x1568>' "$send"
+    if (($(stat -c %s "$send") > 3500000)); then
+      send="$work/send.jpg"
+      media=image/jpeg
+      magick "$image" -resize '1568x1568>' -quality 85 "$send"
+    fi
+  else
+    cp "$image" "$send"
+  fi
+
+  jq -cn --rawfile data <(base64 -w0 "$send") --arg media "$media" --arg q "$question" '{
+    type: "user",
+    message: {role: "user", content: [
+      {type: "image", source: {type: "base64", media_type: $media, data: $data}},
+      {type: "text", text: $q}
+    ]}
+  }' >"$work/in.jsonl"
+
+  # 一時ディレクトリで動かす (CLAUDE.md などを拾わない)。ツール無し・設定無し・MCP 無し・セッションも残さない
+  out="$work/out.jsonl"
+  if ! (cd "$work" && ENABLE_CLAUDEAI_MCP_SERVERS=false timeout 90 "$claude" -p \
+    --input-format stream-json --output-format stream-json --verbose \
+    --model "$model" --tools "" --setting-sources "" --strict-mcp-config \
+    --system-prompt "$system_prompt" \
+    --no-session-persistence --permission-prompts none \
+    <"$work/in.jsonl" >"$out" 2>"$work/err.txt"); then
+    echo "Claude に聞けませんでした (タイムアウトか失敗)" >&2
+    tail -n 5 "$work/err.txt" >&2 || true
+    return 1
+  fi
+
+  local answer
+  answer=$(jq -r 'select(.type == "result") | if .is_error then empty else .result end' "$out")
+  if [[ -z $answer ]]; then
+    echo "Claude から答えが返りませんでした" >&2
+    jq -r 'select(.type == "result") | .result // empty' "$out" >&2 || true
+    return 1
+  fi
+  printf '%s\n' "$answer"
+}
+
+notify() {
+  notify-send -a "$app" "$@" 2>/dev/null || true
+}
+
+case ${1:-} in
+--ask)
+  [[ -r ${2:-} ]] || {
+    echo "使い方: ask-screen --ask <画像> [質問]" >&2
+    exit 2
+  }
+  ask "$2" "${3:-$default_question}"
+  exit
+  ;;
+--last)
+  [[ -r $last ]] || {
+    notify "まだ答えがありません"
+    exit 1
+  }
+  show
+  exit 0
+  ;;
+"") ;;
+*)
+  sed -n '2,12p' "$0" >&2
+  exit 2
+  ;;
+esac
+
+# 1. 範囲を選ぶ (Omarchy のスクリーンショットと同じ選び方。クリックだけならそのウィンドウ、Esc でやめる)
+geometry=$(omarchy-capture-region smart 2>/dev/null) || exit 0
+[[ -n $geometry ]] || exit 0
+
+shot=$(mktemp "$runtime/ask-screen.XXXXXX.png")
+trap 'rm -f "$shot"' EXIT
+grim -g "$geometry" "$shot"
+
+# 2. 質問 (空のままなら既定の質問。入力欄は Esc でも空と同じになる)
+question=$(omarchy-menu-input "Claude に質問 (空なら「これは何?」)" --width 640 2>/dev/null || true)
+question=$(printf '%s' "$question" | tr '\n' ' ' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+[[ -n $question ]] || question=$default_question
+
+# 3. 聞く (待つ間は通知を出しておき、終わったら同じ通知を差し替える)
+id=$(notify-send -a "$app" -p -t 90000 "考えています…" "$question" 2>/dev/null || true)
+replace=()
+[[ -n $id ]] && replace=(-r "$id")
+
+err=$(mktemp "$runtime/ask-screen.XXXXXX.err")
+trap 'rm -f "$shot" "$err"' EXIT
+if ! answer=$(ask "$shot" "$question" 2>"$err"); then
+  notify "${replace[@]}" -u critical "Claude に聞けませんでした" "$(head -c 300 "$err")"
+  exit 1
+fi
+
+# 4. 保存して見せる
+mkdir -p "$cache_dir"
+{
+  printf '> %s\n\n' "$question"
+  printf '%s\n' "$answer"
+  printf '\n---\n\n_%s · %s_\n' "$(date '+%F %H:%M')" "$model"
+} >"$last"
+
+# 通知には Markdown の記号を落とした頭だけ
+summary=$(printf '%s' "$answer" | sed -E 's/^[[:space:]]*([-*+]|[0-9]+\.|#+)[[:space:]]+//; s/[*_`]//g' | tr '\n' ' ')
+((${#summary} <= 120)) || summary="${summary:0:120}…"
+notify "${replace[@]}" -t 8000 "Claude の答え" "$summary"
+show
