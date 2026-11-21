@@ -1,0 +1,9 @@
+# 研究室マシンのジョブを見張る (scripts/labwatch poll)。見張る対象は `labwatch add` で足す
+[Unit]
+Description=Lab job watcher poll (dotfiles)
+After=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/dotfiles/scripts/labwatch poll
+TimeoutStartSec=60

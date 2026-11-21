@@ -1,0 +1,11 @@
+[Unit]
+Description=Lab job watcher every minute (dotfiles)
+PartOf=graphical-session.target
+
+[Timer]
+OnStartupSec=30s
+OnCalendar=*:*:00
+AccuracySec=5s
+
+[Install]
+WantedBy=graphical-session.target
