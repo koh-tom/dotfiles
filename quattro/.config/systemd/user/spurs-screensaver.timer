@@ -1,0 +1,10 @@
+[Unit]
+Description=Refresh Spurs screensaver countdown every 10 minutes (dotfiles)
+
+[Timer]
+OnStartupSec=1min
+OnCalendar=*:0/10
+Persistent=true
+
+[Install]
+WantedBy=timers.target
