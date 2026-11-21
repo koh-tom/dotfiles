@@ -1,0 +1,11 @@
+[Unit]
+Description=Time-of-day wallpaper every 15 minutes (dotfiles)
+PartOf=graphical-session.target
+
+[Timer]
+OnStartupSec=30s
+OnCalendar=*:0/15
+Persistent=true
+
+[Install]
+WantedBy=graphical-session.target
