@@ -81,3 +81,6 @@ Tools	glow README.md	Markdown をターミナルで整形表示
 # --- Neovim ---
 Neovim	jj	インサートモードを抜ける (日本語入力中でも押しやすい)
 Neovim	gx	カーソル下の URL を開く
+Hyprland	⌘⌥P	ワークスペースのプリセット (研究・開発・連絡)。中身は presets/workspaces.json
+Hyprland	⌘⌥N	ひらめきメモ。1行書くと Obsidian の今日のノートに追記
+WezTerm	^Q h	研究室などのマシンを新しいタブで開く (tailscale / ~/.ssh/config から一覧)
