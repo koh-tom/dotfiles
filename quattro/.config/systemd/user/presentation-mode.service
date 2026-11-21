@@ -1,0 +1,13 @@
+# 発表モード: pdfpc や画面共有の間は通知を止める (scripts/presentation-mode)
+[Unit]
+Description=Presentation mode: silence notifications while presenting (dotfiles)
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+ExecStart=%h/dotfiles/scripts/presentation-mode
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=graphical-session.target
