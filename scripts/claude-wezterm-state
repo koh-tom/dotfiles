@@ -19,6 +19,60 @@ hook_json=""
   fi
 } 2>/dev/null
 
+# Claude Code mission control (omarchy-shell の dotfiles.claude パネル) 用に、ペインごとの状態を
+# ~/.local/state/dotfiles/claude-sessions/<pane_id>.json に残す。WezTerm の user var は
+# `wezterm cli list` から読めないため。読む側は scripts/claude-sessions。
+#   { pane_id, state, ts, cwd, tty, session_id, prompt (最後の入力), message (通知の文面) }
+# 終了 (state 空) ならファイルを消す。
+if [[ -n ${WEZTERM_PANE:-} ]] && command -v jq >/dev/null; then
+  {
+    dir="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/claude-sessions"
+    file="$dir/$WEZTERM_PANE.json"
+    if [[ -z $state ]]; then
+      rm -f "$file"
+    else
+      mkdir -p "$dir"
+      # hook 自体は tty を持たないことがあるので、親 (claude) をたどって端末を探す
+      tty_name="" pid=$$
+      for _ in 1 2 3 4 5; do
+        read -r t ppid < <(ps -o tty=,ppid= -p "$pid")
+        if [[ -n $t && $t != "?" ]]; then tty_name="/dev/$t"; break; fi
+        [[ -n $ppid && $ppid != 0 ]] || break
+        pid=$ppid
+      done
+      prev='{}'
+      [[ -r $file ]] && prev=$(cat "$file")
+      [[ -n $hook_json ]] || hook_json='{}'
+      tmp="$file.$$"
+      # prompt は UserPromptSubmit にだけ来る。それ以外のイベントでは前の値を引き継ぐ
+      if jq -n --argjson prev "$prev" --argjson hook "$hook_json" \
+        --arg pane "$WEZTERM_PANE" --arg state "$state" --arg tty "$tty_name" \
+        --argjson ts "$(date +%s)" '
+        # 同じペインで別セッションが始まったら前の値は捨てる
+        ($prev | if (.session_id // "") == ($hook.session_id // .session_id // "") then . else {} end) as $prev |
+        # 入力待ちのまま放置したときの Notification (idle) は「許可待ち」ではないので待ちのまま扱う
+        (($state == "attention") and ($prev.state == "waiting")
+          and ((($hook.notification_type // "") == "idle_prompt")
+               or (($hook.message // "") | test("waiting for your input"; "i")))) as $idle |
+        def clip: if type == "string" then gsub("\\s+"; " ") | .[0:300] else . end;
+        {
+          pane_id: ($pane | tonumber),
+          state: (if $idle then "waiting" else $state end),
+          ts: (if $idle then $prev.ts else $ts end),
+          cwd: ($hook.cwd // $prev.cwd // ""),
+          tty: $tty,
+          session_id: ($hook.session_id // $prev.session_id // ""),
+          prompt: (($hook.prompt | clip) // $prev.prompt // ""),
+          message: (if $state == "attention" and ($idle | not) then ($hook.message // "") else "" end)
+        }' >"$tmp"; then
+        mv -f "$tmp" "$file"
+      else
+        rm -f "$tmp"
+      fi
+    fi
+  } 2>/dev/null
+fi
+
 # 入力待ち・許可待ちは、見ていなければ通知を出す (押すとそのタブへ移動)。hook を待たせないよう切り離す
 if [[ ($state == "waiting" || $state == "attention") && -n ${WEZTERM_PANE:-} ]]; then
   setsid -f "$HOME/dotfiles/scripts/claude-notify-jump" "$state" "$WEZTERM_PANE" "$hook_json" >/dev/null 2>&1 </dev/null
