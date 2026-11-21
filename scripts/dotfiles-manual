@@ -17,7 +17,7 @@ generate() {
 
 困ったら **SUPER+SHIFT+K** でいつでもここに戻れます。Omarchy 標準のキー一覧は **SUPER+K**。
 
-## まず覚える 13 個
+## まず覚える 14 個
 
 | キー | できること |
 |---|---|
@@ -33,6 +33,7 @@ generate() {
 | `CTRL+Q` → `/` | WezTerm: 全キーと全スニペットのチートシート |
 | `SUPER+ALT+P` | ワークスペースのプリセット (研究・開発・連絡) |
 | `SUPER+ALT+N` | ひらめきメモ (Obsidian の今日のノートに1行追記) |
+| `SUPER+ALT+R` | 選んだ文を校正・書き換え (何をする × 状況 を選ぶ。SHIFT 付きで貼り付けまで) |
 | `CTRL+Q` → `h` | WezTerm: 研究室などのマシンを新しいタブで開く |
 
 WezTerm の上の帯には、今開いているアプリ (シェル・Claude・nvim・lazygit・yazi) のキーが出ています。
