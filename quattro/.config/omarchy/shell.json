@@ -106,16 +106,25 @@
           "padding": 10
         },
         {
+          "id": "omarchy.agents"
+        },
+        {
           "id": "omarchy.media"
         },
         {
           "id": "omarchy.tray"
         },
         {
+          "id": "omarchy.keyboard-layout"
+        },
+        {
           "id": "omarchy.bluetooth"
         },
         {
           "id": "omarchy.network"
+        },
+        {
+          "id": "omarchy.tailscale"
         },
         {
           "id": "omarchy.audio"
