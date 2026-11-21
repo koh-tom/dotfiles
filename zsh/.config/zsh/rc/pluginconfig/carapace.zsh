@@ -10,8 +10,10 @@ if [[ ! -r "$_carapace_cache" || "$(command -v carapace)" -nt "$_carapace_cache"
   carapace _carapace zsh | sed 's/^compdef _carapace_completer /_carapace_cmds=(/; /^_carapace_cmds=(/ s/$/)/' > "$_carapace_cache"
 fi
 source "$_carapace_cache"
+_comps_keys=(${(k)_comps})
 
-for _c in $_carapace_cmds; do
-  (( $+_comps[$_c] )) || compdef _carapace_completer "$_c"
-done
-unset _c _carapace_cmds
+# 既に補完があるコマンドを除いた残りを、compdef 1回でまとめて登録する
+# (1コマンドずつ compdef すると約700回呼ばれ、起動が 30ms 遅くなっていた)
+_carapace_cmds=(${_carapace_cmds:|_comps_keys})
+(( ${#_carapace_cmds} )) && compdef _carapace_completer $_carapace_cmds
+unset _carapace_cmds _comps_keys
