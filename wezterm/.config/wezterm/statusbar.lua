@@ -4,6 +4,7 @@ local palette = require("omarchy_theme").get_palette()
 local tab = require("tab")
 local workspace_color = require("workspace_color")
 local ui = require("modules.ui")
+local gitinfo = require("modules.gitinfo")
 
 -- =============================================================================
 -- 定数 & アイコン
@@ -40,8 +41,6 @@ local ICONS = {
 
 -- キャッシュ用変数
 local last_color = nil
-local git_cache = {}
-local GIT_CACHE_TTL = 2
 
 -- =============================================================================
 -- ヘルパー関数
@@ -57,22 +56,10 @@ local function get_short_cwd(pane)
   return path
 end
 
--- Git ブランチ名を取得 (キャッシュ対応)
+-- Git ブランチ名 (.git/HEAD を直接読む。git を起動しないので update-status のたびに呼んでも軽い)
 local function get_git_branch(pane)
   local cwd_url = pane:get_current_working_dir()
-  local cwd = cwd_url and cwd_url.file_path or ""
-  if cwd == "" then return "" end
-
-  local now = os.time()
-  local cached = git_cache[cwd]
-  if cached and now - cached.updated_at < GIT_CACHE_TTL then
-    return cached.branch
-  end
-
-  local success, stdout, _ = wezterm.run_child_process({ "git", "-C", cwd, "branch", "--show-current" })
-  local branch = success and stdout:gsub("\n", "") or ""
-  git_cache[cwd] = { branch = branch, updated_at = now }
-  return branch
+  return gitinfo.branch(cwd_url and cwd_url.file_path or "")
 end
 
 -- CPU 負荷とメモリ使用率を取得 (Linux 特化)
