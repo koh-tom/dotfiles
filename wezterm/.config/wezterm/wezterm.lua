@@ -15,7 +15,8 @@ local font_ok, font_stdout = wezterm.run_child_process({ "omarchy", "font", "cur
 if font_ok and font_stdout and font_stdout:match("%S") then
 	font_name = font_stdout:gsub("%s+$", "")
 end
-config.font = wezterm.font_with_fallback({ font_name, "JetBrainsMono Nerd Font", "JetBrains Mono" })
+-- 日本語は Noto Sans CJK JP を明示する (書かないと新しく開いた窓で日本語フォントの検索に数秒かかり、その間は □ になる)
+config.font = wezterm.font_with_fallback({ font_name, "JetBrainsMono Nerd Font", "JetBrains Mono", "Noto Sans CJK JP" })
 
 -- 斜体 (コメント等) だけ手書き風の Monaspace Radon にする。未インストールなら通常の斜体のまま
 -- (pacman -S otf-monaspace)。require内ではrun_child_processが使えないのでここで判定する
