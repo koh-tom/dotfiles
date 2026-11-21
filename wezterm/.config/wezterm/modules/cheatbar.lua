@@ -275,29 +275,14 @@ local default_image = render(DEFAULT_CELL_W, DEFAULT_CELL_H, 1800, "shell")
 -- =============================================================================
 
 local DEFAULT_OPACITY = 0.82 -- modules/opacity.lua の FOCUSED と揃える
--- 今の壁紙 (Omarchy の current/background は symlink)。実体のパスにしておくと、壁紙が変わったあとの
--- 設定再読み込みで WezTerm が新しい画像を読み直す (wallpaper-time が切り替え時に再読み込みさせる)
-local function resolve_wallpaper()
-  local link = require("omarchy_theme").current_dir() .. "/background"
-  local p = io.popen("readlink -f " .. wezterm.shell_quote_arg(link) .. " 2>/dev/null")
-  local path = p and p:read("l") or nil
-  if p then p:close() end
-  if path and path ~= "" then
-    local f = io.open(path, "rb")
-    if f then f:close() return path end
-  end
-  return nil
-end
-local WALLPAPER = resolve_wallpaper()
--- 壁紙を背景に薄く敷くのを既定にする (LEADER + i で切り替え)
-local DEFAULT_WALLPAPER = WALLPAPER ~= nil
+local WALLPAPER = require("omarchy_theme").current_dir() .. "/background"
 
 -- window_id -> { opacity, wallpaper, image, tip, win_w, win_h, cell_h, metrics }
 local states = {}
 
 local function state_of(window)
   local id = window:window_id()
-  states[id] = states[id] or { opacity = DEFAULT_OPACITY, wallpaper = DEFAULT_WALLPAPER, image = default_image }
+  states[id] = states[id] or { opacity = DEFAULT_OPACITY, wallpaper = false, image = default_image }
   return states[id]
 end
 
@@ -316,7 +301,7 @@ local function build_layers(opts)
       opacity = opts.opacity,
     },
   }
-  if opts.wallpaper and WALLPAPER then
+  if opts.wallpaper then
     layers[#layers + 1] = {
       source = { File = WALLPAPER },
       width = "Cover",
@@ -325,7 +310,7 @@ local function build_layers(opts)
       horizontal_align = "Center",
       opacity = opts.opacity,
       -- 文字が読める明るさまで落とす
-      hsb = { brightness = 0.1, saturation = 0.9 },
+      hsb = { brightness = 0.06, saturation = 0.9 },
     }
   end
   -- ミニマル: 帯の塗りと境界線は描かない (文字だけを浮かせる)
@@ -442,7 +427,7 @@ end
 
 function module.apply_to_config(config)
   if not default_image then return end
-  config.background = build_layers({ opacity = DEFAULT_OPACITY, wallpaper = DEFAULT_WALLPAPER, image = default_image })
+  config.background = build_layers({ opacity = DEFAULT_OPACITY, wallpaper = false, image = default_image })
   config.window_padding = config.window_padding or {}
   config.window_padding.top = padding_top(default_image)
 
