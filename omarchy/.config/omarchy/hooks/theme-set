@@ -10,19 +10,9 @@ wezterm_config="$HOME/.config/wezterm/wezterm.lua"
 [[ -e $wezterm_config ]] && touch "$wezterm_config"
 
 
-# テーマを替えても、壁紙のファイル名が前のテーマと同じ (backgrounds/1.png など) だと
-# Omarchy の背景が画像を読み直さず前のテーマの壁紙が残る。current/ の下は同じパスになるので、
-# テーマの元のディレクトリにある同じ名前のファイル (パスがテーマごとに違う) で設定し直す
-cur="$HOME/.local/state/omarchy/current"
-bg=$(readlink -f "$cur/background" 2>/dev/null)
-name=$(cat "$cur/theme.name" 2>/dev/null)
-if [[ -n $bg && -n $name ]]; then
-  for dir in "$HOME/.config/omarchy/themes/$name" "/usr/share/omarchy/themes/$name"; do
-    src="$dir/backgrounds/${bg##*/}"
-    if [[ -f $src ]]; then
-      omarchy-shell -q background set "$(readlink -f "$src")" >/dev/null 2>&1
-      break
-    fi
-  done
+# テーマを替えたら壁紙も新しいテーマのものに (Omarchy は前に選んだ壁紙を残すことがあり、
+# ファイル名が同じだと画像も読み直さない)。時刻連動 (wallpaper-time) なら時刻に合う1枚を選び直す
+if [[ $(cat "${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles/wallpaper-mode" 2>/dev/null || echo dynamic) == dynamic ]]; then
+  "$HOME/dotfiles/scripts/wallpaper-time" >/dev/null 2>&1
 fi
 exit 0
