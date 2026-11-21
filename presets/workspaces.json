@@ -1,0 +1,32 @@
+{
+  "_comment": "ワークスペースのプリセット (scripts/workspace-preset)。キーがプリセット名、workspaces の各キーがワークスペース番号。class はウィンドウの class (正規表現)。起動済みなら新しく開かず、そのワークスペースへ移す。focus は最後に表示するワークスペース。",
+  "研究": {
+    "icon": "󰑴",
+    "focus": "1",
+    "workspaces": {
+      "1": [{ "name": "WezTerm", "cmd": "wezterm start --cwd ~/research", "class": "^org\\.wezfurlong\\.wezterm$" }],
+      "2": [{ "name": "Zotero", "cmd": "zotero", "class": "^Zotero$" }],
+      "3": [{ "name": "Obsidian", "cmd": "obsidian", "class": "^obsidian$" }],
+      "4": [{ "name": "Chrome", "cmd": "google-chrome-stable", "class": "^google-chrome$" }]
+    }
+  },
+  "開発": {
+    "icon": "",
+    "focus": "1",
+    "workspaces": {
+      "1": [{ "name": "WezTerm", "cmd": "wezterm start --cwd ~/dotfiles", "class": "^org\\.wezfurlong\\.wezterm$" }],
+      "2": [{ "name": "Chrome", "cmd": "google-chrome-stable", "class": "^google-chrome$" }]
+    }
+  },
+  "連絡": {
+    "icon": "󰭹",
+    "focus": "5",
+    "workspaces": {
+      "5": [
+        { "name": "Slack", "cmd": "slack", "class": "^Slack$" },
+        { "name": "Mattermost", "cmd": "mattermost-desktop", "class": "^Mattermost$" }
+      ],
+      "6": [{ "name": "Morgen", "cmd": "morgen", "class": "^Morgen$" }]
+    }
+  }
+}
