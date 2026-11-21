@@ -47,3 +47,4 @@ require("hypr.personal.manual")            -- SUPER+SHIFT+K で dotfiles のマ�
 require("hypr.personal.presets")           -- SUPER+ALT+P でワークスペースのプリセット
 require("hypr.personal.memo")              -- SUPER+ALT+N でひらめきメモ
 require("hypr.personal.theme-from-image")  -- SUPER+CTRL+SHIFT+T で画像からテーマ
+require("hypr.personal.ask-screen")        -- SUPER+ALT+A で画面の一部を Claude に聞く
