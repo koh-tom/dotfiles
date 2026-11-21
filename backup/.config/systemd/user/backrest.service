@@ -1,0 +1,16 @@
+# Backrest: restic の Web UI (http://127.0.0.1:9898)。スケジュール実行・世代管理・UI からの復元。
+# snapper のスナップショットは同じディスク上にしか無いので、外付けディスク / クラウドへの増分バックアップを足す。
+# バイナリは ~/.local/bin/backrest (GitHub releases)。restic が無ければ Backrest が自動で取得する。
+# 設定・状態は ~/.config/backrest と ~/.local/share/backrest (dotfiles 管理外: 保存先の認証情報が入るため)。
+[Unit]
+Description=Backrest (restic Web UI)
+ConditionPathExists=%h/.local/bin/backrest
+After=network-online.target
+
+[Service]
+ExecStart=%h/.local/bin/backrest -bind-address 127.0.0.1:9898
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target
