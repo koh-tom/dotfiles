@@ -1,0 +1,92 @@
+#!/bin/bash
+# プロジェクトを1つ選ぶと、空いているワークスペースに作業一式を並べる。
+#   - WezTerm の新しいウィンドウ: タブ1 = nvim、タブ2 = lazygit、タブ3 = Claude Code (すべてそのプロジェクトで)
+#   - GitHub のリポジトリなら、ブラウザの新しいウィンドウでリポジトリのページ
+# 候補は zoxide でよく行くディレクトリの git ルート。SUPER+ALT+W から呼ぶ。
+#
+#   project-open            一覧から選ぶ
+#   project-open <dir>      そのディレクトリで開く
+#   DRY=1 project-open <dir>  実行せずにやることだけ表示
+set -euo pipefail
+
+dispatch() {
+  if [[ -n ${DRY:-} ]]; then echo "[dry] dispatch $1"; return; fi
+  "$HOME/dotfiles/scripts/hypr-dispatch" "$1" >/dev/null
+}
+
+run() {
+  if [[ -n ${DRY:-} ]]; then echo "[dry] $*"; return; fi
+  "$@"
+}
+
+# path を含む git リポジトリのルート (無ければ空)
+git_root() {
+  local dir=$1
+  while [[ -n $dir && $dir != / ]]; do
+    [[ -e $dir/.git ]] && { printf '%s\n' "$dir"; return; }
+    dir=${dir%/*}
+  done
+}
+
+pick() {
+  local -a roots=() options=()
+  local path root
+  declare -A seen=()
+  while IFS= read -r path; do
+    root=$(git_root "$path")
+    [[ -n $root && -z ${seen[$root]:-} ]] || continue
+    seen[$root]=1
+    roots+=("$root")
+    ((${#roots[@]} < 40)) || break
+  done < <(zoxide query -l 2>/dev/null)
+  ((${#roots[@]})) || { notify-send -a Project "プロジェクトが見つかりません" "zoxide でよく行く git リポジトリから選びます"; exit 1; }
+  for root in "${roots[@]}"; do
+    options+=("${root##*/}  ${root/#$HOME/\~}")
+  done
+  local choice
+  choice=$(omarchy-menu-select "Project" "${options[@]}" 2>/dev/null) || exit 0
+  [[ -n $choice ]] || exit 0
+  local shown=${choice#*  }
+  printf '%s\n' "${shown/#\~/$HOME}"
+}
+
+dir=${1:-}
+[[ -n $dir ]] || dir=$(pick)
+[[ -d $dir ]] || { echo "ディレクトリがありません: $dir" >&2; exit 1; }
+dir=$(cd "$dir" && pwd)
+name=${dir##*/}
+
+# 空いているワークスペースへ移ってから開く (新しいウィンドウはいま表示中のワークスペースに出る)
+dispatch 'hl.dsp.focus({ workspace = "empty" })'
+[[ -n ${DRY:-} ]] || sleep 0.3
+
+# WezTerm: 新しいウィンドウに nvim、続けて lazygit と Claude のタブ
+if [[ -n ${DRY:-} ]]; then
+  echo "[dry] wezterm cli spawn --new-window --cwd $dir -- nvim"
+  echo "[dry] wezterm cli spawn --window-id <W> --cwd $dir -- lazygit"
+  echo "[dry] wezterm cli spawn --window-id <W> --cwd $dir -- claude"
+else
+  pane=$(wezterm cli spawn --new-window --cwd "$dir" -- nvim)
+  window=$(wezterm cli list --format json | jq -r --argjson p "$pane" '.[] | select(.pane_id == $p) | .window_id')
+  if [[ -n $window ]]; then
+    wezterm cli spawn --window-id "$window" --cwd "$dir" -- lazygit >/dev/null || true
+    wezterm cli spawn --window-id "$window" --cwd "$dir" -- "$HOME/.local/bin/claude" >/dev/null || true
+    # 最初のタブ (nvim) を表示しておく
+    wezterm cli activate-pane --pane-id "$pane" >/dev/null 2>&1 || true
+  fi
+fi
+
+# GitHub のリポジトリなら、ブラウザでリポジトリのページ
+remote=$(git -C "$dir" remote get-url origin 2>/dev/null || true)
+url=""
+case $remote in
+  git@github.com:*) url="https://github.com/${remote#git@github.com:}" ;;
+  https://github.com/*) url=$remote ;;
+  ssh://git@github.com/*) url="https://github.com/${remote#ssh://git@github.com/}" ;;
+esac
+url=${url%.git}
+if [[ -n $url ]]; then
+  run setsid -f uwsm-app -- google-chrome-stable --new-window "$url" >/dev/null 2>&1
+fi
+
+[[ -n ${DRY:-} ]] || notify-send -a Project "プロジェクト: $name" "nvim / lazygit / Claude${url:+ / GitHub}" 2>/dev/null || true
