@@ -107,7 +107,7 @@
           "interval": 10,
           "pill": true,
           "color": "#d97757",
-          "onClick": "$HOME/dotfiles/scripts/hypr-dispatch 'hl.dsp.focus({ window = \"class:org.wezfurlong.wezterm\" })' focuswindow class:org.wezfurlong.wezterm",
+          "onClick": "omarchy-shell shell toggle dotfiles.claude",
           "padding": 10
         },
         {
@@ -193,6 +193,9 @@
     },
     {
       "id": "dotfiles.lock"
+    },
+    {
+      "id": "dotfiles.claude"
     }
   ],
   "cloneSourceRestores": [
