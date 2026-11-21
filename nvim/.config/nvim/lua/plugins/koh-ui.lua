@@ -11,4 +11,20 @@ return {
       cursor_color = "none",
     },
   },
+
+  -- tiny-inline-diagnostic: 診断メッセージを行末に吹き出し風で表示する。
+  -- 長いメッセージは折り返し、カーソル行のものだけ詳しく出す。
+  {
+    "rachartier/tiny-inline-diagnostic.nvim",
+    event = "VeryLazy",
+    priority = 1000,
+    opts = {},
+  },
+  -- 標準の virtual_text と二重表示にならないよう切る。
+  -- LazyVim は nvim-lspconfig の opts.diagnostics を vim.diagnostic.config() に渡すので、
+  -- README の LazyVim 向け手順どおりここで上書きする。
+  {
+    "neovim/nvim-lspconfig",
+    opts = { diagnostics = { virtual_text = false } },
+  },
 }
