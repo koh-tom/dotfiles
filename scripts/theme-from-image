@@ -1,0 +1,39 @@
+#!/bin/bash
+# 好きな画像から色を取り出してデスクトップ全体のテーマにする (Omarchy 同梱の Aether を使う)。
+# バー・ターミナル・Neovim・ロック画面まで、その画像の色に染まり、画像が壁紙になる。
+#
+#   theme-from-image            画像を一覧から選ぶ (~/Wallpapers、~/Pictures、Omarchy の全テーマの壁紙)
+#   theme-from-image <画像>      その画像で作る
+#   theme-from-image --light    明るい版で作る (画像の指定と併用可)
+#
+# 元のテーマに戻すときは SUPER+CTRL+T (テーマメニュー) から選ぶ。
+set -euo pipefail
+
+command -v aether >/dev/null || { notify-send -a Theme "Aether がありません" "Omarchy の aether パッケージが必要です"; exit 1; }
+
+light=()
+image=""
+for arg in "$@"; do
+  case $arg in
+    --light) light=(--light-mode) ;;
+    *) image=$arg ;;
+  esac
+done
+
+if [[ -z $image ]]; then
+  dirs=()
+  for d in "$HOME/Wallpapers" "$HOME/Pictures" "$HOME"/.config/omarchy/backgrounds/* /usr/share/omarchy/themes/*/backgrounds; do
+    [[ -d $d ]] && dirs+=("$d")
+  done
+  ((${#dirs[@]})) || exit 0
+  image=$(omarchy-menu-images --show-labels --filterable --lazy-thumbnails "${dirs[@]}" 2>/dev/null || true)
+fi
+[[ -n $image && -f $image ]] || exit 0
+
+notify-send -a Theme "テーマを作っています…" "$(basename "$image")" 2>/dev/null || true
+if aether --generate "$image" "${light[@]}" >/dev/null 2>&1; then
+  notify-send -a Theme "画像からテーマを作りました" "戻すときは SUPER+CTRL+T でテーマを選ぶ" 2>/dev/null || true
+else
+  notify-send -a Theme -u critical "テーマを作れませんでした" "$(basename "$image")" 2>/dev/null || true
+  exit 1
+fi
