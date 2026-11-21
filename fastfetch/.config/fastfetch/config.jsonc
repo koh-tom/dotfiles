@@ -73,12 +73,6 @@
     },
     {
       "type": "command",
-      "key": "│ ├󰘬",
-      "keyColor": "blue",
-      "text": "branch=$(omarchy-version-branch 2>/dev/null) && echo \"$branch\" || echo \"n/a\""
-    },
-    {
-      "type": "command",
       "key": "│ ├󰔫",
       "keyColor": "blue",
       "text": "channel=$(omarchy-version-channel 2>/dev/null) && echo \"$channel\" || echo \"n/a\""
