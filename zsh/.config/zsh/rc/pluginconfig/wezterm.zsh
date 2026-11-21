@@ -1,27 +1,16 @@
 # WezTerm Shell Integration for Zsh
-
-# WezTerm のシェル統合スクリプトがあるか確認
-# Ubuntu なら通常 ~/.local/share/wezterm/shell-integration/wezterm.sh
-# または公式の URL から取得可能だが、OSパッケージに含まれるものを優先
-
-if [[ -z "$WEZTERM_EXECUTABLE" ]]; then
-  # 実行ファイルのパスが取れない場合は適当に補完
-  WEZTERM_EXECUTABLE=$(which wezterm 2>/dev/null)
+#
+# 本体は wezterm パッケージ同梱の /etc/profile.d/wezterm.sh (OSC 7 で cwd、OSC 133 でプロンプト境界、
+# WEZTERM_PROG などの user var を送る)。.zshenv の no_global_rcs で /etc/profile.d は自動では読まれないので、
+# WezTerm の中でだけ明示的に読む。
+# (以前は `wezterm shell-integration` を呼んでいたが、そのサブコマンドは存在せず、zsh-defer がエラーを
+#  握りつぶしていたため統合が丸ごと効いていなかった)
+if [[ -n "$WEZTERM_PANE" && -r /etc/profile.d/wezterm.sh ]]; then
+  source /etc/profile.d/wezterm.sh
 fi
 
-if [[ -n "$WEZTERM_EXECUTABLE" ]]; then
-  # WezTerm の機能を使用してシェル統合コードを取得
-  source <($WEZTERM_EXECUTABLE shell-integration --shell zsh)
-fi
-
-# Zsh-specific semantic zone support
-# プロンプトの開始と終了を WezTerm に通知するためのフックを設定
-# これにより [ と ] のジャンプが 100% 正確に動作するようになる
-
+# 以下は dotfiles 独自の user var (プロンプト境界は上の wezterm.sh が出す)
 function wezterm_precmd() {
-  # OSC 133; A: プロンプト開始
-  printf "\033]133;A\007"
-
   # Nix devshell名をSetUserVarで通知 (statusbar.luaが❄表示に使う)
   # base64のfork代を値が変わった時だけ払う
   local nix_name=""
@@ -42,11 +31,5 @@ function wezterm_precmd() {
   fi
 }
 
-function wezterm_preexec() {
-  # OSC 133; C: コマンド開始、プロンプト終了
-  printf "\033]133;C\007"
-}
-
 # zsh のフックに登録
 add-zsh-hook precmd wezterm_precmd
-add-zsh-hook preexec wezterm_preexec
