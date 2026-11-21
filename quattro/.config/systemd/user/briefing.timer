@@ -1,0 +1,12 @@
+# ログアウトせずにスリープから戻った朝にも出すため、6〜11時の毎正時に briefing.service を試す
+# (今日もう出していれば何もしない)
+[Unit]
+Description=Morning briefing check in the morning (dotfiles)
+PartOf=graphical-session.target
+
+[Timer]
+OnCalendar=*-*-* 06..11:00:00
+Persistent=true
+
+[Install]
+WantedBy=graphical-session.target

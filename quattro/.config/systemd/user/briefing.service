@@ -1,0 +1,18 @@
+# 朝のブリーフィング (scripts/briefing --auto)。その日最初のログインで1回だけ浮いた窓を出す
+# 今日出したかは ~/.local/state/dotfiles/briefing-last で見る。もう一度見るときは `briefing`
+[Unit]
+Description=Morning briefing once a day (dotfiles)
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=oneshot
+# ログイン直後はネットがまだのことがあるので少し待つ
+ExecStartPre=/bin/sleep 8
+ExecStart=%h/dotfiles/scripts/briefing --auto
+TimeoutStartSec=90
+# 開いた窓 (uwsm-app 経由) を service の終了で巻き込まない
+KillMode=process
+
+[Install]
+WantedBy=graphical-session.target
