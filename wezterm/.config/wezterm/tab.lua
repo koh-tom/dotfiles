@@ -2,6 +2,7 @@ local wezterm = require("wezterm")
 local module = {}
 local palette = require("omarchy_theme").get_palette()
 local workspace_color = require("workspace_color")
+local ui = require("modules.ui")
 
 -- Custom tab titles (tab_id -> string or nil)
 module.custom_title = {}
@@ -236,12 +237,19 @@ function module.apply_to_config(config)
     -- ズームインジケーター
     local zoom_indicator = has_zoomed_pane(tab.panes) and (ICONS.zoom .. " ") or ""
 
-    -- ブロック: [gap][ n icon title ] 。角は付けず矩形で塗り潰す
+    -- ミニマル透明 (bar.wezterm / rose-pine tmux 系): 背景は塗らず、文字色だけで区別する。
+    --   今のタブ = ワークスペース色の太字 + 下線 / 他のタブ = 淡いグレー
     local index = tostring(tab.tab_index + 1)
-    local head = " " .. index .. " "
-    -- 固定部分 (gap + head + icon + zoom + 空白 + 末尾パディング) を引いた残りをタイトルに割り当てる
-    local fixed = 1 + wezterm.column_width(head) + wezterm.column_width(icon)
-      + wezterm.column_width(zoom_indicator) + 1 + 1
+    local title_fg = tab.is_active and background or ui.muted
+    local index_fg = tab.is_active and ui.subtext or ui.muted
+    local icon_fg = icon_color
+    if icon_color == TAB_COLORS.foreground_inactive or icon_color == TAB_COLORS.foreground_active then
+      icon_fg = tab.is_active and ui.subtext or ui.muted
+    end
+
+    -- 固定部分 (前の余白2 + 番号 + 空白 + アイコン + 空白 + ズーム + 後ろの余白1) を引いた残りをタイトルに
+    local fixed = 2 + wezterm.column_width(index) + 1 + wezterm.column_width(icon) + 1
+      + wezterm.column_width(zoom_indicator) + 1
     local budget = math.max(max_width - fixed, 1)
     local title = wezterm.truncate_right(title_text, budget)
     local suffix = wezterm.truncate_right(claude_suffix, math.max(budget - wezterm.column_width(title), 0))
@@ -250,20 +258,22 @@ function module.apply_to_config(config)
 
     return {
       { Background = { Color = "transparent" } },
+      { Text = "  " },
+      { Foreground = { Color = index_fg } },
+      { Attribute = { Intensity = "Half" } },
+      { Text = index },
+      { Attribute = { Intensity = "Normal" } },
       { Text = " " },
-      { Background = { Color = background } },
-      { Foreground = { Color = foreground } },
-      { Attribute = { Intensity = tab.is_active and "Bold" or "Half" } },
-      { Text = head },
-      { Attribute = { Intensity = "Normal" } },
-      { Foreground = { Color = icon_color } },
-      { Text = icon },
-      { Foreground = { Color = foreground } },
+      { Foreground = { Color = icon_fg } },
+      { Text = icon .. " " },
+      { Foreground = { Color = title_fg } },
       { Text = zoom_indicator },
-      { Attribute = { Intensity = "Bold" } },
-      { Text = " " .. title },
+      { Attribute = { Intensity = tab.is_active and "Bold" or "Normal" } },
+      { Attribute = { Underline = tab.is_active and "Single" or "None" } },
+      { Text = title .. suffix },
+      { Attribute = { Underline = "None" } },
       { Attribute = { Intensity = "Normal" } },
-      { Text = suffix .. " " },
+      { Text = " " },
     }
   end)
 end
