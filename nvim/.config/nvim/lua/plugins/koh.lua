@@ -8,7 +8,7 @@
 -- テーマはOmarchyの omarchy-theme-hotreload が面倒を見るのでここでは触らない。
 
 return {
-  -- WezTermのSmart Openと対になる: gxでURLだけでなくGitHub owner/repoも開く
+  -- 日本語入力向けの小さな調整
   {
     "LazyVim/LazyVim",
     keys = {
