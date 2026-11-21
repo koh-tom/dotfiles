@@ -171,5 +171,9 @@
     }
   },
   "disabledPlugins": [],
-  "plugins": []
+  "plugins": [
+    {
+      "id": "dotfiles.overview"
+    }
+  ]
 }
