@@ -3,6 +3,7 @@ local module = {}
 local palette = require("omarchy_theme").get_palette()
 local workspace_color = require("workspace_color")
 local ui = require("modules.ui")
+local hub = require("modules.hub")
 
 -- Custom tab titles (tab_id -> string or nil)
 module.custom_title = {}
@@ -20,6 +21,7 @@ local ICONS = {
   nb = wezterm.nerdfonts.md_notebook,
   ssh = wezterm.nerdfonts.md_lan,
   claude = "✳",
+  hub = "󰚩",
   fallback = wezterm.nerdfonts.dev_terminal,
   zoom = wezterm.nerdfonts.md_magnify,
 }
@@ -32,6 +34,7 @@ local ICON_COLORS = {
   claude = "#D97757",          -- working: Claudeブランドオレンジ
   claude_waiting = palette.color3,   -- 入力待ち: イエロー
   claude_attention = palette.color1, -- 許可待ち等の通知: レッド
+  hub = palette.color5,              -- 母艦 (claude-hub) のタブ: 紫 (母艦の tmux の札と同じ色)
 }
 
 local TAB_COLORS = {
@@ -199,12 +202,21 @@ function module.apply_to_config(config)
       ssh_host_cache[pane_id] = nil
     end
 
+    -- 母艦 (claude-hub) のタブ: tmux がタイトルを「󰚩 名前」にする。ssh だが母艦の色で別扱いにする
+    local is_hub = hub.is_hub_title(pane_title)
+    if is_hub then
+      is_ssh = false
+    end
+
     -- Claude Code検出と状態 (hooks経由のuser var)
     local is_claude = claude_cache[pane_id] or false
     local claude_state = user_vars.claude_state or ""
 
     -- タブの色
     local background, foreground = get_tab_colors(tab.is_active, is_ssh)
+    if is_hub and tab.is_active then
+      background = ICON_COLORS.hub
+    end
 
     -- タイトルテキスト
     local title_text
@@ -213,6 +225,8 @@ function module.apply_to_config(config)
 
     if custom then
       title_text = custom
+    elseif is_hub then
+      title_text = "母艦 " .. (pane_title:gsub("^" .. ICONS.hub .. "%s*", ""))
     elseif is_ssh then
       title_text = ssh_host_cache[pane_id] or "ssh"
     elseif is_nb_process(process_name, cmdline, cached_cwd) then
@@ -227,12 +241,15 @@ function module.apply_to_config(config)
 
     -- Claude Code のタイトル追加
     local claude_suffix = ""
-    if not custom and is_claude and pane_title ~= "" then
+    if not custom and not is_hub and is_claude and pane_title ~= "" then
       claude_suffix = " " .. pane_title
     end
 
     -- アイコン
     local icon, icon_color = get_icon_and_color(process_name, pane_title, cmdline, cached_cwd, is_ssh, tab.is_active, is_claude, claude_state)
+    if is_hub then
+      icon, icon_color = ICONS.hub, ICON_COLORS.hub
+    end
 
     -- ズームインジケーター
     local zoom_indicator = has_zoomed_pane(tab.panes) and (ICONS.zoom .. " ") or ""
