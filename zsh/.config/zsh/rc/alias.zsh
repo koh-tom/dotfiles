@@ -41,6 +41,7 @@ alias .....='cd ../../../..'
 # --- Convenience ---
 alias cheat='~/dotfiles/scripts/dotfiles-cheatsheet'  # 全キーバインド/スニペット/タスク検索
 alias tip='~/dotfiles/scripts/dotfiles-tip'          # tips をランダム表示。tip -l で全件検索
+alias hub='~/dotfiles/scripts/claude-hub'          # Claude の母艦: hub / hub new ~/repo / hub ls (WezTerm では LEADER+Shift+h)
 alias reload='source "$ZDOTDIR/.zshrc"'
 alias cz='czg'                       # 対話式conventional commits
 alias dotcz='cd ~/dotfiles && czg'   # dotfilesをczgでコミット
