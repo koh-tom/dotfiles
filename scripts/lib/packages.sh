@@ -21,7 +21,7 @@ dotfiles_platform() {
 }
 
 # ツール群 (Ubuntu/Debian にも移植できる層。apply-dotfiles-ubuntu と同じ)
-DOTFILES_TOOL_PACKAGES=(atuin git mise starship wezterm zsh fastfetch ssh nvim)
+DOTFILES_TOOL_PACKAGES=(atuin git mise starship wezterm zsh fastfetch ssh nvim claude-skills)
 # Omarchy (3.x / 4 共通) で足すもの
 DOTFILES_OMARCHY_PACKAGES=(backup chrome hypr omarchy xdg-terminal)
 # Omarchy 3.x だけ (Quattro のバーは omarchy-shell なので Waybar は使わない)
