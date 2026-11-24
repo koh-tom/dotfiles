@@ -10,6 +10,7 @@
 #   claude-hub setup        母艦の準備 (tmux・設定・自動起動・Remote Control)。何度実行してもよい
 #
 # 母艦のホスト名は ~/.config/dotfiles/claude-hub に1行で書く (公開リポジトリには書かない)。
+# 仕組みの詳しい説明は Claude のスキル claude-hub (claude-skills/.claude/skills/claude-hub/SKILL.md)。
 # 母艦の上で実行したときは ssh せずにその場で動く。
 set -euo pipefail
 
@@ -71,6 +72,12 @@ setup() {
   else
     ssh "$host" 'mkdir -p "$HOME/.config/dotfiles"'
     scp -q "$HERE/claude-hub-tmux.conf" "$host:.config/dotfiles/claude-hub-tmux.conf"
+  fi
+  # 母艦の Claude にもこの仕組みを分からせる (スキル claude-hub)
+  local skill="$HERE/../claude-skills/.claude/skills/claude-hub"
+  if ! is_local; then
+    ssh "$host" 'mkdir -p "$HOME/.claude/skills"'
+    rsync -a --delete "$skill/" "$host:.claude/skills/claude-hub/"
   fi
   # 2. 残り (tmux・Remote Control・自動起動) は母艦の上で実行する
   on_hub "$(cat <<'REMOTE'
