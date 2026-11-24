@@ -1,0 +1,150 @@
+#!/bin/bash
+# Claude Code の母艦: 常時起動のマシンの tmux の中で Claude を動かし続け、どの端末からも同じセッションにつなぐ。
+# 会話の中身は母艦の1か所にだけあるので、ラップトップ・自宅の PC・スマホのどれから触っても続きになる。
+#   - PC から: claude-hub (ssh で母艦の tmux につなぐ。閉じても Claude は動き続ける)
+#   - スマホから: Claude アプリの Code タブ (母艦の Claude は Remote Control を自動で有効にする)
+#
+#   claude-hub              母艦の tmux につなぐ (無ければ作る)
+#   claude-hub new <dir>    母艦の <dir> で新しい Claude を開いてつなぐ (例: claude-hub new ~/src/myproject)
+#   claude-hub ls           母艦で動いている Claude (tmux のウィンドウ) の一覧
+#   claude-hub setup        母艦の準備 (tmux・設定・自動起動・Remote Control)。何度実行してもよい
+#
+# 母艦のホスト名は ~/.config/dotfiles/claude-hub に1行で書く (公開リポジトリには書かない)。
+# 母艦の上で実行したときは ssh せずにその場で動く。
+set -euo pipefail
+
+CONF_FILE=${XDG_CONFIG_HOME:-$HOME/.config}/dotfiles/claude-hub
+HERE=$(cd "$(dirname "$0")" && pwd)
+
+host=""
+[[ -r $CONF_FILE ]] && host=$(grep -v '^#' "$CONF_FILE" | head -1 | tr -d '[:space:]')
+if [[ -z $host ]]; then
+  echo "母艦のホスト名を $CONF_FILE に書いてください (例: echo myserver > $CONF_FILE)" >&2
+  exit 1
+fi
+
+# 母艦の上で動くコマンド (母艦の $HOME で展開させるため、\$HOME のまま送る)
+TMUX_CMD='"$HOME/.local/bin/tmux" -L hub -f "$HOME/.config/dotfiles/claude-hub-tmux.conf"'
+CLAUDE_CMD="exec zsh -ic '~/.local/bin/claude; exec zsh -i'"
+
+is_local() {
+  [[ $host == "$(hostname -s)" || $host == localhost ]]
+}
+
+# on_hub [-t] <コマンド文字列>
+on_hub() {
+  local tty=()
+  if [[ ${1:-} == -t ]]; then tty=(-t); shift; fi
+  if is_local; then
+    bash -c "$1"
+  else
+    ssh "${tty[@]}" "$host" "$1"
+  fi
+}
+
+attach() {
+  on_hub -t "$TMUX_CMD new-session -A -s claude -c \"\$HOME\""
+}
+
+new_claude() {
+  local dir=${1:?ディレクトリを指定してください}
+  local q
+  q=$(printf '%q' "$dir")
+  # ~ は母艦の $HOME として扱う
+  [[ $dir == "~"* ]] && q="\"\$HOME\"${q:1}"
+  on_hub "$TMUX_CMD has-session -t claude 2>/dev/null || $TMUX_CMD new-session -d -s claude -c \"\$HOME\"
+    cd $q || { echo \"母艦に $dir がありません\" >&2; exit 1; }
+    $TMUX_CMD new-window -t claude -c \"\$PWD\" \"$CLAUDE_CMD\""
+  attach
+}
+
+list() {
+  on_hub "$TMUX_CMD list-windows -t claude -F '#I  #{b:pane_current_path}  #{pane_current_command}' 2>/dev/null || echo '(母艦で動いている Claude はありません)'"
+}
+
+setup() {
+  echo "== 母艦 ($host) の準備"
+  # 1. 設定ファイル
+  if is_local; then
+    mkdir -p "$HOME/.config/dotfiles"
+    cp "$HERE/claude-hub-tmux.conf" "$HOME/.config/dotfiles/claude-hub-tmux.conf"
+  else
+    ssh "$host" 'mkdir -p "$HOME/.config/dotfiles"'
+    scp -q "$HERE/claude-hub-tmux.conf" "$host:.config/dotfiles/claude-hub-tmux.conf"
+  fi
+  # 2. 残り (tmux・Remote Control・自動起動) は母艦の上で実行する
+  on_hub "$(cat <<'REMOTE'
+set -e
+# tmux: Shift+Enter や通知の素通しに 3.3 以上が要る。sudo 無しで mise から入れる
+if ! "$HOME/.local/bin/tmux" -V >/dev/null 2>&1; then
+  mise install -y tmux@latest >/dev/null
+  mkdir -p "$HOME/.local/bin"
+  # 配布物によって bin/ の有無が違うので、実行ファイルを探してリンクする
+  ln -sf "$(find "$(mise where tmux@latest)" -name tmux -type f -perm -u+x | head -1)" "$HOME/.local/bin/tmux"
+fi
+echo "tmux: $("$HOME/.local/bin/tmux" -V)"
+
+# Remote Control: 母艦で起動した Claude はすべてスマホから見えるようにする
+python3 - <<'PY'
+import json, os, shutil
+p = os.path.expanduser("~/.claude/settings.json")
+d = json.load(open(p)) if os.path.exists(p) else {}
+if d.get("remoteControlAtStartup") is not True:
+    if os.path.exists(p):
+        shutil.copy(p, p + ".bak-claude-hub")
+    d["remoteControlAtStartup"] = True
+    json.dump(d, open(p, "w"), indent=2, ensure_ascii=False)
+    open(p, "a").write("\n")
+print("Remote Control: 自動で有効")
+
+# スマホから新しいセッションを始める待ち受けの作業場所 (Claude はホームでは待ち受けを拒むため専用の場所)
+hub = os.path.expanduser("~/hub")
+os.makedirs(hub, exist_ok=True)
+p = os.path.expanduser("~/.claude.json")
+if os.path.exists(p):
+    d = json.load(open(p))
+    proj = d.setdefault("projects", {}).setdefault(hub, {})
+    if not proj.get("hasTrustDialogAccepted"):
+        shutil.copy(p, p + ".bak-claude-hub")
+        proj["hasTrustDialogAccepted"] = True
+        json.dump(d, open(p, "w"), indent=2, ensure_ascii=False)
+print("待ち受けの場所: ~/hub")
+PY
+
+# 自動起動: 再起動しても tmux の母艦と、スマホから新しいセッションを始めるための待ち受けを立てる
+unit="$HOME/.config/systemd/user/claude-hub.service"
+mkdir -p "${unit%/*}"
+cat >"$unit" <<'UNIT'
+[Unit]
+Description=Claude Code hub (tmux + Remote Control server)
+After=network-online.target
+
+[Service]
+Type=forking
+ExecStart=%h/.local/bin/tmux -L hub -f %h/.config/dotfiles/claude-hub-tmux.conf new-session -d -s claude -n rc -c %h/hub "exec zsh -ic '%h/.local/bin/claude remote-control --name hub; exec zsh -i'"
+ExecStop=%h/.local/bin/tmux -L hub kill-server
+Restart=no
+
+[Install]
+WantedBy=default.target
+UNIT
+systemctl --user daemon-reload
+systemctl --user enable claude-hub.service >/dev/null 2>&1
+if ! "$HOME/.local/bin/tmux" -L hub has-session -t claude 2>/dev/null; then
+  systemctl --user restart claude-hub.service
+fi
+echo "自動起動: $(systemctl --user is-enabled claude-hub.service) / $(systemctl --user is-active claude-hub.service)"
+echo "linger: $(loginctl show-user "$USER" -p Linger --value)"
+REMOTE
+)"
+  echo "== 完了。claude-hub でつなぎ、最初の1回だけ rc ウィンドウで Remote Control を許可してください"
+}
+
+case ${1:-} in
+  "" | attach) attach ;;
+  new) shift; new_claude "$@" ;;
+  ls | list) list ;;
+  setup) setup ;;
+  -h | --help) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//' ;;
+  *) echo "usage: claude-hub [new <dir> | ls | setup]" >&2; exit 1 ;;
+esac
