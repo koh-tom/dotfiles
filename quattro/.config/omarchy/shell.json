@@ -167,6 +167,13 @@
           "id": "omarchy.tailscale"
         },
         {
+          "id": "omarchy.indicators",
+          "items": [
+            "Dnd"
+          ],
+          "alwaysShow": true
+        },
+        {
           "id": "omarchy.audio"
         },
         {
