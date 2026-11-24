@@ -32,22 +32,30 @@ systemctl --user is-enabled claude-hub.service 2>/dev/null   # enabled なら母
 cat ~/.config/dotfiles/claude-hub 2>/dev/null                # あればラップトップ (中身が母艦の名前)
 ```
 
-## コマンド (dotfiles の scripts/claude-hub)
+## コマンド (dotfiles の scripts/claude-hub。zsh では `hub`)
 
 | | |
 |---|---|
-| `claude-hub` / SUPER+ALT+H | 母艦の tmux につなぐ (無ければ作る) |
-| `claude-hub new <dir>` | 母艦の `<dir>` で新しい Claude を開いてつなぐ (`~` は母艦の home) |
-| `claude-hub ls` | 母艦で動いている窓の一覧 |
-| `claude-hub setup` | 母艦の準備。何度実行してもよい (下記) |
+| WezTerm の LEADER+Shift+h | 一覧から選ぶ: ● 動いている Claude (その窓だけを新しいタブで) / ＋ 母艦のリポジトリ (そこで新しい Claude) / 母艦全体 |
+| `hub` / SUPER+ALT+H | 母艦の tmux につなぐ (無ければ作る。全部の窓を行き来する) |
+| `hub new <dir>` | 母艦の `<dir>` で新しい Claude を開き、その窓だけをつなぐ (`~` は母艦の home) |
+| `hub open <n>` | 母艦の窓 n だけをつなぐ (claude にグループした使い捨てセッション。切断で消える。端末のタブごとに別の窓を見られる) |
+| `hub ls` / `hub repos` | 動いている窓 / 母艦の git リポジトリ (home から3階層、隠しフォルダ以外、外付けへのリンクもたどる) |
+| `hub menu` | WezTerm の一覧用の TSV (`open<TAB>番号<TAB>名前<TAB>場所` / `new<TAB>場所`) |
+| `hub setup` | 母艦の準備。何度実行してもよい (下記) |
+
+**見分け方 (表示):** 母艦の tmux は端末のタイトルを `󰚩 <窓名>` にする。WezTerm はそれを見て、タブを紫 (テーマの color5) の
+`󰚩 母艦 <名前>` にし、上のヘッダー (cheatbar) を「母艦」用 (tmux と Claude のキー) にする。母艦の tmux の下のバーの左端にも紫の「󰚩 母艦」の札。
+手元の Claude のタブは ✳ (オレンジ) のまま。
 
 tmux の操作 (prefix は Ctrl+b。ラップトップの WezTerm の LEADER は Ctrl+q なので重ならない):
 数字で窓の切り替え、`C` でディレクトリを聞いて新しい Claude、`d` で切断 (Claude は動いたまま)、`r` で設定の読み直し。
 設定は `scripts/claude-hub-tmux.conf` → 母艦の `~/.config/dotfiles/claude-hub-tmux.conf`。
+ssh 越しの tmux コマンドには必ず `-u` を付ける (付けないと母艦に LANG が無く、全角が `_` になる。設定の読み込み時も同じ)。
 
 `setup` がやること: mise で tmux を入れて `~/.local/bin/tmux` にリンク (sudo 不要)、
 `~/.claude/settings.json` に `"remoteControlAtStartup": true`、`~/hub` を作って信頼済みにする、
-`claude-hub.service` を有効化、このスキルを母艦の `~/.claude/skills/` にも配る。
+`claude-hub.service` を有効化 (動いていれば tmux の設定を読み直す)、このスキルと非公開メモを母艦にも配る。
 
 ## 母艦の注意点
 
