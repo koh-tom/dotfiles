@@ -14,7 +14,7 @@ description: このユーザーの Claude Code の「母艦」(常時起動の�
     window 1 "rc"      : claude remote-control --name hub  (作業場所 ~/hub。スマホから新しいセッションを始める待ち受け)
     window 2.. 各作業  : claude (プロジェクトごと。Remote Control が自動で有効)
 ラップトップ (Omarchy) ─ ssh ─┐   SUPER+ALT+H または claude-hub
-自宅 Windows / Ubuntu ─ ssh ──┘   ssh -t <母艦> '~/.local/bin/tmux -L hub -f ~/.config/dotfiles/claude-hub-tmux.conf new -A -s claude'
+自宅 Windows / Ubuntu ─ ssh ──┘   ssh -t <母艦> '~/.local/bin/tmux -u -L hub -f ~/.config/dotfiles/claude-hub-tmux.conf new -A -s claude'
 スマホ ── Claude アプリの Code タブ (Remote Control。確認待ちはプッシュ通知)
 ```
 
