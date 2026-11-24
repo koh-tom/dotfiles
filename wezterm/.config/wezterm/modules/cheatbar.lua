@@ -25,7 +25,7 @@ local CONTEXTS = {
       { LEADER .. " z", "copy last" }, { "^⇧HJKL", "pane" }, { "⌥←→", "tab" }, { "^R", "history" },
       { "^T", "tv" }, { "⌘`", "dropdown" }, { "^⇧Space", "quick select" }, { "^⇧F", "search" }, { LEADER .. " 1-9", "tab #" },
       { LEADER .. " ␣", "scratch" }, { LEADER .. " [ ]", "workspace ←→" },
-      { "^⇧X", "copy mode" }, { LEADER .. " ,", "rename" }, { LEADER .. " b", "scrollback" }, { LEADER .. " h", "ssh" },
+      { "^⇧X", "copy mode" }, { LEADER .. " ,", "rename" }, { LEADER .. " b", "scrollback" }, { LEADER .. " h", "ssh" }, { LEADER .. " ⇧H", "hub" },
       { LEADER .. " o", "smart open" }, { "^⇧P", "palette" }, { LEADER .. " /", "cheatsheet" },
     },
   },
@@ -37,6 +37,16 @@ local CONTEXTS = {
       { "^B", "background" }, { "@", "file" }, { "/", "command" }, { "!", "bash" },
       { "\\⏎", "newline" }, { "^L", "clear" }, { "^C", "cancel" }, { "/btw", "side question" },
       { LEADER .. " c", "sessions" }, { "⌥←→", "tab" },
+    },
+  },
+  -- 母艦 (claude-hub) のタブ: 母艦の tmux の中の Claude。tmux の操作 (prefix ^B) と Claude のよく使うキー
+  hub = {
+    name = "母艦", icon = "󰚩", color = palette.color5,
+    keys = {
+      { "^B C", "new claude" }, { "^B 1-9", "window" }, { "^B d", "detach" }, { "^B [", "scroll" },
+      { "^B r", "reload" }, { LEADER .. " ⇧H", "hub menu" },
+      { "Esc", "interrupt" }, { "⇧Tab", "mode" }, { "^O", "transcript" }, { "Esc Esc", "rewind" },
+      { "@", "file" }, { "/", "command" }, { "\\⏎", "newline" }, { "/rc", "phone" },
     },
   },
   nvim = {
@@ -75,6 +85,8 @@ local function detect_context(pane)
   if proc == "nvim" or proc == "vim" then return "nvim" end
   if proc == "lazygit" then return "lazygit" end
   if proc == "yazi" then return "yazi" end
+  -- 母艦 (claude-hub): tmux が付けるタイトル「󰚩 …」で見分ける (中身は ssh)
+  if require("modules.hub").is_hub_title(pane:get_title()) then return "hub" end
   -- Claude Code の実体は ~/.local/share/claude/versions/<版> なので、名前ではなくパスで見る
   if proc == "claude" or path:find("/claude/versions/", 1, true) then return "claude" end
   local title = pane:get_title() or ""
