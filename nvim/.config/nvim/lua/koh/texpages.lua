@@ -382,8 +382,11 @@ function M.check(buf)
   local root = M.root_of(path)
   local pdf = M.pdf_of(root)
   local b = vim.b[buf].koh_texpages or {}
+  local changed = b.pdf ~= pdf
   b.root, b.pdf, b.limit = root, pdf, M.page_limit(root)
   vim.b[buf].koh_texpages = b
+  -- 覚えていた値をすぐ出す (開いた直後はバーがまだ作り直されていない)
+  if changed then refresh_bar() end
   if not pdf then return end
   local st = uv.fs_stat(pdf)
   if not st then return end
