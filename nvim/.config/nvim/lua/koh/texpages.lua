@@ -1,7 +1,9 @@
--- tex を PDF にしたときの長さを「6.8 ページ」のように測る (最後のページがどれだけ埋まったかを小数で)。
--- ページ制限があれば「6.8/8 (85%)」。lualine に出す (lua/plugins/koh-tex.lua)。
+-- tex を PDF にしたときの長さを「6.8 ページ」のように出す (最後のページがどれだけ埋まったかを小数で)。
+-- ページ制限があれば「6.8/8p 85%」。lualine に出す (lua/plugins/koh-tex.lua)。
+-- 毎回ビルドはしない: 最後にビルドした PDF の正確な値と、そのときの文字量を覚えておき、
+-- 打っている間は文字量の増減から推定する (先頭に ~)。ビルドすると正確な値に戻る。
 --
--- 仕組み: コンパイル方法には依存しない。PDF の更新を見張り、変わったら poppler の pdfinfo と
+-- 正確な値: コンパイル方法には依存しない。PDF の更新を見張り、変わったら poppler の pdfinfo と
 -- pdftotext -bbox で最後のページと1つ前のページの文字の位置を読み、本文の領域に対して
 -- 最後のページの本文がどこまで来ているかを測る。2段組は左右の段を別々に測って平均する。
 -- ヘッダ・フッタ (ページ番号など) は、本文から離れて孤立した短い行として除く。
@@ -182,30 +184,131 @@ function M.pdf_of(root)
 end
 
 ---------------------------------------------------------------------------
--- 非同期で測ってキャッシュする
+-- 文字量 (ビルドせずに推定するための目安)
 ---------------------------------------------------------------------------
 
-local function format(pages, limit)
-  local s = string.format("%.1f", pages)
-  if limit then
-    return string.format("%s/%gp %d%%", s, limit, math.floor(pages / limit * 100 + 0.5))
+-- 本文の文字量。コメント・コマンド名・記号を除き、空白は数えない。
+-- 全角 (日本語など) は半角 2 文字分の幅として数える。
+function M.weight(text)
+  local n = 0
+  for line in (text .. "\n"):gmatch("(.-)\n") do
+    local s = line:gsub("\\%%", "\1")      -- \% はコメントではない
+    s = s:gsub("%%.*$", "")                 -- コメント
+    s = s:gsub("\\[%a@]+%*?", "")           -- \section などのコマンド名
+    s = s:gsub("[{}%[%]$&~^_\\%s]", "")     -- 記号と空白
+    local ascii = s:gsub("[\128-\255]", "")
+    local lead = s:gsub("[^\192-\255]", "") -- 多バイト文字の先頭バイト = 文字数
+    n = n + #ascii + 2 * #lead
   end
-  return s .. "p"
+  return n
 end
+
+local function strip_comments(text)
+  return (text:gsub("\\%%", "\1"):gsub("%%[^\n]*", ""))
+end
+
+local function read_file(path)
+  local f = io.open(path, "r")
+  if not f then return nil end
+  local t = f:read("*a")
+  f:close()
+  return t
+end
+
+-- 開いているバッファがあればその中身 (保存前も含む)、無ければディスク
+local function live_text(path)
+  local buf = vim.fn.bufnr(path)
+  if buf > 0 and vim.api.nvim_buf_is_loaded(buf) then
+    return table.concat(vim.api.nvim_buf_get_lines(buf, 0, -1, false), "\n")
+  end
+  return read_file(path)
+end
+
+-- 親から \input / \include / \subfile / \import でつながる tex ファイル (親を含む)
+function M.files(root, text_of)
+  text_of = text_of or read_file
+  local seen, order = {}, {}
+  local function add(path)
+    path = vim.fs.normalize(path)
+    if not path:match("%.tex$") and not uv.fs_stat(path) then path = path .. ".tex" end
+    if seen[path] or not uv.fs_stat(path) then return end
+    seen[path] = true
+    order[#order + 1] = path
+    local text = text_of(path)
+    if not text then return end
+    text = strip_comments(text)
+    local base = vim.fs.dirname(root)
+    for name in text:gmatch("\\input%s*{([^}]+)}") do add(vim.fs.joinpath(base, name)) end
+    for name in text:gmatch("\\include%s*{([^}]+)}") do add(vim.fs.joinpath(base, name)) end
+    for name in text:gmatch("\\subfile%s*{([^}]+)}") do add(vim.fs.joinpath(base, name)) end
+    for dir, name in text:gmatch("\\s?u?b?import%s*{([^}]*)}%s*{([^}]+)}") do
+      add(vim.fs.joinpath(base, dir, name))
+    end
+  end
+  add(root)
+  return order
+end
+
+-- プロジェクト全体の文字量。live = true なら開いているバッファの中身 (保存前) を使う
+function M.project_weight(root, live)
+  local text_of = live and live_text or read_file
+  local total = 0
+  for _, path in ipairs(M.files(root, text_of)) do
+    local t = text_of(path)
+    if t then total = total + M.weight(t) end
+  end
+  return total
+end
+
+---------------------------------------------------------------------------
+-- キャッシュ (PDF のパス → { mtime, pages, chars })。nvim を開き直しても使えるようファイルにも保存
+---------------------------------------------------------------------------
+
+local store = vim.fn.stdpath("cache") .. "/koh-texpages.json"
+
+local function load_store()
+  local t = read_file(store)
+  local ok, data = pcall(vim.json.decode, t or "")
+  if ok and type(data) == "table" then
+    for pdf, e in pairs(data) do cache[pdf] = e end
+  end
+end
+
+local function save_store()
+  vim.fn.mkdir(vim.fs.dirname(store), "p")
+  local f = io.open(store, "w")
+  if f then
+    f:write(vim.json.encode(cache))
+    f:close()
+  end
+end
+
+local function refresh_bar()
+  vim.schedule(function()
+    local ok, lualine = pcall(require, "lualine")
+    if ok then lualine.refresh() end
+  end)
+end
+
+---------------------------------------------------------------------------
+-- PDF を非同期で測る (更新されたときだけ)
+---------------------------------------------------------------------------
 
 local running = {}
 
-local function measure(pdf, mtime, limit)
+local function measure(pdf, mtime, root)
   if running[pdf] then return end
   running[pdf] = true
+  -- ビルドしたときの文字量 = いまディスクにある tex の文字量 (保存してからビルドするので)
+  local chars = M.project_weight(root, false)
   local function done(entry)
     running[pdf] = nil
     if entry then
-      cache[pdf] = entry
       vim.schedule(function()
-        local ok, lualine = pcall(require, "lualine")
-        if ok then lualine.refresh() end
+        cache[pdf] = entry
+        save_store()
       end)
+      refresh_bar()
     end
   end
   vim.system({ "pdfinfo", pdf }, { text = true }, function(info)
@@ -220,31 +323,56 @@ local function measure(pdf, mtime, limit)
       if not last then return done(nil) end
       local ref = (n > 1 and #pages >= 2) and pages[#pages - 1] or nil
       local fill = M.last_page_fill(last, ref)
-      local total = (n - 1) + fill
-      done({ mtime = mtime, pages = total, limit = limit, text = format(total, limit) })
+      done({ mtime = mtime, pages = (n - 1) + fill, chars = chars })
     end)
   end)
 end
 
--- いまのバッファの表示 (lualine から呼ぶ。重い処理はしない)
+---------------------------------------------------------------------------
+-- 表示
+---------------------------------------------------------------------------
+
+-- いまのページ数: ビルドしたときの値 + (いまの文字量 - そのときの文字量) / 1ページあたりの文字量
+-- 戻り値: ページ数, 推定かどうか
+function M.estimate(buf)
+  local b = vim.b[buf or 0].koh_texpages
+  local e = b and b.pdf and cache[b.pdf]
+  if not e then return nil end
+  if not (b.now and e.chars and e.chars > 0 and e.pages > 0) or b.now == e.chars then
+    return e.pages, false
+  end
+  local per_page = e.chars / e.pages
+  return math.max(e.pages + (b.now - e.chars) / per_page, 0), true
+end
+
 function M.status()
-  local b = vim.b.koh_texpages
-  if not b or not b.pdf then return "" end
-  local e = cache[b.pdf]
-  return e and ("󰈙 " .. e.text) or ""
+  local pages, approx = M.estimate()
+  if not pages then return "" end
+  local limit = vim.b.koh_texpages.limit
+  local s = (approx and "~" or "") .. string.format("%.1f", pages)
+  if limit then
+    s = string.format("%s/%gp %d%%", s, limit, math.floor(pages / limit * 100 + 0.5))
+  else
+    s = s .. "p"
+  end
+  return "󰈙 " .. s
 end
 
 -- 色: 制限を超えたら赤、9割を超えたら黄
 function M.color()
-  local b = vim.b.koh_texpages
-  local e = b and b.pdf and cache[b.pdf]
-  if not (e and e.limit) then return nil end
-  if e.pages > e.limit then return { fg = "#f38ba8" } end
-  if e.pages > e.limit * 0.9 then return { fg = "#f9e2af" } end
+  local pages = M.estimate()
+  local limit = vim.b.koh_texpages and vim.b.koh_texpages.limit
+  if not (pages and limit) then return nil end
+  if pages > limit then return { fg = "#f38ba8" } end
+  if pages > limit * 0.9 then return { fg = "#f9e2af" } end
   return nil
 end
 
--- バッファの PDF を確かめて、更新されていれば測り直す
+---------------------------------------------------------------------------
+-- 更新
+---------------------------------------------------------------------------
+
+-- バッファの PDF を確かめて、更新されていれば測り直す (軽い。2 秒ごとに呼ぶ)
 function M.check(buf)
   buf = buf or vim.api.nvim_get_current_buf()
   if not vim.api.nvim_buf_is_valid(buf) or vim.bo[buf].filetype ~= "tex" then return end
@@ -252,33 +380,59 @@ function M.check(buf)
   if path == "" then return end
   local root = M.root_of(path)
   local pdf = M.pdf_of(root)
-  local limit = M.page_limit(root)
-  vim.b[buf].koh_texpages = { pdf = pdf, root = root }
+  local b = vim.b[buf].koh_texpages or {}
+  b.root, b.pdf, b.limit = root, pdf, M.page_limit(root)
+  vim.b[buf].koh_texpages = b
   if not pdf then return end
   local st = uv.fs_stat(pdf)
   if not st then return end
   local e = cache[pdf]
-  if e and e.mtime == st.mtime.sec and e.limit == limit then return end
-  measure(pdf, st.mtime.sec, limit)
+  if e and e.mtime == st.mtime.sec then return end
+  measure(pdf, st.mtime.sec, root)
+end
+
+-- いまの文字量を数え直す (打っている間、少し間をおいて呼ぶ)
+function M.recount(buf)
+  buf = buf or vim.api.nvim_get_current_buf()
+  local b = vim.api.nvim_buf_is_valid(buf) and vim.b[buf].koh_texpages
+  if not (b and b.root) then return end
+  b.now = M.project_weight(b.root, true)
+  vim.b[buf].koh_texpages = b
+  refresh_bar()
 end
 
 function M.setup()
   if vim.fn.executable("pdftotext") ~= 1 or vim.fn.executable("pdfinfo") ~= 1 then return end
+  load_store()
   local group = vim.api.nvim_create_augroup("koh_texpages", { clear = true })
   vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "FocusGained" }, {
     group = group,
-    callback = function(ev) M.check(ev.buf) end,
+    callback = function(ev)
+      M.check(ev.buf)
+      M.recount(ev.buf)
+    end,
   })
-  -- コンパイルは保存のあと少し遅れて終わるので、tex を開いている間は 2 秒ごとに PDF の更新を見る
+  -- 打っている間: 最後の入力から 300ms たったら数え直す (ビルドはしない)
+  local debounce = uv.new_timer()
+  vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
+    group = group,
+    callback = function(ev)
+      if vim.bo[ev.buf].filetype ~= "tex" then return end
+      debounce:stop()
+      debounce:start(300, 0, vim.schedule_wrap(function() M.recount(ev.buf) end))
+    end,
+  })
+  -- ビルドは保存のあと少し遅れて終わるので、tex を開いている間は 2 秒ごとに PDF の更新を見る
   local timer = uv.new_timer()
   timer:start(2000, 2000, vim.schedule_wrap(function()
     if vim.bo.filetype == "tex" then M.check() end
   end))
-  -- :TexPages  いまの値をすぐ測り直す
+  -- :TexPages  いまの PDF をすぐ測り直す
   vim.api.nvim_create_user_command("TexPages", function()
     local b = vim.b.koh_texpages
     if b and b.pdf then cache[b.pdf] = nil end
     M.check()
+    M.recount()
   end, { desc = "PDF のページ数を測り直す" })
 end
 
