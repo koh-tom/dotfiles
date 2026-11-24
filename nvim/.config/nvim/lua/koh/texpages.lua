@@ -355,7 +355,8 @@ function M.status()
   else
     s = s .. "p"
   end
-  return "󰈙 " .. s
+  -- バーでは % が特別な意味を持つので %% にする
+  return (("󰈙 " .. s):gsub("%%", "%%%%"))
 end
 
 -- 色: 制限を超えたら赤、9割を超えたら黄
