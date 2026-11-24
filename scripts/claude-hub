@@ -78,6 +78,9 @@ setup() {
   if ! is_local; then
     ssh "$host" 'mkdir -p "$HOME/.claude/skills"'
     rsync -a --delete "$skill/" "$host:.claude/skills/claude-hub/"
+    # 母艦固有の非公開メモ (公開リポジトリには入れない) もあれば配る
+    local private=${XDG_CONFIG_HOME:-$HOME/.config}/dotfiles/claude-hub.local.md
+    [[ -r $private ]] && scp -q "$private" "$host:.config/dotfiles/claude-hub.local.md"
   fi
   # 2. 残り (tmux・Remote Control・自動起動) は母艦の上で実行する
   on_hub "$(cat <<'REMOTE'
