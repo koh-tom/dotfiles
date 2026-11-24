@@ -25,7 +25,7 @@ if [[ -z $host ]]; then
 fi
 
 # 母艦の上で動くコマンド (母艦の $HOME で展開させるため、\$HOME のまま送る)
-TMUX_CMD='"$HOME/.local/bin/tmux" -L hub -f "$HOME/.config/dotfiles/claude-hub-tmux.conf"'
+TMUX_CMD='"$HOME/.local/bin/tmux" -u -L hub -f "$HOME/.config/dotfiles/claude-hub-tmux.conf"'
 CLAUDE_CMD="exec zsh -ic '~/.local/bin/claude; exec zsh -i'"
 
 is_local() {
