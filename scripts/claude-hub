@@ -6,6 +6,7 @@
 #
 #   claude-hub              母艦の tmux につなぐ (無ければ作る。全部の窓を行き来できる)
 #   claude-hub new <dir>    母艦の <dir> で新しい Claude を開いてつなぐ (例: claude-hub new ~/src/myproject)
+#   claude-hub new <dir> --continue   同じく、ただしそこでの前回の会話の続きから (claude --continue)
 #   claude-hub open <n>     母艦の窓 n だけを開く (端末のタブごとに別の Claude を表示できる)
 #   claude-hub ls           母艦で動いている Claude (tmux のウィンドウ) の一覧
 #   claude-hub repos        母艦にある git リポジトリの一覧
@@ -60,13 +61,15 @@ open_window() {
 
 new_claude() {
   local dir=${1:?ディレクトリを指定してください}
-  local q idx
+  local q idx cmd=$CLAUDE_CMD
+  # 会話の記録は作業ディレクトリごと。--continue でそこでの最後の会話の続きから
+  [[ ${2:-} == --continue ]] && cmd="exec zsh -ic '~/.local/bin/claude --continue; exec zsh -i'"
   q=$(printf '%q' "$dir")
   # ~ は母艦の $HOME として扱う
   [[ $dir == "~"* ]] && q="\"\$HOME\"${q:1}"
   idx=$(on_hub "$TMUX_CMD has-session -t claude 2>/dev/null || $TMUX_CMD new-session -d -s claude -c \"\$HOME\"
     cd $q || { echo \"母艦に $dir がありません\" >&2; exit 1; }
-    $TMUX_CMD new-window -P -F '#{window_index}' -t claude -c \"\$PWD\" \"$CLAUDE_CMD\"")
+    $TMUX_CMD new-window -P -F '#{window_index}' -t claude -c \"\$PWD\" \"$cmd\"")
   open_window "$idx"
 }
 
@@ -81,10 +84,17 @@ repos() {
   on_hub "$REPOS_CMD"
 }
 
-# open<TAB>番号<TAB>名前<TAB>場所  /  new<TAB>場所
+# リポジトリごとに、そこでの会話の記録 (~/.claude/projects/<場所の記号を - にしたもの>/) があれば cont も出す
+MENU_REPOS_CMD=$REPOS_CMD' | while IFS= read -r d; do
+  k=$(printf %s "$HOME${d#\~}" | sed "s/[^A-Za-z0-9]/-/g")
+  [ -n "$(find "$HOME/.claude/projects/$k" -maxdepth 1 -name "*.jsonl" 2>/dev/null | head -1)" ] && printf "cont\t%s\n" "$d"
+  printf "new\t%s\n" "$d"
+done'
+
+# open<TAB>番号<TAB>名前<TAB>場所  /  cont<TAB>場所  /  new<TAB>場所
 menu() {
   on_hub "$TMUX_CMD list-windows -t claude -F 'open	#I	#W	#{pane_current_path}' 2>/dev/null | sed \"s#	\$HOME#	~#\"
-    $REPOS_CMD | sed 's/^/new	/'"
+    $MENU_REPOS_CMD"
 }
 
 setup() {
