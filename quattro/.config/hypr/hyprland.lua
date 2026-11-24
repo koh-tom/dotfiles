@@ -52,3 +52,4 @@ require("hypr.personal.claude")            -- SUPER+ALT+J で Claude Code の管
 require("hypr.personal.briefing")          -- SUPER+ALT+B で朝のブリーフィング
 require("hypr.personal.project")           -- SUPER+ALT+W でプロジェクトの作業一式
 require("hypr.personal.rewrite")           -- SUPER+ALT+R で選んだ文を校正・書き換え (SHIFT 付きは貼り付けまで)
+require("hypr.personal.hub")               -- SUPER+ALT+H で Claude の母艦 (常時起動のマシンの tmux) につなぐ
