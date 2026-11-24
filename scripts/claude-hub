@@ -166,6 +166,9 @@ systemctl --user daemon-reload
 systemctl --user enable claude-hub.service >/dev/null 2>&1
 if ! "$HOME/.local/bin/tmux" -L hub has-session -t claude 2>/dev/null; then
   systemctl --user restart claude-hub.service
+else
+  # 動いている母艦にも新しい設定を読ませる (-u が無いと ssh 越しでは全角が _ に化ける)
+  "$HOME/.local/bin/tmux" -u -L hub source-file "$HOME/.config/dotfiles/claude-hub-tmux.conf"
 fi
 echo "自動起動: $(systemctl --user is-enabled claude-hub.service) / $(systemctl --user is-active claude-hub.service)"
 echo "linger: $(loginctl show-user "$USER" -p Linger --value)"
