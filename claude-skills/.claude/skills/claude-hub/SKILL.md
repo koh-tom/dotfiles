@@ -36,9 +36,9 @@ cat ~/.config/dotfiles/claude-hub 2>/dev/null                # あればラッ�
 
 | | |
 |---|---|
-| WezTerm の LEADER+Shift+h | 一覧から選ぶ: ● 動いている Claude (その窓だけを新しいタブで) / ＋ 母艦のリポジトリ (そこで新しい Claude) / 母艦全体 |
+| WezTerm の LEADER+Shift+h | 一覧から選ぶ: ● 動いている Claude (その窓だけを新しいタブで) / ↻ そのリポジトリでの前回の会話の続き (窓が開いていない場所だけ) / ＋ 母艦のリポジトリ (そこで新しい Claude) / 母艦全体 |
 | `hub` / SUPER+ALT+H | 母艦の tmux につなぐ (無ければ作る。全部の窓を行き来する) |
-| `hub new <dir>` | 母艦の `<dir>` で新しい Claude を開き、その窓だけをつなぐ (`~` は母艦の home) |
+| `hub new <dir> [--continue]` | 母艦の `<dir>` で新しい Claude を開き、その窓だけをつなぐ (`~` は母艦の home)。`--continue` でそこでの前回の会話の続き |
 | `hub open <n>` | 母艦の窓 n だけをつなぐ (claude にグループした使い捨てセッション。切断で消える。端末のタブごとに別の窓を見られる) |
 | `hub ls` / `hub repos` | 動いている窓 / 母艦の git リポジトリ (home から3階層、隠しフォルダ以外、外付けへのリンクもたどる) |
 | `hub menu` | WezTerm の一覧用の TSV (`open<TAB>番号<TAB>名前<TAB>場所` / `new<TAB>場所`) |
@@ -74,6 +74,7 @@ ssh 越しの tmux コマンドには必ず `-u` を付ける (付けないと�
 
 - 会話の記録はマシンごと: `~/.claude/projects/<作業ディレクトリの / などを - にしたもの>/<セッションID>.jsonl`。
   **公式の同期は無い**。`--resume` / `--continue` は同じマシン・同じ作業ディレクトリの記録しか探さない。
+- 新しいタブ・新しい Claude は別の会話。続きは ● (動いている窓を開く) か ↻ (`--continue`) で。別のフォルダで `/resume` しても、そのフォルダの会話しか出ない。
 - 記憶 (auto memory) も作業ディレクトリごと: `~/.claude/projects/<同上>/memory/` (MEMORY.md が索引)。
   別のパスでクローンすると別のプロジェクト扱いになる (例: 母艦の `~/hub/dotfiles` は `-home-koh-hub-dotfiles`)。
 - **セッションを別のマシンへ移す手順** (2026-11-24 にラップトップの dotfiles の会話を母艦へ移したときの方法):
