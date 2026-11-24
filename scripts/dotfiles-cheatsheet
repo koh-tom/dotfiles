@@ -26,6 +26,7 @@ generate() {
         desc["LEADER D"] = "セッションリセット"
         desc["LEADER t"] = "カラースキーム一時切替"
         desc["LEADER w"] = "ワークスペース選択 (Shift+Cで新規作成)"
+        desc["LEADER H"] = "Claude の母艦 (動いている Claude / 母艦のリポジトリから選んで新しいタブで開く)"
         desc["SHIFT | CTRL c"] = "ペイン最小化/復元"
       }
       /^Key Table: / { table = $0; sub(/^Key Table: /, "", table); next }
