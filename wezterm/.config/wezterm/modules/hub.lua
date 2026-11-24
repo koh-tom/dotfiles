@@ -1,6 +1,7 @@
 -- Claude の母艦 (scripts/claude-hub) を WezTerm から開く。
 --   LEADER + Shift + h: 母艦で動いている Claude と、母艦の git リポジトリの一覧から選ぶ
 --     ● 動いている窓  → その Claude だけを新しいタブで開く (タブごとに別の Claude を表示できる)
+--     ↻ リポジトリ    → そこでの前回の会話の続きから (claude --continue。窓が開いていない場所だけ)
 --     ＋ リポジトリ    → 母艦のそこで新しい Claude を始めて、新しいタブで開く
 --     󰚩 母艦全体      → 全部の窓を行き来できる形でつなぐ
 -- 母艦のタブは tmux が付けるタイトル「󰚩 …」で見分けて、タブとヘッダーを母艦の色 (紫) にする (tab.lua / cheatbar.lua)。
@@ -38,6 +39,13 @@ local function choose(window, pane)
       table.insert(choices, { id = "open:" .. a, label = string.format("●  %s  %s   %s", a, b, c) })
     end
   end
+  -- 前回の会話の続き。すでに窓が開いている場所は出さない (同じ会話を2つで動かすとずれるので、● から開く)
+  for line in (out or ""):gmatch("[^\n]+") do
+    local dir = line:match("^cont\t(.+)$")
+    if dir and not open_paths[dir] and dir ~= "~/dotfiles" then
+      table.insert(choices, { id = "cont:" .. dir, label = "↻  " .. dir .. "  の前回の会話の続き" })
+    end
+  end
   for line in (out or ""):gmatch("[^\n]+") do
     local dir = line:match("^new\t(.+)$")
     -- 母艦自身の ~/dotfiles は母艦の設定そのもの (触らない)。dotfiles の作業は ~/hub/dotfiles
@@ -56,6 +64,8 @@ local function choose(window, pane)
         spawn(w, p, { SCRIPT })
       elseif id:match("^open:") then
         spawn(w, p, { SCRIPT, "open", id:sub(6) })
+      elseif id:match("^cont:") then
+        spawn(w, p, { SCRIPT, "new", id:sub(6), "--continue" })
       elseif id:match("^new:") then
         spawn(w, p, { SCRIPT, "new", id:sub(5) })
       end
