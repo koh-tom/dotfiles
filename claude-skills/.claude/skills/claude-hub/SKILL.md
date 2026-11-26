@@ -14,7 +14,7 @@ description: このユーザーの Claude Code の「母艦」(常時起動の�
     window 1 "rc"      : claude remote-control --name hub  (作業場所 ~/hub。スマホから新しいセッションを始める待ち受け)
     window 2.. 各作業  : claude (プロジェクトごと。Remote Control が自動で有効)
 ラップトップ (Omarchy) ─ ssh ─┐   SUPER+ALT+H または claude-hub
-自宅 Windows / Ubuntu ─ ssh ──┘   ssh -t <母艦> '~/.local/bin/tmux -u -L hub -f ~/.config/dotfiles/claude-hub-tmux.conf new -A -s claude'
+自宅 Windows / Ubuntu / スマホの端末 ─ ssh ─┘   ssh -t <母艦> ~/.local/bin/hub   (母艦の上で一覧が出る)
 スマホ ── Claude アプリの Code タブ (Remote Control。確認待ちはプッシュ通知)
 ```
 
@@ -37,7 +37,8 @@ cat ~/.config/dotfiles/claude-hub 2>/dev/null                # あればラッ�
 | | |
 |---|---|
 | WezTerm の LEADER+Shift+h | 一覧から選ぶ: ● 動いている Claude (その窓だけを新しいタブで) / ↻ そのリポジトリでの前回の会話の続き (窓が開いていない場所だけ) / ＋ 母艦のリポジトリ (そこで新しい Claude) / 母艦全体 |
-| `hub` / SUPER+ALT+H | 母艦の tmux につなぐ (無ければ作る。全部の窓を行き来する) |
+| `hub` / SUPER+ALT+H | **端末だけで完結する一覧** (WezTerm の一覧と同じ ● ↻ ＋。fzf が無ければ番号で選ぶ)。母艦の上でも動き、母艦の tmux の中から呼ぶと入れ子にせず切り替える |
+| `hub attach` | 母艦の tmux につなぐ (無ければ作る。全部の窓を行き来する) |
 | `hub new <dir> [--continue]` | 母艦の `<dir>` で新しい Claude を開き、その窓だけをつなぐ (`~` は母艦の home)。`--continue` でそこでの前回の会話の続き |
 | `hub open <n>` | 母艦の窓 n だけをつなぐ (claude にグループした使い捨てセッション。切断で消える。端末のタブごとに別の窓を見られる) |
 | `hub ls` / `hub repos` | 動いている窓 / 母艦の git リポジトリ (home から3階層、隠しフォルダ以外、外付けへのリンクもたどる) |
@@ -55,7 +56,7 @@ ssh 越しの tmux コマンドには必ず `-u` を付ける (付けないと�
 
 `setup` がやること: mise で tmux を入れて `~/.local/bin/tmux` にリンク (sudo 不要)、
 `~/.claude/settings.json` に `"remoteControlAtStartup": true`、`~/hub` を作って信頼済みにする、
-`claude-hub.service` を有効化 (動いていれば tmux の設定を読み直す)、このスキルと非公開メモを母艦にも配る。
+`claude-hub.service` を有効化 (動いていれば tmux の設定を読み直す)、母艦の `~/.local/bin/hub` (→ `~/hub/dotfiles/scripts/claude-hub`) と母艦用の `~/.config/dotfiles/claude-hub` (localhost) を作る、このスキルと非公開メモを母艦にも配る。
 
 ## 母艦の注意点
 
