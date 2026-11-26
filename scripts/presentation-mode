@@ -1,5 +1,5 @@
 #!/bin/bash
-# 発表モード: pdfpc を開いているか、画面共有 (xdg-desktop-portal-hyprland の配信) をしている間は
+# 発表モード: pdfpc か presenterm (端末のスライド。scripts/slides) を開いているか、画面共有 (xdg-desktop-portal-hyprland の配信) をしている間は
 # 通知を止める (Omarchy の「通知を止める」= Do Not Disturb)。終わったら元に戻す。
 # 自分で DND を入れていた場合は、終わっても勝手に切らない。
 # systemd user service (presentation-mode.service) が常駐して数秒ごとに確認する。
@@ -13,6 +13,8 @@ state_file="${XDG_RUNTIME_DIR:-/tmp}/dotfiles-presentation-mode"
 
 presenting() {
   pgrep -x pdfpc >/dev/null && return 0
+  # 端末のスライドで発表中 (presenterm -p。書いている途中のプレビューは発表扱いにしない)
+  pgrep -f '(^|/)presenterm .*(-p|--present)( |$)' >/dev/null && return 0
   # 画面共有中は xdph が PipeWire に映像のノードを出している
   pw-dump 2>/dev/null | jq -e '
     any(.[]; .type == "PipeWire:Interface:Node"
