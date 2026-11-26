@@ -1,0 +1,2 @@
+# themes/omarchy.yaml は scripts/generate-cli-theme が Omarchy の配色から作る (stow でこのフォルダごとリンクされるため)
+themes/

@@ -1,0 +1,17 @@
+# presenterm (端末で Markdown のスライドを発表する) の設定。scripts/slides から使う。
+# 配色 omarchy は scripts/generate-cli-theme がテーマを替えるたびに themes/omarchy.yaml へ作る。
+defaults:
+  theme: omarchy
+  # WezTerm は iTerm2 / kitty の画像プロトコルが使える。auto で端末から判定する
+  image_protocol: auto
+  # 横に広い画面でも読みやすい幅に収めて中央へ
+  max_columns: 110
+  max_columns_alignment: center
+  validate_overflows: when_developing
+
+options:
+  # 「## 見出し」で次のスライドが始まる (<!-- end_slide --> を書かなくてよい)。--- でも区切れる
+  implicit_slide_ends: true
+  end_slide_shorthand: true
+  # 「# 見出し」もスライドのタイトルとして扱う
+  h1_slide_titles: true
