@@ -219,6 +219,13 @@ if os.path.exists(p):
 print("待ち受けの場所: ~/hub")
 PY
 
+# 母艦の上でも hub で一覧を出せるようにする (Windows やスマホの端末から ssh -t <母艦> ~/.local/bin/hub)
+if [ -x "$HOME/hub/dotfiles/scripts/claude-hub" ]; then
+  ln -sf "$HOME/hub/dotfiles/scripts/claude-hub" "$HOME/.local/bin/hub"
+  [ -s "$HOME/.config/dotfiles/claude-hub" ] || echo localhost >"$HOME/.config/dotfiles/claude-hub"
+  echo "母艦の上の hub: ~/.local/bin/hub"
+fi
+
 # 自動起動: 再起動しても tmux の母艦と、スマホから新しいセッションを始めるための待ち受けを立てる
 unit="$HOME/.config/systemd/user/claude-hub.service"
 mkdir -p "${unit%/*}"
