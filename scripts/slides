@@ -1,0 +1,149 @@
+#!/bin/bash
+# 端末で Markdown のスライドを作って発表する (presenterm)。配色は Omarchy のテーマに合わせて自動で作られる。
+#
+#   slides new <file.md>     ひな形から新しいスライドを作る (タイトル・コード・画像・2段組・発表者ノートの例入り)
+#   slides edit <file.md>    nvim で書きながら、右に同じスライドのプレビュー (保存すると即反映)
+#   slides <file.md>         発表する (全画面、通知は自動で止まる。終わると元に戻る)
+#   slides notes <file.md>   発表者ノートを別の窓に出す (発表中の slides と連動してページが進む)
+#   slides pdf <file.md>     PDF に書き出す (HTML なら slides html <file.md>)
+#
+# 発表中のキー: → / Space / l 次、← / h 前、数字+G でその番号へ、Ctrl+P 一覧、Ctrl+R 読み直し、? キー一覧、q 終わる。
+# ssh 越し (母艦など) でも動く。全画面と通知止めはこの PC (Hyprland) の上のときだけ。
+set -euo pipefail
+
+need_presenterm() {
+  command -v presenterm >/dev/null || {
+    echo "presenterm がありません: mise install (dotfiles の mise の設定に入っています)" >&2
+    exit 1
+  }
+}
+
+need_file() {
+  [[ -n ${1:-} ]] || { echo "ファイルを指定してください (例: slides talk.md)" >&2; exit 1; }
+  [[ -r $1 ]] || { echo "ファイルがありません: $1  (新しく作るなら slides new $1)" >&2; exit 1; }
+}
+
+on_hyprland() { [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} && -z ${SSH_CONNECTION:-} ]] && command -v hyprctl >/dev/null; }
+
+fullscreen() { # toggle
+  on_hyprland || return 0
+  "$HOME/dotfiles/scripts/hypr-dispatch" 'hl.dsp.window.fullscreen({ mode = "fullscreen", action = "toggle" })' fullscreen 0 >/dev/null 2>&1 || true
+}
+
+new_deck() {
+  local file=${1:?ファイル名を指定してください (例: slides new talk.md)}
+  [[ $file == *.md ]] || file+=.md
+  [[ -e $file ]] && { echo "もうあります: $file" >&2; exit 1; }
+  cat >"$file" <<'MD'
+---
+title: タイトル
+sub_title: サブタイトル
+author: 名前
+---
+
+## 今日の話
+
+- 1つ目
+- 2つ目
+- 3つ目
+
+<!-- speaker_note: ここに書いたことは slides notes の窓にだけ出る -->
+
+## コード
+
+```python
+def hello(name: str) -> str:
+    return f"こんにちは、{name}"
+```
+
+## 2段組
+
+<!-- column_layout: [1, 1] -->
+
+<!-- column: 0 -->
+
+### 左
+
+- 図や表の説明
+
+<!-- column: 1 -->
+
+### 右
+
+> 引用やまとめ
+
+<!-- reset_layout -->
+
+## 画像
+
+<!-- 画像はこのファイルからの相対パスで。WezTerm ならそのまま表示される -->
+<!-- ![](images/figure.png) -->
+
+## まとめ
+
+<!-- incremental_lists: true -->
+
+- 1つずつ出る
+- 2つ目
+- 3つ目
+MD
+  echo "作りました: $file  (書く: slides edit $file / 発表: slides $file)"
+}
+
+edit_deck() {
+  local file=$1
+  need_file "$file"
+  need_presenterm
+  # WezTerm の中なら右にプレビューを分割して出す (presenterm は保存を検知して作り直す)
+  if [[ -n ${WEZTERM_PANE:-} ]] && command -v wezterm >/dev/null; then
+    wezterm cli split-pane --right --percent 50 --cwd "$PWD" -- presenterm "$file" >/dev/null
+    exec nvim "$file"
+  fi
+  echo "WezTerm の外なので、別の端末で: presenterm $file (プレビュー)" >&2
+  exec nvim "$file"
+}
+
+present() {
+  local file=$1
+  need_file "$file"
+  need_presenterm
+  fullscreen
+  # -p: 発表モード (書いている途中の注意表示を出さない)。ノートは slides notes の窓に送る
+  presenterm -p --publish-speaker-notes "$file" || true
+  fullscreen
+}
+
+notes() {
+  local file=$1
+  need_file "$file"
+  need_presenterm
+  if on_hyprland && command -v wezterm >/dev/null; then
+    setsid -f wezterm start --always-new-process --cwd "$PWD" -- presenterm --listen-speaker-notes "$file" >/dev/null 2>&1
+    echo "発表者ノートを別の窓に出しました (発表中の slides と一緒にページが進みます)"
+  else
+    exec presenterm --listen-speaker-notes "$file"
+  fi
+}
+
+export_pdf() {
+  local file=$1
+  need_file "$file"
+  need_presenterm
+  # PDF には weasyprint が要る。入れずに uv で一時的に使う
+  if command -v weasyprint >/dev/null; then
+    presenterm --export-pdf "$file"
+  else
+    uv run --quiet --with weasyprint presenterm --export-pdf "$file"
+  fi
+}
+
+case ${1:-} in
+  new) shift; new_deck "$@" ;;
+  edit) shift; edit_deck "${1:-}" ;;
+  notes) shift; notes "${1:-}" ;;
+  pdf) shift; export_pdf "${1:-}" ;;
+  html) shift; need_file "${1:-}"; need_presenterm; presenterm --export-html "$1" ;;
+  present) shift; present "${1:-}" ;;
+  "" | -h | --help) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//' ;;
+  *) present "$1" ;;
+esac
