@@ -61,7 +61,7 @@ local function choose(window, pane)
     action = wezterm.action_callback(function(w, p, id)
       if not id then return end
       if id == "attach" then
-        spawn(w, p, { SCRIPT })
+        spawn(w, p, { SCRIPT, "attach" })
       elseif id:match("^open:") then
         spawn(w, p, { SCRIPT, "open", id:sub(6) })
       elseif id:match("^cont:") then
