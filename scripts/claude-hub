@@ -4,7 +4,9 @@
 #   - PC から: claude-hub (ssh で母艦の tmux につなぐ。閉じても Claude は動き続ける)
 #   - スマホから: Claude アプリの Code タブ (母艦の Claude は Remote Control を自動で有効にする)
 #
-#   claude-hub              母艦の tmux につなぐ (無ければ作る。全部の窓を行き来できる)
+#   claude-hub              一覧から選んで開く: ● 動いている Claude / ↻ 前回の会話の続き / ＋ 新しい Claude / 母艦全体
+#                           (端末だけで完結する。fzf があれば fzf、無ければ番号で選ぶ。母艦の上でも動く)
+#   claude-hub attach       母艦の tmux につなぐ (無ければ作る。全部の窓を行き来できる)
 #   claude-hub new <dir>    母艦の <dir> で新しい Claude を開いてつなぐ (例: claude-hub new ~/src/myproject)
 #   claude-hub new <dir> --continue   同じく、ただしそこでの前回の会話の続きから (claude --continue)
 #   claude-hub open <n>     母艦の窓 n だけを開く (端末のタブごとに別の Claude を表示できる)
@@ -15,7 +17,8 @@
 #
 # 母艦のホスト名は ~/.config/dotfiles/claude-hub に1行で書く (公開リポジトリには書かない)。
 # 仕組みの詳しい説明は Claude のスキル claude-hub (claude-skills/.claude/skills/claude-hub/SKILL.md)。
-# 母艦の上で実行したときは ssh せずにその場で動く。
+# 母艦の上で実行したときは ssh せずにその場で動く (母艦の ~/.config/dotfiles/claude-hub は localhost)。
+# Windows やスマホの端末からは: ssh -t <母艦> ~/.local/bin/hub
 set -euo pipefail
 
 CONF_FILE=${XDG_CONFIG_HOME:-$HOME/.config}/dotfiles/claude-hub
@@ -47,7 +50,16 @@ on_hub() {
   fi
 }
 
+# 母艦の tmux の中から呼ばれたら、入れ子にせず今のクライアントを切り替える
+in_hub_tmux() {
+  is_local && [[ ${TMUX:-} == */hub,* ]]
+}
+
 attach() {
+  if in_hub_tmux; then
+    eval "$TMUX_CMD switch-client -t claude"
+    return
+  fi
   on_hub -t "$TMUX_CMD new-session -A -s claude -c \"\$HOME\""
 }
 
@@ -56,6 +68,10 @@ attach() {
 open_window() {
   local idx=${1:?窓の番号を指定してください}
   [[ $idx =~ ^[0-9]+$ ]] || { echo "窓の番号は数字です: $idx" >&2; exit 1; }
+  if in_hub_tmux; then
+    eval "$TMUX_CMD switch-client -t claude:$idx"
+    return
+  fi
   on_hub -t "$TMUX_CMD new-session -t claude \; set-option destroy-unattached on \; select-window -t :$idx"
 }
 
@@ -95,6 +111,54 @@ done'
 menu() {
   on_hub "$TMUX_CMD list-windows -t claude -F 'open	#I	#W	#{pane_current_path}' 2>/dev/null | sed \"s#	\$HOME#	~#\"
     $MENU_REPOS_CMD"
+}
+
+# 一覧から選ぶ (端末だけで完結。WezTerm の LEADER+Shift+h と同じ中身)
+pick() {
+  local out
+  out=$(menu) || { echo "母艦につなげませんでした ($host)" >&2; exit 1; }
+  local -a labels=("󰚩  母艦全体 (すべての窓を行き来する)") actions=("attach")
+  local -A opened=()
+  local kind a b c
+  while IFS=$'\t' read -r kind a b c; do
+    [[ $kind == open ]] || continue
+    opened[$c]=1
+    labels+=("●  $a  $b   $c"); actions+=("open $a")
+  done <<<"$out"
+  # 同じ会話を2つで動かさないよう、窓が開いている場所の ↻ ＋ は出さない。母艦自身の ~/dotfiles (母艦の設定) も出さない
+  local want
+  for want in cont new; do
+    while IFS=$'\t' read -r kind a _; do
+      # shellcheck disable=SC2088  # ~/dotfiles は母艦から届く文字列そのもの (展開しない)
+      [[ $kind == "$want" && -z ${opened[$a]:-} && $a != "~/dotfiles" ]] || continue
+      if [[ $want == cont ]]; then
+        labels+=("↻  $a  の前回の会話の続き"); actions+=("cont $a")
+      else
+        labels+=("＋  $a  で新しい Claude"); actions+=("new $a")
+      fi
+    done <<<"$out"
+  done
+
+  local i choice=""
+  if [[ -z ${HUB_NO_FZF:-} ]] && command -v fzf >/dev/null; then  # HUB_NO_FZF=1 で番号の選択にする
+    choice=$(for i in "${!labels[@]}"; do printf '%s\t%s\n' "$i" "${labels[$i]}"; done |
+      fzf --delimiter=$'\t' --with-nth=2 --prompt="母艦> " --height=60% --reverse --no-sort \
+        --header="● 動いている Claude   ↻ 前回の続き   ＋ 新しく始める   (Esc でやめる)" | cut -f1) || exit 0
+  else
+    echo "● 動いている Claude   ↻ 前回の続き   ＋ 新しく始める"
+    for i in "${!labels[@]}"; do printf '%3d) %s\n' "$((i + 1))" "${labels[$i]}"; done
+    read -r -p "番号 (Enter でやめる): " i || exit 0
+    [[ $i =~ ^[0-9]+$ ]] && ((i >= 1 && i <= ${#labels[@]})) || exit 0
+    choice=$((i - 1))
+  fi
+  [[ -n $choice ]] || exit 0
+  local action=${actions[$choice]}
+  case $action in
+    attach) attach ;;
+    "open "*) open_window "${action#open }" ;;
+    "cont "*) new_claude "${action#cont }" --continue ;;
+    "new "*) new_claude "${action#new }" ;;
+  esac
 }
 
 setup() {
@@ -188,13 +252,18 @@ REMOTE
 }
 
 case ${1:-} in
-  "" | attach) attach ;;
+  "")
+    # 端末から呼ばれたら一覧で選ぶ。端末でない (スクリプトなど) ときは従来どおりつなぐだけ
+    if [[ -t 0 && -t 1 ]]; then pick; else attach; fi
+    ;;
+  attach) attach ;;
+  pick) pick ;;
   new) shift; new_claude "$@" ;;
   open) shift; open_window "$@" ;;
   ls | list) list ;;
   repos) repos ;;
   menu) menu ;;
   setup) setup ;;
-  -h | --help) sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//' ;;
-  *) echo "usage: claude-hub [new <dir> | open <n> | ls | repos | setup]" >&2; exit 1 ;;
+  -h | --help) sed -n '2,21p' "$0" | sed 's/^# \{0,1\}//' ;;
+  *) echo "usage: claude-hub [attach | new <dir> [--continue] | open <n> | ls | repos | setup]" >&2; exit 1 ;;
 esac
