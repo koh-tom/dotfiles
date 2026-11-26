@@ -28,6 +28,8 @@ shellcheck = "latest"
 hyperfine = "latest"
 "aqua:dalance/procs" = "latest"
 "aqua:bootandy/dust" = "latest"
+# presenterm: Markdown のスライドを端末で発表する (画像・コードの強調・発表者ノート)。配色は generate-cli-theme が Omarchy から作る
+"github:mfontanini/presenterm" = "latest"
 # --- Modern Shell UX ---
 # atuin: シェル履歴DB (Ctrl+R)。difftastic: 構文差分 (git dft / lazygit)
 # television: 高速fuzzyランチャー (tv)。carapace: 1000+コマンドの補完 (fzf-tab経由で表示)
