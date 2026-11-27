@@ -4,6 +4,8 @@
 #   slides new <file.md>     ひな形から新しいスライドを作る (タイトル・コード・画像・2段組・発表者ノートの例入り)
 #   slides edit <file.md>    nvim で書きながら、右に同じスライドのプレビュー (保存すると即反映)
 #   slides <file.md>         発表する (全画面、通知は自動で止まる。終わると元に戻る)
+#   slides <file.pdf|pptx>   PowerPoint や Marp で作ったスライドも、1 ページずつ画像にして端末で発表する
+#                            (同じ名前の Marp の .md があれば、その <!-- --> の読み原稿を発表者ノートにする)
 #   slides notes <file.md>   発表者ノートを別の窓に出す (発表中の slides と連動してページが進む)
 #   slides pdf <file.md>     PDF に書き出す (HTML なら slides html <file.md>)
 #
@@ -21,6 +23,34 @@ need_presenterm() {
 need_file() {
   [[ -n ${1:-} ]] || { echo "ファイルを指定してください (例: slides talk.md)" >&2; exit 1; }
   [[ -r $1 ]] || { echo "ファイルがありません: $1  (新しく作るなら slides new $1)" >&2; exit 1; }
+}
+
+# PDF / PPTX は ~/.cache/slides に画像のスライドを作って、その deck.md を使う (元のファイルが新しくなったら作り直す)
+deck_of() {
+  local file=$1
+  case ${file,,} in
+    *.pdf | *.pptx | *.ppt | *.odp) ;;
+    *) printf '%s\n' "$file"; return ;;
+  esac
+  local src base cache pdf notes=()
+  src=$(realpath "$file")
+  base=$(basename "${src%.*}")
+  cache="${XDG_CACHE_HOME:-$HOME/.cache}/slides/$base-$(printf '%s' "$src" | md5sum | cut -c1-8)"
+  if [[ ! -f $cache/deck.md || $src -nt $cache/deck.md ]]; then
+    mkdir -p "$cache"
+    if [[ ${src,,} == *.pdf ]]; then
+      pdf=$src
+    else
+      echo "PDF にしています: $(basename "$src")" >&2
+      soffice --headless --convert-to pdf --outdir "$cache" "$src" >/dev/null 2>&1 || true
+      pdf=$cache/$base.pdf
+      [[ -f $pdf ]] || { rm -rf "$cache"; echo "LibreOffice で PDF にできませんでした。PowerPoint などで PDF に書き出して、slides <その.pdf> で" >&2; exit 1; }
+    fi
+    [[ -f ${src%.*}.md ]] && grep -q '^marp: *true' "${src%.*}.md" && notes=("${src%.*}.md")
+    echo "スライドを画像にしています: $(basename "$src")" >&2
+    "$HOME/dotfiles/scripts/slides-from-pdf" "$pdf" "$cache" "${notes[@]}" >/dev/null
+  fi
+  printf '%s\n' "$cache/deck.md"
 }
 
 on_hyprland() { [[ -n ${HYPRLAND_INSTANCE_SIGNATURE:-} && -z ${SSH_CONNECTION:-} ]] && command -v hyprctl >/dev/null; }
@@ -107,6 +137,7 @@ present() {
   local file=$1
   need_file "$file"
   need_presenterm
+  file=$(deck_of "$file")
   fullscreen
   # -p: 発表モード (書いている途中の注意表示を出さない)。ノートは slides notes の窓に送る
   presenterm -p --publish-speaker-notes "$file" || true
@@ -117,6 +148,7 @@ notes() {
   local file=$1
   need_file "$file"
   need_presenterm
+  file=$(deck_of "$file")
   if on_hyprland && command -v wezterm >/dev/null; then
     setsid -f wezterm start --always-new-process --cwd "$PWD" -- presenterm --listen-speaker-notes "$file" >/dev/null 2>&1
     echo "発表者ノートを別の窓に出しました (発表中の slides と一緒にページが進みます)"
