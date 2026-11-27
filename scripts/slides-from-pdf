@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+"""PDF (や PPTX から書き出した PDF) を、1 ページ = 1 枚の画像の presenterm スライドにする。
+
+    slides-from-pdf <in.pdf> <out_dir> [notes.md]
+
+out_dir に page-NN.png と deck.md を作る。notes.md (Marp の .md) を渡すと、各スライドの
+<!-- ... --> の読み原稿 (Marp の発表者ノート。_class などの指定は除く) を presenterm の発表者ノートにする。
+scripts/slides が呼ぶ (slides <file.pdf|file.pptx>)。
+"""
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+DIRECTIVE = re.compile(r"^\s*_?[a-zA-Z]+\s*:")  # Marp の指定 (<!-- _class: title --> など)
+
+
+def marp_notes(md: str) -> list[list[str]]:
+    """Marp の .md をスライドに分け、各スライドの発表者ノート (指定でない HTML コメント) を返す"""
+    lines = md.splitlines()
+    if lines and lines[0].strip() == "---":  # front matter を飛ばす
+        end = next((i for i in range(1, len(lines)) if lines[i].strip() == "---"), 0)
+        lines = lines[end + 1 :]
+    slides, cur, fence = [], [], None
+    for line in lines:
+        m = re.match(r"^\s*(```+|~~~+)", line)
+        if m:
+            fence = None if fence and m.group(1).startswith(fence) else (fence or m.group(1))
+        if fence is None and line.strip() == "---":
+            slides.append("\n".join(cur))
+            cur = []
+        else:
+            cur.append(line)
+    slides.append("\n".join(cur))
+    notes = []
+    for s in slides:
+        s = re.sub(r"```.*?```", "", s, flags=re.S)
+        found = [c.strip() for c in re.findall(r"<!--(.*?)-->", s, flags=re.S)]
+        notes.append([c for c in found if c and not DIRECTIVE.match(c)])
+    return notes
+
+
+def main() -> int:
+    if len(sys.argv) < 3:
+        print(__doc__.strip(), file=sys.stderr)
+        return 2
+    pdf, out = Path(sys.argv[1]), Path(sys.argv[2])
+    out.mkdir(parents=True, exist_ok=True)
+    for old in out.glob("page-*.png"):
+        old.unlink()
+    # 144dpi (Marp の 16:9 = 960pt なら 1920px 幅) で書き出す
+    subprocess.run(["pdftoppm", "-q", "-png", "-r", "144", str(pdf), str(out / "page")], check=True)
+    pages = sorted(out.glob("page-*.png"))
+    notes = marp_notes(Path(sys.argv[3]).read_text()) if len(sys.argv) > 3 else []
+    if notes and len(notes) != len(pages):
+        print(f"注意: .md のスライド数 ({len(notes)}) と PDF のページ数 ({len(pages)}) が違うので、ノートがずれるかもしれません", file=sys.stderr)
+
+    parts = [
+        "---\ntheme:\n  override:\n    footer:\n      style: empty\n---\n",  # 下の帯は元のスライドにあるので出さない
+    ]
+    for i, page in enumerate(pages):
+        body = f"![image:width:100%]({page.name})\n"
+        for n in notes[i] if i < len(notes) else []:
+            body += "\n<!--\nspeaker_note: |\n" + "\n".join("  " + l for l in n.splitlines()) + "\n-->\n"
+        parts.append(body)
+    (out / "deck.md").write_text(parts[0] + "\n" + "\n<!-- end_slide -->\n\n".join(parts[1:]))
+    print(out / "deck.md")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
