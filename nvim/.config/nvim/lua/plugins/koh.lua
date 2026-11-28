@@ -14,6 +14,13 @@ return {
     keys = {
       -- 日本語入力の取り回し: jjでインサート脱出
       { "jj", "<Esc>", mode = "i", desc = "Escape insert mode" },
+      -- F1 で日本語の操作の早見表 (lua/koh/cheatsheet.lua)。本来の英語のヘルプは :help
+      {
+        "<F1>",
+        function() require("koh.cheatsheet").toggle() end,
+        mode = { "n", "i", "v" },
+        desc = "早見表",
+      },
     },
   },
 }
