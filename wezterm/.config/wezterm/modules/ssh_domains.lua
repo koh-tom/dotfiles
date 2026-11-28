@@ -6,7 +6,7 @@ local wezterm = require("wezterm")
 local act = wezterm.action
 local module = {}
 
-local function tailscale_peers()
+local function tailscale_peers_now()
   local p = io.popen("tailscale status --json 2>/dev/null")
   if not p then return {} end
   local out = p:read("a")
@@ -21,6 +21,11 @@ local function tailscale_peers()
   end
   table.sort(peers, function(a, b) return a.name < b.name end)
   return peers
+end
+
+-- 設定は nvim を開く・閉じるたびに読み直されるので、一覧は 1 分覚えておく (modules/memo)
+local function tailscale_peers()
+  return require("modules.memo").get("tailscale_peers", tailscale_peers_now, { ttl = 60 }) or {}
 end
 
 function module.apply_to_config(config)
