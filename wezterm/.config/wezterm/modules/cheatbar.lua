@@ -52,7 +52,7 @@ local CONTEXTS = {
   nvim = {
     name = "nvim", icon = "", color = palette.color2,
     keys = {
-      { "␣␣", "files" }, { "␣/", "grep" }, { "␣e", "explorer" }, { "␣fr", "recent" },
+      { "F1", "早見表" }, { "␣␣", "files" }, { "␣/", "grep" }, { "␣e", "explorer" }, { "␣fr", "recent" },
       { "␣gg", "lazygit" }, { "gd", "definition" }, { "gr", "references" }, { "K", "hover" },
       { "␣ca", "action" }, { "␣cr", "rename" }, { "]d [d", "diagnostic" }, { "⇧H ⇧L", "buffer" },
       { "␣bd", "close buf" }, { "gcc", "comment" }, { "␣xx", "trouble" }, { "␣sk", "keymaps" },
