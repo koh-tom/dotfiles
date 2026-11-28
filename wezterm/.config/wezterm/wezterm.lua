@@ -14,18 +14,27 @@ config.automatically_reload_config = true
 
 -- Omarchyの現在フォントを使用し、取得できない場合はNerd Fontへフォールバック
 config.font_size = 12.0
-local font_name = "JetBrainsMono Nerd Font"
-local font_ok, font_stdout = wezterm.run_child_process({ "omarchy", "font", "current" })
-if font_ok and font_stdout and font_stdout:match("%S") then
-	font_name = font_stdout:gsub("%s+$", "")
-end
+-- 外部コマンドの結果は modules/memo で覚える (この設定は nvim を開く・閉じるたびに読み直されるため)。
+-- フォントは fontconfig が正本なので、fonts.conf の中身が変わったら (omarchy font set) 調べ直す
+local memo = require("modules.memo")
+local fonts_stamp = memo.read(wezterm.home_dir .. "/.config/fontconfig/fonts.conf")
+local font_name = memo.get("font", function()
+	local ok, out = wezterm.run_child_process({ "omarchy", "font", "current" })
+	if ok and out and out:match("%S") then
+		return (out:gsub("%s+$", ""))
+	end
+	return "JetBrainsMono Nerd Font"
+end, { stamp = fonts_stamp })
 -- 日本語は Noto Sans CJK JP を明示する (書かないと新しく開いた窓で日本語フォントの検索に数秒かかり、その間は □ になる)
 config.font = wezterm.font_with_fallback({ font_name, "JetBrainsMono Nerd Font", "JetBrains Mono", "Noto Sans CJK JP" })
 
 -- 斜体 (コメント等) だけ手書き風の Monaspace Radon にする。未インストールなら通常の斜体のまま
 -- (pacman -S otf-monaspace)。require内ではrun_child_processが使えないのでここで判定する
-local radon_ok, radon_out = wezterm.run_child_process({ "fc-list", "Monaspace Radon" })
-if radon_ok and radon_out:match("%S") then
+local has_radon = memo.get("radon", function()
+	local ok, out = wezterm.run_child_process({ "fc-list", "Monaspace Radon" })
+	return ok and out:match("%S") ~= nil
+end, { stamp = fonts_stamp })
+if has_radon then
 	config.font_rules = {
 		{
 			italic = true,
@@ -118,8 +127,9 @@ require("modules.opacity").apply_to_config(config)
 require("modules.claude_session").apply_to_config(config)
 require("modules.project_cockpit").apply_to_config(config)
 local function has_command(name)
-	local ok = wezterm.run_child_process({ "sh", "-lc", "command -v " .. wezterm.shell_quote_arg(name) })
-	return ok
+	return memo.get("cmd:" .. name, function()
+		return (wezterm.run_child_process({ "sh", "-lc", "command -v " .. wezterm.shell_quote_arg(name) }))
+	end, { ttl = 3600 })
 end
 
 if has_command("aws") then
