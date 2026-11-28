@@ -27,6 +27,7 @@ end
 
 -- 個人設定 (.conf の source 順に対応)
 require("hypr.monitors")
+require("hypr.personal.monitor-guard")      -- 使える画面が 0 なら内蔵画面を点ける (真っ黒で起動しない)
 require("hypr.input")
 require("hypr.bindings")
 require("hypr.looknfeel")
