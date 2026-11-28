@@ -1,5 +1,9 @@
 local wezterm = require("wezterm")
-local config = wezterm.config_builder()
+-- config_builder() は使わない: 代入のたびに設定全体を検査するので、この設定では読み込みに約 270ms かかる。
+-- WezTerm は nvim を開く・閉じるたびに (cheatbar の set_config_overrides で) この設定を読み直すため、
+-- そのたびに画面が止まっていた。普通の表なら約 36ms。代わりに、知らないキーの警告は出なくなる
+-- (書き間違いを調べるときは一時的に config_builder() に戻して wezterm show-keys を実行する)。
+local config = {}
 
 -- =============================================================================
 -- 一般設定
