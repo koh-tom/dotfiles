@@ -98,7 +98,8 @@
             "dirty": "#f0b232",
             "ahead": "#58a6ff"
           },
-          "padding": 10
+          "padding": 10,
+          "hideWhenEmpty": true
         },
         {
           "id": "ci",
