@@ -63,7 +63,9 @@ venue = "H" if "Tottenham" in home else "A"
 league = e.get("strLeague", "")
 is_matchday = local.date() == datetime.now().date()
 
-text = f"󱟃 vs {opponent} {local.strftime('%-m/%-d %H:%M')}"
+# 当日は日付を省く (バーの幅を取りすぎて隣の表示と重なるため)
+when = local.strftime('%H:%M') if is_matchday else local.strftime('%-m/%-d %H:%M')
+text = f"󱟃 vs {opponent} {when}"
 tooltip = f"{home} vs {away}\n{league} ({venue})\n{local.strftime('%Y-%m-%d %H:%M')} kickoff"
 print(json.dumps({
     "text": text,
